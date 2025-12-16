@@ -1,41 +1,82 @@
-import { StyleSheet, Text, TextInput, Pressable, View } from 'react-native';
-import { Link } from 'expo-router';
+import { StyleSheet, Pressable, Text, View, Image, TextInput } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const checkSurvey = async () => {
+      const completed = await AsyncStorage.getItem('surveyCompleted');
+      if (completed === 'true') {
+        // If already completed, land on home when logging in
+        // (in a real app, you'd still validate credentials)
+      }
+    };
+    checkSurvey();
+  }, []);
+
+  const onLogin = async () => {
+    // TODO: integrate real auth; for now, accept any non-empty
+    if (!email || !password) return;
+    setSubmitting(true);
+    try {
+      // Existing users go directly to home
+      router.replace('/(tabs)/home');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.card}>
-        <ThemedText type="title" style={styles.title}>
-          Login
-        </ThemedText>
+        <View style={styles.backRow}>
+          <Pressable onPress={() => router.replace('/')}>
+            <Text style={styles.backText}>← </Text>
+          </Pressable>
+        </View>
+        <Image
+          source={require('C:/Users/Janam/Desktop/projects/MyBean_App/frontend/assets/images/beandark.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
+        <ThemedText style={styles.title}>Welcome Back</ThemedText>
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          keyboardType="email-address"
-          autoCapitalize="none"
+          placeholder="Email or Username"
+          placeholderTextColor="#A4CDD3"
+          value={email}
+          onChangeText={setEmail}
         />
-
         <TextInput
           style={styles.input}
           placeholder="Password"
+          placeholderTextColor="#A4CDD3"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
 
-        <Pressable style={styles.loginButton}>
-          <Text style={styles.loginText}>Login</Text>
+        <Pressable style={styles.mainButton} onPress={onLogin} disabled={submitting}>
+          <Text style={styles.mainButtonText}>Log In</Text>
         </Pressable>
 
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Don’t have an account? </Text>
-          <Link href="/signup" asChild>
-            <Pressable>
-              <Text style={[styles.signupText, styles.signupLink]}>Sign Up</Text>
-            </Pressable>
-          </Link>
-        </View>
+        <Pressable style={styles.googleButton}>
+          <Text style={styles.googleText}>Sign in with Google</Text>
+        </Pressable>
+
+        <Pressable onPress={() => router.push('/(tabs)/signup')}>
+          <Text style={styles.footerText}>Don’t have an account? Sign up</Text>
+        </Pressable>
       </View>
     </ThemedView>
   );
@@ -47,61 +88,83 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#12454E', 
+    backgroundColor: '#09282eff',
+  },
+  backRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 4,
+  },
+  backText: {
+    color: '#E8FBFF',
+    fontSize: 25,
+    lineHeight: 15,
   },
   card: {
     width: '90%',
-    paddingVertical: 40,
+    paddingVertical: 34,
     paddingHorizontal: 24,
-    backgroundColor: '#1A5A65',
+    backgroundColor: '#0f3a41ff',
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 5,
     alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#2F9BA8',
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 2,
   },
   title: {
-    fontSize: 32,
+    fontSize: 20,
+    color: '#E8FBFF',
     fontWeight: '700',
-    marginBottom: 24,
-    color: '#1E2A38',
+    marginBottom: 6,
   },
   input: {
     width: '100%',
-    borderWidth: 1,
-    borderColor: '#FFB6C1',
+    backgroundColor: '#11464e',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
+    fontSize: 15,
+    color: '#E8FBFF',
+    borderWidth: 1,
+    borderColor: '#2F9BA8',
   },
-  loginButton: {
-    backgroundColor: '#FFB6C1',
-    paddingVertical: 16,
+  mainButton: {
+    width: '100%',
+    backgroundColor: '#FED8FE',
+    paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
-    width: '100%',
-    marginTop: 8,
+    marginTop: 6,
   },
-  loginText: {
-    color: 'white',
-    fontWeight: '600',
+  mainButtonText: {
+    color: '#12454E',
+    fontWeight: '700',
     fontSize: 16,
   },
-  signupContainer: {
-    flexDirection: 'row',
-    marginTop: 16,
-    justifyContent: 'center',
+  googleButton: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FDFECC',
+    backgroundColor: 'rgba(253, 254, 204, 0.1)',
+    marginTop: 4,
   },
-  signupText: {
-    fontSize: 14,
-    color: '#555',
-  },
-  signupLink: {
-    color: '#FFB6C1',
+  googleText: {
+    color: '#FDFECC',
+    fontSize: 15,
     fontWeight: '600',
+  },
+  footerText: {
+    marginTop: 8,
+    color: '#FED8FE',
+    fontSize: 13,
   },
 });

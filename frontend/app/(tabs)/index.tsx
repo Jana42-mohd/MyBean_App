@@ -1,3 +1,6 @@
+// @ts-nocheck
+import React from 'react';
+// @ts-ignore
 import { StyleSheet, Pressable, Text, View, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -5,12 +8,14 @@ import { ThemedView } from '@/components/themed-view';
 
 export default function HomeScreen() {
   const router = useRouter();
-  
+  const goSignup = () => router.push('/(tabs)/signup');
+  const goLogin = () => router.push('/(tabs)/login');
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.card}>
         <Image
-          source={require('C:/Users/Janam/Desktop/babyCareApp/frontend/assets/images/beandark.png')} 
+          source={require('C:/Users/Janam/Desktop/projects/MyBean_App/frontend/assets/images/beandark.png')} 
           style={styles.logo}
           resizeMode="contain"
         />
@@ -24,18 +29,19 @@ export default function HomeScreen() {
         <View style={styles.buttonContainer}>
           <Pressable 
             style={styles.signupButton}
-            onPress={() => router.push('/signup')}
+            onPress={goSignup}
           >
             <Text style={styles.signupText}>Create Account</Text>
           </Pressable>
           <Pressable 
             style={styles.loginButton}
-            onPress={() => router.push('/login')}
+            onPress={goLogin}
           >
             <Text style={styles.loginText}>Already have an Account</Text>
           </Pressable>
         </View>
       </View>
+      
     </ThemedView>
   );
 }
@@ -52,7 +58,7 @@ const styles = StyleSheet.create({
     width: '90%',
     paddingVertical: 40,
     paddingHorizontal: 24,
-    backgroundColor: '#1A5A65', 
+    backgroundColor: '#0f3a41ff', 
     borderRadius: 20,
     shadowColor: '#000',
     shadowOpacity: 0.3,
@@ -115,5 +121,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
-  
 });

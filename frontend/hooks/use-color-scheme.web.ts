@@ -1,21 +1,46 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Appearance, useColorScheme as useRNColorScheme } from 'react-native';
 import { useEffect, useState } from 'react';
-import { useColorScheme as useRNColorScheme } from 'react-native';
 
-/**
- * To support static rendering, this value needs to be re-calculated on the client side for web
- */
-export function useColorScheme() {
-  const [hasHydrated, setHasHydrated] = useState(false);
+type Theme = 'light' | 'dark';
+const STORAGE_KEY = 'themePreference';
+
+let preferred: Theme | null = null;
+const subscribers = new Set<(theme: Theme) => void>();
+
+export async function setPreferredColorScheme(theme: Theme) {
+  preferred = theme;
+  await AsyncStorage.setItem(STORAGE_KEY, theme);
+  subscribers.forEach((fn) => fn(theme));
+}
+
+export function useColorScheme(): Theme {
+  const system = (Appearance?.getColorScheme?.() as Theme) ?? (useRNColorScheme() as Theme) ?? 'light';
+  const [theme, setTheme] = useState<Theme>(preferred ?? system);
 
   useEffect(() => {
-    setHasHydrated(true);
+    AsyncStorage.getItem(STORAGE_KEY).then((value) => {
+      if (value === 'light' || value === 'dark') {
+        preferred = value;
+        setTheme(value);
+      }
+    });
   }, []);
 
-  const colorScheme = useRNColorScheme();
+  useEffect(() => {
+    const sub = Appearance?.addChangeListener?.(({ colorScheme }) => {
+      if (!preferred) {
+        setTheme((colorScheme as Theme) ?? 'light');
+      }
+    });
+    return () => sub?.remove?.();
+  }, []);
 
-  if (hasHydrated) {
-    return colorScheme;
-  }
+  useEffect(() => {
+    const fn = (value: Theme) => setTheme(value);
+    subscribers.add(fn);
+    return () => subscribers.delete(fn);
+  }, []);
 
-  return 'light';
+  return theme;
 }
