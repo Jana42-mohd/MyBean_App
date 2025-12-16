@@ -1,22 +1,31 @@
 // Basic Express backend for auth with PostgreSQL/MySQL (via env)
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-// Config via env vars
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Config via hardcoded values
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'mybean-super-secure-jwt-secret-key-2024';
 
-// PostgreSQL pool (set DATABASE_URL or individual vars)
-// Example DATABASE_URL: postgres://user:pass@host:5432/dbname
+// Hardcoded RDS Database Configuration
+// RDS Endpoint: user-information.cellg5n8wcin.us-east-1.rds.amazonaws.com
+const DATABASE_URL = 'postgresql://postgres:Jenny22072004@user-information.cellg5n8wcin.us-east-1.rds.amazonaws.com:5432/MyBean';
+
+// PostgreSQL pool with hardcoded connection
 const pool = new Pool({
-	connectionString: process.env.DATABASE_URL,
-	ssl: process.env.DB_SSL ? { rejectUnauthorized: false } : false,
+	connectionString: DATABASE_URL,
+	ssl: { rejectUnauthorized: false }, // RDS requires SSL
 });
 
 async function ensureSchema() {
@@ -26,6 +35,7 @@ async function ensureSchema() {
 			name TEXT NOT NULL,
 			email TEXT UNIQUE NOT NULL,
 			password_hash TEXT NOT NULL,
+			profile_photo TEXT,
 			created_at TIMESTAMP DEFAULT NOW()
 		);
 	`);
@@ -82,10 +92,12 @@ app.get('/health', async (req, res) => {
 const makeAuthRoutes = require('./routes/auth');
 const makeSurveyRoutes = require('./routes/survey');
 const makePostsRoutes = require('./routes/posts');
+const makeUserRoutes = require('./routes/user');
 
 app.use('/api', makeAuthRoutes({ pool, jwtSecret: JWT_SECRET }));
 app.use('/api', makeSurveyRoutes({ pool, jwtSecret: JWT_SECRET }));
 app.use('/api', makePostsRoutes({ pool, jwtSecret: JWT_SECRET }));
+app.use('/api', makeUserRoutes({ pool, jwtSecret: JWT_SECRET }));
 
 // Start server
 ensureSchema()
