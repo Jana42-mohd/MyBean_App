@@ -103,7 +103,9 @@ export default function SettingsScreen() {
 
       const formData = new FormData();
       const fileName = imageUri.split('/').pop() || 'profile.jpg';
-      const fileType = 'image/jpeg';
+      const fileType = fileName.endsWith('.png') ? 'image/png' : 
+                       fileName.endsWith('.gif') ? 'image/gif' :
+                       fileName.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
 
       formData.append('photo', {
         uri: imageUri,
@@ -124,7 +126,8 @@ export default function SettingsScreen() {
         setProfilePhoto(data.profile_photo);
         Alert.alert('Success', 'Profile photo updated');
       } else {
-        Alert.alert('Error', 'Failed to upload photo');
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to upload photo');
       }
     } catch (error) {
       Alert.alert('Error', 'Upload failed');
@@ -185,7 +188,7 @@ export default function SettingsScreen() {
               {uploading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.photoButtonText}>📷 Choose Photo</Text>
+                <Text style={styles.photoButtonText}> Choose Photo</Text>
               )}
             </Pressable>
 
@@ -197,7 +200,7 @@ export default function SettingsScreen() {
               {uploading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.photoButtonText}>📸 Take Photo</Text>
+                <Text style={styles.photoButtonText}> Take Photo</Text>
               )}
             </Pressable>
           </View>

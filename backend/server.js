@@ -1,5 +1,5 @@
-// Basic Express backend for auth with PostgreSQL/MySQL (via env)
-require('dotenv').config();
+// Basic Express backend for auth with PostgreSQL/MySQL
+require('dotenv').config();  // Enable for environment variables
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -15,8 +15,8 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Config via hardcoded values
-const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || 'mybean-super-secure-jwt-secret-key-2024';
+const PORT = 4000;
+const JWT_SECRET = 'mybean-super-secure-jwt-secret-key-2024';
 
 // Hardcoded RDS Database Configuration
 // RDS Endpoint: user-information.cellg5n8wcin.us-east-1.rds.amazonaws.com
@@ -101,7 +101,7 @@ app.use('/api', makeUserRoutes({ pool, jwtSecret: JWT_SECRET }));
 
 // Start server
 ensureSchema()
-	.then(() => app.listen(PORT, () => console.log(`Auth server running on port ${PORT}`)))
+	.then(() => app.listen(PORT, '0.0.0.0', () => console.log(`Auth server running on port ${PORT}`)))
 	.catch((e) => {
 		console.error('Failed to init schema', e);
 		process.exit(1);
