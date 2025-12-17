@@ -1,37 +1,8 @@
 const express = require('express');
-const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads/profile-photos');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'profile-' + req.user.sub + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
-    }
-  }
-});
+// Use local file storage instead of S3
+const { uploadLocal } = require('../config/local-upload');
 
 // Middleware to verify JWT token
 function verifyToken(req, res, next) {
@@ -69,15 +40,16 @@ module.exports = function makeUserRoutes({ pool, jwtSecret }) {
   });
 
   // Upload profile photo
-  router.post('/user/profile-photo', verifyToken, upload.single('photo'), async (req, res) => {
+  router.post('/user/profile-photo', verifyToken, uploadLocal.single('photo'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const photoPath = `/uploads/profile-photos/${req.file.filename}`;
+      // Build the photo URL (accessible via /uploads/profile-photos/filename.jpg)
+      const photoUrl = `/uploads/profile-photos/${req.file.filename}`;
 
-      // Get the old photo to delete it
+      // Get the old photo to delete it from local storage
       const oldPhotoResult = await pool.query(
         'SELECT profile_photo FROM users WHERE id = $1',
         [req.user.sub]
@@ -85,20 +57,21 @@ module.exports = function makeUserRoutes({ pool, jwtSecret }) {
 
       const oldPhoto = oldPhotoResult.rows[0]?.profile_photo;
       if (oldPhoto && oldPhoto.startsWith('/uploads/')) {
-        const oldFilePath = path.join(__dirname, '..', oldPhoto);
+        // Delete old local file
         try {
+          const oldFilePath = path.join(__dirname, '..', oldPhoto);
           if (fs.existsSync(oldFilePath)) {
             fs.unlinkSync(oldFilePath);
           }
         } catch (deleteError) {
-          console.error('Error deleting old photo:', deleteError);
+          console.error('Error deleting old photo from local storage:', deleteError);
         }
       }
 
-      // Update user profile with new photo
+      // Update user profile with new photo URL
       const result = await pool.query(
         'UPDATE users SET profile_photo = $1 WHERE id = $2 RETURNING id, name, email, profile_photo',
-        [photoPath, req.user.sub]
+        [photoUrl, req.user.sub]
       );
 
       const user = result.rows[0];
@@ -139,13 +112,14 @@ module.exports = function makeUserRoutes({ pool, jwtSecret }) {
 
       const photo = photoResult.rows[0]?.profile_photo;
       if (photo && photo.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, '..', photo);
+        // Delete local file
         try {
+          const filePath = path.join(__dirname, '..', photo);
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
           }
         } catch (deleteError) {
-          console.error('Error deleting photo:', deleteError);
+          console.error('Error deleting photo from local storage:', deleteError);
         }
       }
 
