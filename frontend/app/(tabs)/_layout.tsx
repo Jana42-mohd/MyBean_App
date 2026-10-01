@@ -78,12 +78,6 @@ export default function TabLayout() {
           href: null,
         }}
       />
-      <Tabs.Screen
-        name="pulse"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }
