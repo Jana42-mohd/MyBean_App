@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { loadSurvey } from '@/lib/household';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,7 +23,9 @@ export default function LoginScreen() {
         setError(err.message);
         return;
       }
-      router.replace('/(tabs)/home');
+      // First login (no survey yet) -> survey, otherwise straight to home
+      const survey = await loadSurvey().catch(() => null);
+      router.replace(survey ? '/(tabs)/home' : '/survey');
     } finally {
       setSubmitting(false);
     }

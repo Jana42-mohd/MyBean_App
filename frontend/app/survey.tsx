@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { getHousehold, loadSurvey, saveSurvey } from '@/lib/household';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -36,11 +37,32 @@ export default function SurveyScreen() {
     feedingType: '',
     trackingPreferences: [],
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Stateless: no persistence or preload for now
+  // Prefill from a previous survey, or from the shared baby info if a partner already filled it in
   useEffect(() => {
-    setLoading(false);
+    (async () => {
+      try {
+        const existing = await loadSurvey();
+        if (existing) {
+          setData(prev => ({ ...prev, ...existing }));
+        } else {
+          const [{ data: u }, hh] = await Promise.all([supabase.auth.getUser(), getHousehold()]);
+          const { data: prof } = u.user
+            ? await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle()
+            : { data: null };
+          setData(prev => ({
+            ...prev,
+            ...(hh?.baby ?? {}),
+            parentName: prof?.name && prof.name !== 'Parent' ? prof.name : prev.parentName,
+          }));
+        }
+      } catch (e) {
+        console.error('Survey preload failed:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const update = (key: keyof SurveyData, value: string) => {
@@ -73,14 +95,10 @@ export default function SurveyScreen() {
       Alert.alert('Missing info', 'Please fill out all fields.');
       return;
     }
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) {
-      router.replace('/(tabs)/login');
-      return;
-    }
-    const { error } = await supabase.from('surveys').upsert({ user_id: u.user.id, data, updated_at: new Date().toISOString() });
-    if (error) {
-      Alert.alert('Could not save', error.message);
+    try {
+      await saveSurvey(data);
+    } catch (e: any) {
+      Alert.alert('Could not save', e?.message || 'Please try again.');
       return;
     }
     router.replace('/home');

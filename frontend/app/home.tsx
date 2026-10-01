@@ -1,10 +1,11 @@
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchLogs } from '@/lib/logs';
-import { useRouter } from 'expo-router';
+import { getHousehold, loadSurvey } from '@/lib/household';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 interface SurveyData {
   parentName: string;
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [data, setData] = useState<SurveyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [partners, setPartners] = useState<string[]>([]);
   const [todayStats, setTodayStats] = useState({
     feedings: 0,
     diapers: 0,
@@ -37,94 +39,63 @@ export default function HomeScreen() {
     lastUpdate: new Date(),
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
+  const loadData = useCallback(async () => {
+    try {
+      const [survey, hh] = await Promise.all([loadSurvey(), getHousehold()]);
+      if (survey) {
+        setData(survey as SurveyData);
+      } else {
         const { data: u } = await supabase.auth.getUser();
-        const { data: row } = u.user
-          ? await supabase.from('surveys').select('data').eq('user_id', u.user.id).maybeSingle()
+        const { data: prof } = u.user
+          ? await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle()
           : { data: null };
-        if (row?.data && Object.keys(row.data).length) {
-          setData(row.data);
-        } else {
-          // Set default data so the screen still works
-          setData({
-            parentName: 'Parent',
-            pronouns: '',
-            relationship: '',
-            numberOfChildren: '',
-            primaryCaregiver: '',
-            babyName: 'Baby',
-            babyGender: '',
-            babyBirthDate: new Date().toISOString(),
-            gestationalAge: '',
-            feedingType: '',
-            trackingPreferences: [],
-          });
-        }
-        
-        // Load today's logs from individual tracking keys
-        const now = new Date();
-        const today = now.toLocaleDateString('en-US');
-        
-        // Load all activity types
-        const diaperLogs = JSON.stringify((await fetchLogs('diaper')).map(r => r.data));
-        const feedingLogs = JSON.stringify((await fetchLogs('feeding')).map(r => r.data));
-        const napLogs = JSON.stringify((await fetchLogs('nap')).map(r => r.data));
-        
-        let feedings = 0;
-        let diapers = 0;
-        let sleepMinutes = 0;
-        
-        // Count diapers from today
-        if (diaperLogs) {
-          const parsed = JSON.parse(diaperLogs);
-          diapers = parsed.filter((log: any) => {
-            const logDate = new Date(log.time).toLocaleDateString('en-US');
-            return logDate === today;
-          }).length;
-        }
-        
-        // Count feedings from today
-        if (feedingLogs) {
-          const parsed = JSON.parse(feedingLogs);
-          feedings = parsed.filter((log: any) => {
-            const logDate = new Date(log.time).toLocaleDateString('en-US');
-            return logDate === today;
-          }).length;
-        }
-        
-        // Count sleep from today
-        if (napLogs) {
-          const parsed = JSON.parse(napLogs);
-          parsed.forEach((log: any) => {
-            const logDate = new Date(log.start).toLocaleDateString('en-US');
-            if (logDate === today) {
-              try {
-                const start = new Date(log.start);
-                const end = new Date(log.end);
-                const minutes = Math.floor((end.getTime() - start.getTime()) / 60000);
-                sleepMinutes += minutes;
-              } catch (e) {
-                // Invalid date format, skip
-              }
-            }
-          });
-        }
-        
-        setTodayStats({ feedings, diapers, sleepMinutes, lastUpdate: new Date() });
-        setIsLoading(false);
-      } catch (e) {
-        console.error('Error loading data:', e);
-        setIsLoading(false);
+        setData({
+          parentName: prof?.name || 'Parent',
+          pronouns: '',
+          relationship: '',
+          numberOfChildren: '',
+          primaryCaregiver: '',
+          babyName: (hh?.baby?.babyName as string) || 'Baby',
+          babyGender: '',
+          babyBirthDate: new Date().toISOString(),
+          gestationalAge: '',
+          feedingType: '',
+          trackingPreferences: [],
+        });
       }
-    };
-    loadData();
-    
-    // Set up interval to refresh data every 5 seconds so it updates when track screen logs
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
+      setPartners((hh?.members ?? []).map(m => m.name));
+
+      // One query for today's logs (local midnight onward)
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const rows = await fetchLogs(['diaper', 'feeding', 'nap'], 500, startOfDay.toISOString());
+
+      let sleepMinutes = 0;
+      for (const r of rows) {
+        if (r.type === 'nap') {
+          const mins = Math.floor((new Date(r.data.end).getTime() - new Date(r.data.start).getTime()) / 60000);
+          if (mins > 0) sleepMinutes += mins;
+        }
+      }
+      setTodayStats({
+        feedings: rows.filter(r => r.type === 'feeding').length,
+        diapers: rows.filter(r => r.type === 'diaper').length,
+        sleepMinutes,
+        lastUpdate: new Date(),
+      });
+    } catch (e) {
+      console.error('Error loading data:', e);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // Refresh whenever the screen comes into focus (e.g. after logging on the Track screen)
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const formatSleepTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
@@ -146,6 +117,12 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ThemedText style={styles.greeting}>Hi {data.parentName}!</ThemedText>
+          {data.babyName && data.babyName !== 'Baby' ? (
+            <Text style={styles.sectionTitle}>
+              Here's how {data.babyName}'s day is going
+              {partners.length > 1 ? ` · with ${partners.filter(n => n !== data.parentName).join(' & ')}` : ''}
+            </Text>
+          ) : null}
         </View>
 
         {/* Core Stats */}

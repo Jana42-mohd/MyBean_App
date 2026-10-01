@@ -80,16 +80,14 @@ export default function TrackScreen() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [n, d, f, p, m, mo] = await Promise.all([
-          fetchLogs('nap'), fetchLogs('diaper'), fetchLogs('feeding'),
-          fetchLogs('pumping'), fetchLogs('milestone'), fetchLogs('mood'),
-        ]);
-        setNaps(n.map(r => r.data));
-        setDiapers(d.map(r => r.data));
-        setFeedings(f.map(r => r.data));
-        setPumps(p.map(r => r.data));
-        setMilestones(m.map(r => r.data));
-        setMoods(mo.map(r => r.data));
+        const rows = await fetchLogs(undefined, 300);
+        const of = (t: LogType) => rows.filter(r => r.type === t).map(r => r.data);
+        setNaps(of('nap'));
+        setDiapers(of('diaper'));
+        setFeedings(of('feeding'));
+        setPumps(of('pumping'));
+        setMilestones(of('milestone'));
+        setMoods(of('mood'));
       } catch (e) {
         console.error('Error loading logs:', e);
       }

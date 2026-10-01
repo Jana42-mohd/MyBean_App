@@ -21,6 +21,7 @@ const MAPPING = {
   'book.fill': 'menu-book',
   'person.2.fill': 'people',
   'clock.fill': 'schedule',
+  'heart.fill': 'favorite',
   gear: 'settings',
 } as IconMapping;
 

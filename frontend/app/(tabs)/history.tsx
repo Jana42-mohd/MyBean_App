@@ -1,7 +1,8 @@
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { fetchLogs } from '@/lib/logs';
 
 interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: string; consistency?: string; notes?: string }
@@ -16,14 +17,14 @@ interface HistoryEntry {
   type: 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping';
   timestamp: string;
   data: any;
+  author?: string;
 }
 
 export default function HistoryScreen() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping'>('all');
 
-  useEffect(() => {
-    const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
       try {
         const rows = await fetchLogs();
         const entries: HistoryEntry[] = rows.map(r => ({
@@ -31,6 +32,7 @@ export default function HistoryScreen() {
           type: r.type,
           timestamp: r.type === 'nap' ? r.data.start : r.type === 'milestone' ? r.data.date : r.data.time ?? r.logged_at,
           data: r.data,
+          author: r.author,
         }));
 
         // Sort by timestamp (newest first)
@@ -39,13 +41,13 @@ export default function HistoryScreen() {
       } catch (e) {
         console.error('Error loading history:', e);
       }
-    };
-
-    loadHistory();
-    // Refresh every 5 seconds
-    const interval = setInterval(loadHistory, 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [loadHistory])
+  );
 
   const formatDate = (dateStr: string) => {
     try {
@@ -184,7 +186,9 @@ export default function HistoryScreen() {
                   <View style={[styles.typeTag, { backgroundColor: getTypeColor(entry.type) }]}>
                     <Text style={styles.typeTagText}>{getTypeLabel(entry.type)}</Text>
                   </View>
-                  <Text style={styles.timestamp}>{formatDate(entry.timestamp)}</Text>
+                  <Text style={styles.timestamp}>
+                    {entry.author ? `${entry.author} · ` : ''}{formatDate(entry.timestamp)}
+                  </Text>
                 </View>
                 {renderEntryDetails(entry)}
               </View>

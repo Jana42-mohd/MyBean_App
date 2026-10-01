@@ -1,9 +1,10 @@
-import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Household, getHousehold, joinHousehold, leaveHousehold } from '@/lib/household';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function SettingsScreen() {
@@ -12,6 +13,9 @@ export default function SettingsScreen() {
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -25,6 +29,7 @@ export default function SettingsScreen() {
       const { data: prof } = await supabase.from('profiles').select('name,avatar_url').eq('id', u.user.id).maybeSingle();
       setUser({ id: u.user.id, email: u.user.email, name: prof?.name });
       if (prof?.avatar_url) setProfilePhoto(prof.avatar_url);
+      setHousehold(await getHousehold());
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -107,6 +112,46 @@ export default function SettingsScreen() {
     }
   };
 
+  const shareInvite = async () => {
+    if (!household) return;
+    await Share.share({
+      message: `Join me on My Little Bean! After you sign up, go to Settings > Household and enter this code: ${household.invite_code}`,
+    });
+  };
+
+  const handleJoin = async () => {
+    if (!joinCode.trim()) return;
+    setJoining(true);
+    try {
+      await joinHousehold(joinCode);
+      setJoinCode('');
+      setHousehold(await getHousehold());
+      Alert.alert('Linked!', "You're now sharing your baby's logs with this household.");
+    } catch (e: any) {
+      Alert.alert('Could not join', e?.message || 'Please check the code and try again.');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const handleLeave = () => {
+    Alert.alert('Leave household?', "You'll stop seeing the shared logs. You can rejoin later with the invite code.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Leave',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await leaveHousehold();
+            setHousehold(await getHousehold());
+          } catch (e: any) {
+            Alert.alert('Error', e?.message || 'Could not leave.');
+          }
+        },
+      },
+    ]);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/');
@@ -184,8 +229,48 @@ export default function SettingsScreen() {
             <Text style={styles.settingValue}>{user?.name || ''}</Text>
           </Pressable>
 
-          <Pressable style={styles.settingItem} onPress={() => router.push('/(tabs)/home')}>
-            <Text style={styles.settingLabel}>Change Password</Text>
+        </View>
+
+        {/* Household Section */}
+        <View style={styles.settingsSection}>
+          <ThemedText style={styles.sectionTitle}>Household</ThemedText>
+          <Text style={styles.settingValue}>
+            Link with your partner so you both see and add the same logs.
+          </Text>
+
+          {household?.members.map(m => (
+            <View key={m.id} style={styles.settingItem}>
+              <Text style={styles.settingLabel}>{m.name}{m.id === user?.id ? ' (you)' : ''}</Text>
+            </View>
+          ))}
+
+          {household ? (
+            <>
+              <Pressable style={styles.settingItem} onPress={shareInvite}>
+                <Text style={styles.settingLabel}>Invite code</Text>
+                <Text style={styles.settingValue}>{household.invite_code}  ·  Share →</Text>
+              </Pressable>
+              <TextInput
+                style={styles.codeInput}
+                placeholder="Have a code? Enter it here"
+                placeholderTextColor="#A4CDD3"
+                autoCapitalize="characters"
+                value={joinCode}
+                onChangeText={setJoinCode}
+              />
+              <Pressable style={styles.photoButton} onPress={handleJoin} disabled={joining}>
+                <Text style={styles.photoButtonText}>{joining ? 'Joining...' : 'Join household'}</Text>
+              </Pressable>
+              {household.members.length > 1 && (
+                <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={handleLeave}>
+                  <Text style={styles.settingLabel}>Leave household</Text>
+                </Pressable>
+              )}
+            </>
+          ) : null}
+
+          <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={() => router.push('/survey')}>
+            <Text style={styles.settingLabel}>Update my info & baby details</Text>
             <Text style={styles.settingValue}>→</Text>
           </Pressable>
         </View>
@@ -200,6 +285,16 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  codeInput: {
+    backgroundColor: '#0f3a41ff',
+    borderWidth: 1,
+    borderColor: '#2F9BA8',
+    borderRadius: 10,
+    color: '#E8FBFF',
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 10,
+  },
   container: {
     flex: 1,
     backgroundColor: '#09282eff',
