@@ -10,6 +10,7 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 2. `0002_households_wellbeing.sql`: linked parents (households) + private wellbeing
 3. `0003_babies.sql`: multiple babies (twins/triplets); existing data is carried over
 4. `0004_moderation.sql`: delete-own-post, reporting, auto-hide, moderators
+5. `0005_expecting.sql`: expecting parents (due date, switch to "born" later)
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

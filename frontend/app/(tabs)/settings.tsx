@@ -285,14 +285,19 @@ export default function SettingsScreen() {
           <ThemedText style={styles.sectionTitle}>Babies</ThemedText>
           {babies.map(b => (
             <View key={b.id} style={styles.settingItem}>
-              <Text style={styles.settingLabel}>{b.name}{b.birth_date ? `  ·  born ${b.birth_date}` : ''}</Text>
-              <Pressable onPress={() => confirmDeleteBaby(b)}>
-                <Text style={[styles.settingValue, { color: '#ff9db1' }]}>Remove</Text>
-              </Pressable>
+              <Text style={styles.settingLabel}>{b.name}{b.status === 'expected' ? `  ·  due ${b.due_date ?? '?'}` : b.birth_date ? `  ·  born ${b.birth_date}` : ''}</Text>
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                <Pressable onPress={() => router.push('/survey')}>
+                  <Text style={styles.settingValue}>Edit</Text>
+                </Pressable>
+                <Pressable onPress={() => confirmDeleteBaby(b)}>
+                  <Text style={[styles.settingValue, { color: '#ff9db1' }]}>Remove</Text>
+                </Pressable>
+              </View>
             </View>
           ))}
           <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={() => router.push('/survey')}>
-            <Text style={styles.settingLabel}>Add or edit babies (twins, triplets & more)</Text>
+            <Text style={styles.settingLabel}>Add or edit babies (expecting, twins, triplets & more)</Text>
             <Text style={styles.settingValue}>→</Text>
           </Pressable>
         </View>

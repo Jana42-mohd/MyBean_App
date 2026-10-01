@@ -10,6 +10,11 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] "Forgot password?" with A's email -> email arrives -> link opens the app on **Choose a new password** -> new password works.
 - [ ] Settings -> Change password works.
 
+## Expecting parents
+- [ ] In the survey choose "still expecting" for a baby: only name (optional) and due date are asked. Typing `20260314` shows `2026-03-14`.
+- [ ] Home shows "<n> days to go" and the week of pregnancy; Track says baby isn't here yet and blocks logging.
+- [ ] Later: Settings -> Babies -> Edit -> "already born", enter birth date etc. Logging now works.
+
 ## Babies & logs
 - [ ] Track: pick one baby, log a feeding. Switch to "All babies (log together)", log a diaper -> History shows one entry per baby.
 - [ ] History: baby filter works; entries show "<baby> · <parent> · date"; Edit note and Delete work.

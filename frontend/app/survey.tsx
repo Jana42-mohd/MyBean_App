@@ -5,7 +5,7 @@ import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Alert } from 
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadSurvey, saveSurvey } from '@/lib/household';
-import { BabyDraft, emptyBaby, fetchBabies, saveBabies, toDraft } from '@/lib/babies';
+import { BabyDraft, daysUntil, emptyBaby, fetchBabies, formatDateInput, isValidDate, saveBabies, todayStr, toDraft } from '@/lib/babies';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -16,8 +16,6 @@ interface SurveyData {
   primaryCaregiver: 'yes' | 'no' | 'shared' | '';
   trackingPreferences: string[];
 }
-
-const BIRTH_DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 function Choices({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
   return (
@@ -85,11 +83,13 @@ export default function SurveyScreen() {
   const addBaby = () => setBabies(prev => [...prev, emptyBaby(prev[prev.length - 1])]);
   const removeBaby = (i: number) => setBabies(prev => prev.filter((_, idx) => idx !== i));
 
-  const babyDone = (b: BabyDraft) => [b.name, b.gender, b.birthDate, b.gestationalAge, b.feedingType].every(Boolean);
+  const requiredFields = (b: BabyDraft) =>
+    b.status === 'expected' ? [b.dueDate] : [b.name, b.gender, b.birthDate, b.gestationalAge, b.feedingType];
+  const babyDone = (b: BabyDraft) => requiredFields(b).every(Boolean);
 
   const getProgress = () => {
     const parentFields = [data.parentName, data.pronouns, data.relationship, data.primaryCaregiver];
-    const babyFields = babies.flatMap(b => [b.name, b.gender, b.birthDate, b.gestationalAge, b.feedingType]);
+    const babyFields = babies.flatMap(requiredFields);
     const all = [...parentFields, ...babyFields];
     return Math.round((all.filter(f => f).length / all.length) * 100);
   };
@@ -104,10 +104,24 @@ export default function SurveyScreen() {
       Alert.alert('Missing info', `Please fill out everything for baby ${incomplete + 1}.`);
       return;
     }
-    const badDate = babies.findIndex(b => !BIRTH_DATE_RE.test(b.birthDate));
-    if (badDate >= 0) {
-      Alert.alert('Birth date', `Baby ${badDate + 1}'s birth date needs the format YYYY-MM-DD, e.g. 2025-03-14.`);
-      return;
+    for (let i = 0; i < babies.length; i++) {
+      const b = babies[i];
+      const label = b.name.trim() || `baby ${i + 1}`;
+      if (b.status === 'expected') {
+        if (!isValidDate(b.dueDate)) {
+          Alert.alert('Due date', `Please enter ${label}'s due date as a real date, e.g. 2026-03-14.`);
+          return;
+        }
+      } else {
+        if (!isValidDate(b.birthDate)) {
+          Alert.alert('Birth date', `Please enter ${label}'s birth date as a real date, e.g. 2025-03-14.`);
+          return;
+        }
+        if (b.birthDate > todayStr()) {
+          Alert.alert('Birth date', `${label}'s birth date is in the future. If baby hasn't arrived yet, choose "still expecting".`);
+          return;
+        }
+      }
     }
     setSaving(true);
     try {
@@ -164,13 +178,13 @@ export default function SurveyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionHeader}> {babies.length > 1 ? 'About Your Babies' : 'About Baby'}</Text>
           <Text style={styles.helperText}>
-            Twins, triplets or more? Tap "Add another baby". Each one gets their own logs, and you can log for all of them at once.
+            Expecting, or already have little ones? Add each baby here. Twins, triplets or more? Tap "Add another baby". Each one gets their own logs.
           </Text>
 
           {babies.map((b, i) => (
             <View key={b.id ?? `new-${i}`} style={styles.babyCard}>
               <View style={styles.babyHeader}>
-                <Text style={styles.babyTitle}>{b.name.trim() || `Baby ${i + 1}`}</Text>
+                <Text style={styles.babyTitle}>{b.name.trim() || (b.status === 'expected' ? `Baby ${i + 1} (expected)` : `Baby ${i + 1}`)}</Text>
                 {!b.id && babies.length > 1 ? (
                   <Pressable onPress={() => removeBaby(i)}>
                     <Text style={styles.removeText}>Remove</Text>
@@ -178,7 +192,14 @@ export default function SurveyScreen() {
                 ) : null}
               </View>
 
-              <Text style={styles.label}>Name</Text>
+              <Text style={styles.label}>Has baby arrived yet?</Text>
+              <Choices
+                options={['already born', 'still expecting']}
+                value={b.status === 'expected' ? 'still expecting' : 'already born'}
+                onPick={v => updateBaby(i, 'status', v === 'still expecting' ? 'expected' : 'born')}
+              />
+
+              <Text style={styles.label}>{b.status === 'expected' ? 'Name (optional, you can add it later)' : 'Name'}</Text>
               <TextInput
                 style={styles.input}
                 value={b.name}
@@ -187,28 +208,53 @@ export default function SurveyScreen() {
                 placeholderTextColor="#A4CDD3"
               />
 
-              <Text style={styles.label}>Gender</Text>
-              <Choices options={['boy', 'girl', 'prefer not to say']} value={b.gender} onPick={v => updateBaby(i, 'gender', v)} />
+              {b.status === 'expected' ? (
+                <>
+                  <Text style={styles.label}>Due date</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={b.dueDate}
+                    onChangeText={(t: string) => updateBaby(i, 'dueDate', formatDateInput(t))}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#A4CDD3"
+                    keyboardType="number-pad"
+                    maxLength={10}
+                  />
+                  <Text style={styles.helperText}>
+                    {isValidDate(b.dueDate) ? `${Math.max(daysUntil(b.dueDate), 0)} days to go` : 'Just type the numbers, e.g. 20260314'}
+                  </Text>
+                  <Text style={styles.helperText}>
+                    When baby arrives, come back to Settings → Babies → Edit and switch to "already born".
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.label}>Gender</Text>
+                  <Choices options={['boy', 'girl', 'prefer not to say']} value={b.gender} onPick={v => updateBaby(i, 'gender', v)} />
 
-              <Text style={styles.label}>Birth date</Text>
-              <TextInput
-                style={styles.input}
-                value={b.birthDate}
-                onChangeText={(t: string) => updateBaby(i, 'birthDate', t)}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#A4CDD3"
-                keyboardType="numbers-and-punctuation"
-              />
+                  <Text style={styles.label}>Birth date</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={b.birthDate}
+                    onChangeText={(t: string) => updateBaby(i, 'birthDate', formatDateInput(t))}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#A4CDD3"
+                    keyboardType="number-pad"
+                    maxLength={10}
+                  />
+                  <Text style={styles.helperText}>Just type the numbers, e.g. 20250314</Text>
 
-              <Text style={styles.label}>Gestational age at birth</Text>
-              <Choices
-                options={['full-term', 'premature', 'post-term']}
-                value={b.gestationalAge}
-                onPick={v => updateBaby(i, 'gestationalAge', v)}
-              />
+                  <Text style={styles.label}>Gestational age at birth</Text>
+                  <Choices
+                    options={['full-term', 'premature', 'post-term']}
+                    value={b.gestationalAge}
+                    onPick={v => updateBaby(i, 'gestationalAge', v)}
+                  />
 
-              <Text style={styles.label}>Feeding type</Text>
-              <Choices options={['breast', 'formula', 'mixed']} value={b.feedingType} onPick={v => updateBaby(i, 'feedingType', v)} />
+                  <Text style={styles.label}>Feeding type</Text>
+                  <Choices options={['breast', 'formula', 'mixed']} value={b.feedingType} onPick={v => updateBaby(i, 'feedingType', v)} />
+                </>
+              )}
             </View>
           ))}
 

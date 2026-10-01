@@ -124,7 +124,7 @@ export default function WellbeingScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>It's been a heavy few days</Text>
             <Text style={styles.body}>
-              Your last few check-ins were low. That's really common after having a baby, and it's okay to ask for help. Consider taking the screening below and sharing the result with your doctor, midwife or a friend.
+              Your last few check-ins were low. That's really common during pregnancy and after having a baby, and it's okay to ask for help. Consider taking the screening below and sharing the result with your doctor, midwife or a friend.
             </Text>
           </View>
         )}
@@ -181,9 +181,9 @@ export default function WellbeingScreen() {
         {/* EPDS screening */}
         {!quiz && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Postpartum check (EPDS)</Text>
+            <Text style={styles.cardTitle}>Pregnancy & postpartum check (EPDS)</Text>
             <Text style={styles.body}>
-              A 10-question screening used by doctors and midwives worldwide. It takes about 2 minutes. It is not a diagnosis, but it can help you know when to reach out.
+              A 10-question screening used by doctors and midwives worldwide, during pregnancy and after birth. It takes about 2 minutes. It is not a diagnosis, but it can help you know when to reach out.
             </Text>
             {lastEpds && (
               <Text style={styles.muted}>

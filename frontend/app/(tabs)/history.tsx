@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { deleteLog, fetchLogs, updateLogNotes } from '@/lib/logs';
-import { Baby, fetchBabies } from '@/lib/babies';
+import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
 
@@ -205,7 +205,7 @@ export default function HistoryScreen() {
 
         {/* Filter Buttons */}
         {error ? <LoadError message={error} onRetry={loadHistory} /> : null}
-        <BabyPicker babies={babies} value={babyFilter} onChange={setBabyFilter} />
+        <BabyPicker babies={bornBabies(babies)} value={babyFilter} onChange={setBabyFilter} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <Pressable 
             style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}

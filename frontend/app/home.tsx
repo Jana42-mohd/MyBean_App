@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useCallback, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { LogRow, fetchLogs } from '@/lib/logs';
-import { Baby, babyNames, fetchBabies } from '@/lib/babies';
+import { Baby, babyNames, bornBabies, daysUntil, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { getHousehold, loadSurvey } from '@/lib/household';
@@ -111,16 +111,29 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ThemedText style={styles.greeting}>Hi {data.parentName}!</ThemedText>
-          {babies.length > 0 ? (
+          {bornBabies(babies).length > 0 ? (
             <Text style={styles.sectionTitle}>
-              Today with {babyNames(babies)}
+              Today with {babyNames(bornBabies(babies))}
               {partners.length > 1 ? ` · with ${partners.filter(n => n !== data.parentName).join(' & ')}` : ''}
             </Text>
           ) : null}
         </View>
 
         {error ? <LoadError message={error} onRetry={loadData} /> : null}
-        <BabyPicker babies={babies} value={selected} onChange={setSelected} />
+        {expectedBabies(babies).map(b => {
+          const days = b.due_date ? daysUntil(b.due_date) : null;
+          const week = days !== null ? Math.min(Math.max(40 - Math.ceil(days / 7), 1), 42) : null;
+          return (
+            <View key={b.id} style={styles.statCard}>
+              <Text style={styles.statLabel}>{b.name === 'Baby' ? 'Baby' : b.name} is on the way</Text>
+              <Text style={styles.statValue}>
+                {days === null ? '' : days > 0 ? `${days} days to go` : days === 0 ? 'Due today!' : `${-days} days past due date`}
+              </Text>
+              {week !== null && days! > 0 ? <Text style={styles.statLabel}>About week {week} of 40 · due {b.due_date}</Text> : null}
+            </View>
+          );
+        })}
+        <BabyPicker babies={bornBabies(babies)} value={selected} onChange={setSelected} />
 
         {/* Core Stats */}
         <View style={styles.section}>

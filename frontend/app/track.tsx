@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
 import { addLog, fetchLogs, LogRow, LogType } from '@/lib/logs';
-import { Baby, fetchBabies } from '@/lib/babies';
+import { Baby, bornBabies, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedView } from '@/components/themed-view';
@@ -21,6 +21,7 @@ export default function TrackScreen() {
   const [selected, setSelected] = useState(ALL_BABIES);
   const [rows, setRows] = useState<LogRow[]>([]);
   const [loadError, setLoadError] = useState('');
+  const born = bornBabies(babies);
   // Entries for the chosen baby (pumping belongs to the parent, so it always shows)
   const of = <T,>(t: LogType): T[] =>
     rows.filter(r => r.type === t && (selected === ALL_BABIES || r.baby_id === selected || r.baby_id === null)).map(r => r.data as T);
@@ -105,7 +106,7 @@ export default function TrackScreen() {
   // Logs for the selected baby, or one entry per baby when "All babies" is selected
   const save = async (type: LogType, entry: any, loggedAt?: string) => {
     try {
-      const ids = selected === ALL_BABIES ? babies.map(b => b.id) : [selected];
+      const ids = selected === ALL_BABIES ? born.map(b => b.id) : [selected];
       await addLog(type, entry, ids, loggedAt);
       await load();
     } catch (e: any) {
@@ -162,10 +163,16 @@ export default function TrackScreen() {
         <ThemedText style={styles.title}>Track Baby Activity</ThemedText>
         <Text style={styles.subtitle}>Log feeding, sleep, diapers, milestones & mood</Text>
         {loadError ? <LoadError message={loadError} onRetry={load} /> : null}
-        {babies.length === 0 && !loadError ? (
-          <LoadError message="Add your baby first: open Settings → Update my info & baby details." />
+        {born.length === 0 && !loadError ? (
+          <LoadError
+            message={
+              expectedBabies(babies).length > 0
+                ? "Baby isn't here yet! Logging unlocks once baby is born: Settings → Babies → Edit, then switch to \"already born\"."
+                : 'Add your baby first: Settings → Babies → Add or edit babies.'
+            }
+          />
         ) : null}
-        <BabyPicker babies={babies} value={selected} onChange={setSelected} allLabel="All babies (log together)" />
+        <BabyPicker babies={born} value={selected} onChange={setSelected} allLabel="All babies (log together)" />
 
         {/* Naps */}
         <View style={styles.card}>
