@@ -154,9 +154,6 @@ export default function SignupScreen() {
           <Text style={styles.mainButtonText}>Sign Up</Text>
         </Pressable>
 
-        <Pressable style={styles.googleButton}>
-          <Text style={styles.googleText}>Sign up with Google</Text>
-        </Pressable>
 
         <Pressable onPress={() => router.push('/(tabs)/login')}>
           <Text style={styles.footerText}>Already have an account? Log in</Text>
@@ -240,21 +237,6 @@ const styles = StyleSheet.create({
     color: '#12454E',
     fontWeight: '700',
     fontSize: 16,
-  },
-  googleButton: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FDFECC',
-    backgroundColor: 'rgba(253, 254, 204, 0.1)',
-    marginTop: 4,
-  },
-  googleText: {
-    color: '#FDFECC',
-    fontSize: 15,
-    fontWeight: '600',
   },
   footerText: {
     marginTop: 8,

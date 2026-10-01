@@ -5,7 +5,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasCompletedSurvey } from '@/lib/household';
-import { sendPasswordReset, signInWithGoogle } from '@/lib/auth';
+import { sendPasswordReset } from '@/lib/auth';
 import { friendlyError } from '@/components/LoadError';
 
 export default function LoginScreen() {
@@ -38,19 +38,6 @@ export default function LoginScreen() {
       setError(friendlyError(e));
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const onGoogle = async () => {
-    setError('');
-    setInfo('');
-    try {
-      if (await signInWithGoogle()) await goAfterLogin();
-    } catch (e: any) {
-      const msg = String(e?.message ?? '');
-      setError(/provider is not enabled|unsupported provider/i.test(msg)
-        ? 'Google sign-in is not set up yet. Please log in with email for now.'
-        : friendlyError(e));
     }
   };
 
@@ -114,9 +101,6 @@ export default function LoginScreen() {
           <Text style={[styles.footerText, { marginBottom: 12 }]}>Forgot password?</Text>
         </Pressable>
 
-        <Pressable style={styles.googleButton} onPress={onGoogle}>
-          <Text style={styles.googleText}>Sign in with Google</Text>
-        </Pressable>
 
         <Pressable onPress={() => router.push('/(tabs)/signup')}>
           <Text style={styles.footerText}>Don’t have an account? Sign up</Text>
@@ -190,21 +174,6 @@ const styles = StyleSheet.create({
     color: '#12454E',
     fontWeight: '700',
     fontSize: 16,
-  },
-  googleButton: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FDFECC',
-    backgroundColor: 'rgba(253, 254, 204, 0.1)',
-    marginTop: 4,
-  },
-  googleText: {
-    color: '#FDFECC',
-    fontSize: 15,
-    fontWeight: '600',
   },
   footerText: {
     marginTop: 8,

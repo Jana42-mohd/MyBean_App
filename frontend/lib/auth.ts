@@ -1,15 +1,7 @@
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
 import { supabase } from './supabase';
 
-WebBrowser.maybeCompleteAuthSession();
-
-// Where Supabase should send the user back to after Google sign-in / password reset emails.
-// In Expo Go this is an exp:// URL; in a built app it uses the "mylittlebean://" scheme.
-// Whatever it prints must be added under Supabase > Authentication > URL Configuration > Redirect URLs.
-export const authRedirectUrl = () => Linking.createURL('auth-callback');
-
-// Reads the tokens Supabase puts in the returned URL (#access_token=...&refresh_token=... or ?code=...) and starts a session
+// Reads the tokens Supabase puts in a returned link (password reset) (#access_token=...&refresh_token=... or ?code=...) and starts a session
 export async function sessionFromUrl(url: string): Promise<boolean> {
   const hash = url.includes('#') ? url.split('#')[1] : '';
   const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
@@ -32,20 +24,6 @@ export async function sessionFromUrl(url: string): Promise<boolean> {
     return true;
   }
   return false;
-}
-
-export async function signInWithGoogle(): Promise<boolean> {
-  const redirectTo = authRedirectUrl();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error) throw error;
-  if (!data.url) throw new Error('Google sign-in is not available right now.');
-
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== 'success') return false; // user closed the browser
-  return sessionFromUrl(result.url);
 }
 
 export async function sendPasswordReset(email: string) {
