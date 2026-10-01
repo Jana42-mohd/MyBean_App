@@ -3,10 +3,8 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -22,26 +20,11 @@ export default function SettingsScreen() {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      const userData = await AsyncStorage.getItem('user');
-      const token = await AsyncStorage.getItem('token');
-      
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        
-        // Fetch user profile with photo
-        if (token) {
-          const response = await fetch(`${API_URL}/user/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            const data = await response.json();
-            if (data.profile_photo) {
-              setProfilePhoto(data.profile_photo);
-            }
-          }
-        }
-      }
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: prof } = await supabase.from('profiles').select('name,avatar_url').eq('id', u.user.id).maybeSingle();
+      setUser({ id: u.user.id, email: u.user.email, name: prof?.name });
+      if (prof?.avatar_url) setProfilePhoto(prof.avatar_url);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -99,38 +82,25 @@ export default function SettingsScreen() {
   const uploadProfilePhoto = async (imageUri: string) => {
     try {
       setUploading(true);
-      const token = await AsyncStorage.getItem('token');
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) throw new Error('Not signed in');
 
-      const formData = new FormData();
-      const fileName = imageUri.split('/').pop() || 'profile.jpg';
-      const fileType = fileName.endsWith('.png') ? 'image/png' : 
-                       fileName.endsWith('.gif') ? 'image/gif' :
-                       fileName.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+      const ext = (imageUri.split('.').pop() || 'jpg').toLowerCase().split('?')[0];
+      const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+      const path = `${u.user.id}/avatar-${Date.now()}.${ext}`;
+      const body = await (await fetch(imageUri)).arrayBuffer();
 
-      formData.append('photo', {
-        uri: imageUri,
-        name: fileName,
-        type: fileType,
-      } as any);
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, body, { contentType });
+      if (upErr) throw upErr;
 
-      const response = await fetch(`${API_URL}/user/profile-photo`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+      const { error: dbErr } = await supabase.from('profiles').update({ avatar_url: pub.publicUrl }).eq('id', u.user.id);
+      if (dbErr) throw dbErr;
 
-      if (response.ok) {
-        const data = await response.json();
-        setProfilePhoto(data.profile_photo);
-        Alert.alert('Success', 'Profile photo updated');
-      } else {
-        const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to upload photo');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Upload failed');
+      setProfilePhoto(pub.publicUrl);
+      Alert.alert('Success', 'Profile photo updated');
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Upload failed');
       console.error(error);
     } finally {
       setUploading(false);
@@ -138,14 +108,8 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('surveyCompleted');
-      router.replace('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await supabase.auth.signOut();
+    router.replace('/');
   };
 
   if (loading) {

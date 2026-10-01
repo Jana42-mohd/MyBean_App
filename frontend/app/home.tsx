@@ -2,7 +2,8 @@ import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
+import { fetchLogs } from '@/lib/logs';
 import { useRouter } from 'expo-router';
 
 interface SurveyData {
@@ -39,9 +40,12 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const saved = await AsyncStorage.getItem('surveyData');
-        if (saved) {
-          setData(JSON.parse(saved));
+        const { data: u } = await supabase.auth.getUser();
+        const { data: row } = u.user
+          ? await supabase.from('surveys').select('data').eq('user_id', u.user.id).maybeSingle()
+          : { data: null };
+        if (row?.data && Object.keys(row.data).length) {
+          setData(row.data);
         } else {
           // Set default data so the screen still works
           setData({
@@ -64,9 +68,9 @@ export default function HomeScreen() {
         const today = now.toLocaleDateString('en-US');
         
         // Load all activity types
-        const diaperLogs = await AsyncStorage.getItem('logs_diapers');
-        const feedingLogs = await AsyncStorage.getItem('logs_feedings');
-        const napLogs = await AsyncStorage.getItem('logs_naps');
+        const diaperLogs = JSON.stringify((await fetchLogs('diaper')).map(r => r.data));
+        const feedingLogs = JSON.stringify((await fetchLogs('feeding')).map(r => r.data));
+        const napLogs = JSON.stringify((await fetchLogs('nap')).map(r => r.data));
         
         let feedings = 0;
         let diapers = 0;

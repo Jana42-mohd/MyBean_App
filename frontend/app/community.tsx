@@ -2,7 +2,7 @@ import { StyleSheet, ScrollView, Text, View, Pressable, TextInput, Modal, Activi
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 
 interface Post {
   id: string;
@@ -17,39 +17,6 @@ interface Post {
 }
 
 const topicTags = ['Sleep', 'Feeding', 'Breastfeeding', 'Milestones', 'Health', 'Development', 'Mental Health'];
-
-const DEMO_POSTS: Post[] = [
-  {
-    id: 'demo_1',
-    title: 'Tips for better sleep routines',
-    excerpt: 'My baby finally sleeps through the night! Here\'s what worked for us: consistent bedtime, white noise, and a calm environment.',
-    author: 'Sarah M.',
-    tags: ['sleep', 'development'],
-    likes_count: 24,
-    saves_count: 12,
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'demo_2',
-    title: 'Breastfeeding challenges in the first month',
-    excerpt: 'Struggling with latching? I was too. Don\'t hesitate to reach out to a lactation consultant - it made all the difference!',
-    author: 'Emma L.',
-    tags: ['breastfeeding', 'feeding', 'mental health'],
-    likes_count: 18,
-    saves_count: 8,
-    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'demo_3',
-    title: 'When did your baby reach their first milestone?',
-    excerpt: 'Curious about when your baby smiled for the first time? My little one smiled at 6 weeks and it melted my heart!',
-    author: 'Jessica K.',
-    tags: ['milestones', 'development'],
-    likes_count: 32,
-    saves_count: 15,
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
 
 export default function CommunityScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -66,53 +33,33 @@ export default function CommunityScreen() {
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
 
   useEffect(() => {
-    const initializeAndFetchPosts = async () => {
-      try {
-        // Get user name from storage
-        const storedUserName = await AsyncStorage.getItem('surveyData');
-        if (storedUserName) {
-          const surveyData = JSON.parse(storedUserName);
-          setUserName(surveyData.parentName || 'Anonymous');
-        } else {
-          setUserName('You');
-        }
-
-        // Load local posts and demo posts
-        await loadPosts();
-      } catch (e) {
-        console.error('Error initializing community:', e);
-        // Load demo posts on error
-        setPosts(DEMO_POSTS);
+    const init = async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (u.user) {
+        const { data: prof } = await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle();
+        setUserName(prof?.name || 'Anonymous');
       }
+      await loadPosts();
     };
-
-    initializeAndFetchPosts();
+    init();
   }, []);
 
   const loadPosts = async () => {
     try {
       setPostsLoading(true);
-      
-      // Get local posts from storage
-      const localPostsJson = await AsyncStorage.getItem('communityPosts');
-      const localPosts = localPostsJson ? JSON.parse(localPostsJson) : [];
-      
-      // Get user likes and saves
-      const likesJson = await AsyncStorage.getItem('userLikes');
-      const savesJson = await AsyncStorage.getItem('userSaves');
-      
-      setUserLikes(likesJson ? JSON.parse(likesJson) : []);
-      setUserSaves(savesJson ? JSON.parse(savesJson) : []);
-      
-      // Combine demo posts with local posts (local posts first)
-      const allPosts = [...localPosts, ...DEMO_POSTS].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      
-      setPosts(allPosts);
+      const { data: u } = await supabase.auth.getUser();
+      const [feed, likes, saves] = await Promise.all([
+        supabase.from('posts_feed').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('post_likes').select('post_id').eq('user_id', u.user?.id ?? ''),
+        supabase.from('post_saves').select('post_id').eq('user_id', u.user?.id ?? ''),
+      ]);
+      if (feed.error) throw feed.error;
+      setPosts((feed.data ?? []) as Post[]);
+      setUserLikes((likes.data ?? []).map((r: any) => r.post_id));
+      setUserSaves((saves.data ?? []).map((r: any) => r.post_id));
     } catch (error) {
       console.error('Error loading posts:', error);
-      setPosts(DEMO_POSTS);
+      Alert.alert('Error', 'Could not load posts.');
     } finally {
       setPostsLoading(false);
     }
@@ -123,46 +70,23 @@ export default function CommunityScreen() {
       Alert.alert('Missing Fields', 'Please enter both a title and description');
       return;
     }
-
     if (selectedTags.length === 0) {
       Alert.alert('Select Tags', 'Please select at least one topic tag');
       return;
     }
-
     try {
       setLoading(true);
-      
-      const newPost: Post = {
-        id: `post_${Date.now()}`,
+      const { error } = await supabase.from('posts').insert({
         title: title.trim(),
         excerpt: excerpt.trim(),
-        author: userName,
         tags: selectedTags.map(t => t.toLowerCase()),
-        likes_count: 0,
-        saves_count: 0,
-        created_at: new Date().toISOString(),
-        local: true,
-      };
-
-      // Get existing posts from storage
-      const existingPostsJson = await AsyncStorage.getItem('communityPosts');
-      const existingPosts = existingPostsJson ? JSON.parse(existingPostsJson) : [];
-      
-      // Add new post to the beginning
-      const updatedPosts = [newPost, ...existingPosts];
-      
-      // Save to storage
-      await AsyncStorage.setItem('communityPosts', JSON.stringify(updatedPosts));
-      
-      // Update local state
-      setPosts([newPost, ...posts]);
-      
-      // Reset form and close modal
+      });
+      if (error) throw error;
       setTitle('');
       setExcerpt('');
       setSelectedTags([]);
       setIsModalVisible(false);
-      
+      await loadPosts();
       Alert.alert('Success', 'Your post has been published!');
     } catch (error) {
       console.error('Error creating post:', error);
@@ -183,28 +107,19 @@ export default function CommunityScreen() {
   const handleLikePost = async (postId: string) => {
     try {
       setInteractionLoading(postId);
-      
-      // Update local storage
-      const newLikes = userLikes.includes(postId) 
-        ? userLikes.filter(id => id !== postId)
-        : [...userLikes, postId];
-      
-      await AsyncStorage.setItem('userLikes', JSON.stringify(newLikes));
-      setUserLikes(newLikes);
-
-      // Update posts state
-      setPosts(posts.map(p => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            likes_count: newLikes.includes(postId) ? p.likes_count + 1 : p.likes_count - 1,
-          };
-        }
-        return p;
-      }));
+      const on = !userLikes.includes(postId);
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) throw new Error('Not signed in');
+      const { error } = on
+        ? await supabase.from('post_likes').insert({ post_id: postId, user_id: uid })
+        : await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', uid);
+      if (error) throw error;
+      setUserLikes(on ? [...userLikes, postId] : userLikes.filter(id => id !== postId));
+      setPosts(posts.map(p => (p.id === postId ? { ...p, likes_count: p.likes_count + (on ? 1 : -1) } : p)));
     } catch (error) {
-      console.error('Error liking post:', error);
-      Alert.alert('Error', 'Failed to like post. Please try again.');
+      console.error('Error updating like:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setInteractionLoading(null);
     }
@@ -213,28 +128,19 @@ export default function CommunityScreen() {
   const handleSavePost = async (postId: string) => {
     try {
       setInteractionLoading(postId);
-      
-      // Update local storage
-      const newSaves = userSaves.includes(postId) 
-        ? userSaves.filter(id => id !== postId)
-        : [...userSaves, postId];
-      
-      await AsyncStorage.setItem('userSaves', JSON.stringify(newSaves));
-      setUserSaves(newSaves);
-
-      // Update posts state
-      setPosts(posts.map(p => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            saves_count: newSaves.includes(postId) ? p.saves_count + 1 : p.saves_count - 1,
-          };
-        }
-        return p;
-      }));
+      const on = !userSaves.includes(postId);
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) throw new Error('Not signed in');
+      const { error } = on
+        ? await supabase.from('post_saves').insert({ post_id: postId, user_id: uid })
+        : await supabase.from('post_saves').delete().eq('post_id', postId).eq('user_id', uid);
+      if (error) throw error;
+      setUserSaves(on ? [...userSaves, postId] : userSaves.filter(id => id !== postId));
+      setPosts(posts.map(p => (p.id === postId ? { ...p, saves_count: p.saves_count + (on ? 1 : -1) } : p)));
     } catch (error) {
-      console.error('Error saving post:', error);
-      Alert.alert('Error', 'Failed to save post. Please try again.');
+      console.error('Error updating save:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setInteractionLoading(null);
     }

@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 
 // Requirement indicator component
 const RequirementRow = ({ met, text }: { met: boolean; text: string }) => (
@@ -55,9 +55,21 @@ export default function SignupScreen() {
       setError('Passwords do not match.');
       return;
     }
-    // In real app, call backend to create account
     setError('');
-    // New signup users go directly to survey
+    const { data, error: err } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { name: username.trim() } },
+    });
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    if (!data.session) {
+      // Email confirmation is enabled in Supabase: no session until the user confirms.
+      setError('Check your email to confirm your account, then log in.');
+      return;
+    }
     router.replace('/survey');
   };
 
@@ -70,7 +82,7 @@ export default function SignupScreen() {
           </Pressable>
         </View>
         <Image
-          source={require('C:/Users/Janam/Desktop/projects/MyBean_App/frontend/assets/images/beandark.png')}
+          source={require('@/assets/images/beandark.png')}
           style={styles.logo}
           resizeMode="contain"
         />

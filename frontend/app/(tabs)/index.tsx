@@ -15,7 +15,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.card}>
         <Image
-          source={require('C:/Users/Janam/Desktop/projects/MyBean_App/frontend/assets/images/beandark.png')} 
+          source={require('@/assets/images/beandark.png')} 
           style={styles.logo}
           resizeMode="contain"
         />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
+import { addLog, fetchLogs, LogType } from '@/lib/logs';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -11,14 +11,6 @@ interface PumpLog { time: string; volumeOz: string; side: 'left' | 'right' | 'bo
 interface MilestoneLog { date: string; milestone: string; notes?: string }
 interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying' | 'calm'; notes?: string }
 
-const STORAGE_KEYS = {
-  naps: 'logs_naps',
-  diapers: 'logs_diapers',
-  feedings: 'logs_feedings',
-  pumping: 'logs_pumping',
-  milestones: 'logs_milestones',
-  mood: 'logs_mood',
-};
 
 export default function TrackScreen() {
   const [naps, setNaps] = useState<NapLog[]>([]);
@@ -87,24 +79,30 @@ export default function TrackScreen() {
   };
   useEffect(() => {
     const load = async () => {
-      const n = await AsyncStorage.getItem(STORAGE_KEYS.naps);
-      const d = await AsyncStorage.getItem(STORAGE_KEYS.diapers);
-      const f = await AsyncStorage.getItem(STORAGE_KEYS.feedings);
-      const p = await AsyncStorage.getItem(STORAGE_KEYS.pumping);
-      const m = await AsyncStorage.getItem(STORAGE_KEYS.milestones);
-      const mo = await AsyncStorage.getItem(STORAGE_KEYS.mood);
-      if (n) setNaps(JSON.parse(n));
-      if (d) setDiapers(JSON.parse(d));
-      if (f) setFeedings(JSON.parse(f));
-      if (p) setPumps(JSON.parse(p));
-      if (m) setMilestones(JSON.parse(m));
-      if (mo) setMoods(JSON.parse(mo));
+      try {
+        const [n, d, f, p, m, mo] = await Promise.all([
+          fetchLogs('nap'), fetchLogs('diaper'), fetchLogs('feeding'),
+          fetchLogs('pumping'), fetchLogs('milestone'), fetchLogs('mood'),
+        ]);
+        setNaps(n.map(r => r.data));
+        setDiapers(d.map(r => r.data));
+        setFeedings(f.map(r => r.data));
+        setPumps(p.map(r => r.data));
+        setMilestones(m.map(r => r.data));
+        setMoods(mo.map(r => r.data));
+      } catch (e) {
+        console.error('Error loading logs:', e);
+      }
     };
     load();
   }, []);
 
-  const save = async (key: string, value: any) => {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
+  const save = async (type: LogType, entry: any, loggedAt?: string) => {
+    try {
+      await addLog(type, entry, loggedAt);
+    } catch (e: any) {
+      Alert.alert('Could not save', e?.message || 'Please try again.');
+    }
   };
 
   const logNap = async () => {
@@ -112,7 +110,7 @@ export default function TrackScreen() {
     const entry: NapLog = { start: napStart, end: napEnd, notes: napNotes || undefined };
     const updated = [entry, ...naps].slice(0, 20);
     setNaps(updated);
-    await save(STORAGE_KEYS.naps, updated);
+    await save('nap', entry, new Date(napStart.replace(' ', 'T') + ':00Z').toISOString());
     setNapStart(''); setNapEnd(''); setNapNotes('');
   };
 
@@ -121,7 +119,7 @@ export default function TrackScreen() {
     const entry: DiaperLog = { time, type: diaperType, color: diaperType==='poop'? (poopColor||undefined) : undefined, consistency: diaperType==='poop'? (poopConsistency||undefined) : undefined, notes: diaperNotes || undefined };
     const updated = [entry, ...diapers].slice(0, 30);
     setDiapers(updated);
-    await save(STORAGE_KEYS.diapers, updated);
+    await save('diaper', entry, time);
     setDiaperNotes(''); setPoopColor(''); setPoopConsistency('');
   };
 
@@ -130,7 +128,7 @@ export default function TrackScreen() {
     const entry: FeedingLog = { time, method: feedMethod, amount: feedAmount || undefined, nextInHours: nextInHours || undefined };
     const updated = [entry, ...feedings].slice(0, 30);
     setFeedings(updated);
-    await save(STORAGE_KEYS.feedings, updated);
+    await save('feeding', entry, time);
     setFeedAmount(''); setNextInHours('');
   };
 
@@ -140,7 +138,7 @@ export default function TrackScreen() {
     const entry: PumpLog = { time: now.toISOString(), volumeOz: pumpVolume || '0', side: pumpSide, ampm };
     const updated = [entry, ...pumps].slice(0, 30);
     setPumps(updated);
-    await save(STORAGE_KEYS.pumping, updated);
+    await save('pumping', entry, entry.time);
     setPumpVolume('');
   };
 
@@ -149,7 +147,7 @@ export default function TrackScreen() {
     const entry: MilestoneLog = { date: milestoneDate, milestone: milestoneText, notes: milestoneNotes || undefined };
     const updated = [entry, ...milestones].slice(0, 50);
     setMilestones(updated);
-    await save(STORAGE_KEYS.milestones, updated);
+    await save('milestone', entry, new Date(milestoneDate).toISOString());
     setMilestoneText(''); setMilestoneDate(''); setMilestoneNotes('');
   };
 
@@ -158,7 +156,7 @@ export default function TrackScreen() {
     const entry: MoodLog = { time, mood: moodType, notes: moodNotes || undefined };
     const updated = [entry, ...moods].slice(0, 50);
     setMoods(updated);
-    await save(STORAGE_KEYS.mood, updated);
+    await save('mood', entry, time);
     setMoodNotes('');
   };
 

@@ -3,31 +3,25 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const checkSurvey = async () => {
-      const completed = await AsyncStorage.getItem('surveyCompleted');
-      if (completed === 'true') {
-        // If already completed, land on home when logging in
-        // (in a real app, you'd still validate credentials)
-      }
-    };
-    checkSurvey();
-  }, []);
+  const [error, setError] = useState('');
 
   const onLogin = async () => {
-    // TODO: integrate real auth; for now, accept any non-empty
     if (!email || !password) return;
     setSubmitting(true);
+    setError('');
     try {
-      // Existing users go directly to home
+      const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (err) {
+        setError(err.message);
+        return;
+      }
       router.replace('/(tabs)/home');
     } finally {
       setSubmitting(false);
@@ -43,7 +37,7 @@ export default function LoginScreen() {
           </Pressable>
         </View>
         <Image
-          source={require('C:/Users/Janam/Desktop/projects/MyBean_App/frontend/assets/images/beandark.png')}
+          source={require('@/assets/images/beandark.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -52,7 +46,9 @@ export default function LoginScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Email or Username"
+          placeholder="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
           placeholderTextColor="#A4CDD3"
           value={email}
           onChangeText={setEmail}
@@ -65,6 +61,8 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
         />
+
+        {error ? <Text style={{ color: '#FDFECC', marginBottom: 8 }}>{error}</Text> : null}
 
         <Pressable style={styles.mainButton} onPress={onLogin} disabled={submitting}>
           <Text style={styles.mainButtonText}>Log In</Text>

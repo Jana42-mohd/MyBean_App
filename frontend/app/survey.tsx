@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 // @ts-ignore
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -72,7 +73,16 @@ export default function SurveyScreen() {
       Alert.alert('Missing info', 'Please fill out all fields.');
       return;
     }
-    // Stateless: do not persist, simply proceed to home
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) {
+      router.replace('/(tabs)/login');
+      return;
+    }
+    const { error } = await supabase.from('surveys').upsert({ user_id: u.user.id, data, updated_at: new Date().toISOString() });
+    if (error) {
+      Alert.alert('Could not save', error.message);
+      return;
+    }
     router.replace('/home');
   };
 

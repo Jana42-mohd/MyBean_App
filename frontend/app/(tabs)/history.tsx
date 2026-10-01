@@ -2,7 +2,7 @@ import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchLogs } from '@/lib/logs';
 
 interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: string; consistency?: string; notes?: string }
 interface FeedingLog { time: string; method: 'breast' | 'formula' | 'mixed'; amount?: string; nextInHours?: string }
@@ -18,15 +18,6 @@ interface HistoryEntry {
   data: any;
 }
 
-const STORAGE_KEYS = {
-  naps: 'logs_naps',
-  diapers: 'logs_diapers',
-  feedings: 'logs_feedings',
-  pumping: 'logs_pumping',
-  milestones: 'logs_milestones',
-  mood: 'logs_mood',
-};
-
 export default function HistoryScreen() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping'>('all');
@@ -34,91 +25,13 @@ export default function HistoryScreen() {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const entries: HistoryEntry[] = [];
-
-        // Load diapers
-        const diaperLogs = await AsyncStorage.getItem(STORAGE_KEYS.diapers);
-        if (diaperLogs) {
-          const parsed = JSON.parse(diaperLogs);
-          parsed.forEach((log: DiaperLog, idx: number) => {
-            entries.push({
-              id: `diaper_${idx}`,
-              type: 'diaper',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
-
-        // Load feedings
-        const feedingLogs = await AsyncStorage.getItem(STORAGE_KEYS.feedings);
-        if (feedingLogs) {
-          const parsed = JSON.parse(feedingLogs);
-          parsed.forEach((log: FeedingLog, idx: number) => {
-            entries.push({
-              id: `feeding_${idx}`,
-              type: 'feeding',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
-
-        // Load naps
-        const napLogs = await AsyncStorage.getItem(STORAGE_KEYS.naps);
-        if (napLogs) {
-          const parsed = JSON.parse(napLogs);
-          parsed.forEach((log: NapLog, idx: number) => {
-            entries.push({
-              id: `nap_${idx}`,
-              type: 'nap',
-              timestamp: log.start,
-              data: log,
-            });
-          });
-        }
-
-        // Load milestones
-        const milestoneLogs = await AsyncStorage.getItem(STORAGE_KEYS.milestones);
-        if (milestoneLogs) {
-          const parsed = JSON.parse(milestoneLogs);
-          parsed.forEach((log: MilestoneLog, idx: number) => {
-            entries.push({
-              id: `milestone_${idx}`,
-              type: 'milestone',
-              timestamp: log.date,
-              data: log,
-            });
-          });
-        }
-
-        // Load moods
-        const moodLogs = await AsyncStorage.getItem(STORAGE_KEYS.mood);
-        if (moodLogs) {
-          const parsed = JSON.parse(moodLogs);
-          parsed.forEach((log: MoodLog, idx: number) => {
-            entries.push({
-              id: `mood_${idx}`,
-              type: 'mood',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
-
-        // Load pumping
-        const pumpLogs = await AsyncStorage.getItem(STORAGE_KEYS.pumping);
-        if (pumpLogs) {
-          const parsed = JSON.parse(pumpLogs);
-          parsed.forEach((log: PumpLog, idx: number) => {
-            entries.push({
-              id: `pump_${idx}`,
-              type: 'pumping',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
+        const rows = await fetchLogs();
+        const entries: HistoryEntry[] = rows.map(r => ({
+          id: r.id,
+          type: r.type,
+          timestamp: r.type === 'nap' ? r.data.start : r.type === 'milestone' ? r.data.date : r.data.time ?? r.logged_at,
+          data: r.data,
+        }));
 
         // Sort by timestamp (newest first)
         entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
