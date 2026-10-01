@@ -5,6 +5,9 @@ import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Household, getHousehold, joinHousehold, leaveHousehold } from '@/lib/household';
+import { Baby, deleteBaby, fetchBabies } from '@/lib/babies';
+import { changePassword, passwordProblems } from '@/lib/auth';
+import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function SettingsScreen() {
@@ -16,6 +19,12 @@ export default function SettingsScreen() {
   const [household, setHousehold] = useState<Household | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [isModerator, setIsModerator] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [newPw, setNewPw] = useState('');
+  const [pwMsg, setPwMsg] = useState('');
 
   useEffect(() => {
     loadUserData();
@@ -26,12 +35,15 @@ export default function SettingsScreen() {
       setLoading(true);
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      const { data: prof } = await supabase.from('profiles').select('name,avatar_url').eq('id', u.user.id).maybeSingle();
+      const { data: prof } = await supabase.from('profiles').select('name,avatar_url,is_moderator').eq('id', u.user.id).maybeSingle();
+      setIsModerator(!!prof?.is_moderator);
+      setBabies(await fetchBabies());
       setUser({ id: u.user.id, email: u.user.email, name: prof?.name });
       if (prof?.avatar_url) setProfilePhoto(prof.avatar_url);
       setHousehold(await getHousehold());
     } catch (error) {
       console.error('Error loading user data:', error);
+      setLoadError(friendlyError(error));
     } finally {
       setLoading(false);
     }
@@ -152,6 +164,41 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const confirmDeleteBaby = (b: Baby) =>
+    Alert.alert(
+      `Remove ${b.name}?`,
+      `This permanently deletes ${b.name} and ALL of their logs for everyone in your household. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBaby(b.id);
+              setBabies(await fetchBabies());
+            } catch (e) {
+              Alert.alert('Could not delete', friendlyError(e));
+            }
+          },
+        },
+      ]
+    );
+
+  const submitPassword = async () => {
+    const problems = passwordProblems(newPw);
+    if (problems.length) return setPwMsg(`Password needs ${problems.join(', ')}.`);
+    try {
+      await changePassword(newPw);
+      setNewPw('');
+      setShowPw(false);
+      setPwMsg('');
+      Alert.alert('Password updated');
+    } catch (e) {
+      setPwMsg(friendlyError(e));
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/');
@@ -231,6 +278,25 @@ export default function SettingsScreen() {
 
         </View>
 
+        {loadError ? <LoadError message={loadError} onRetry={loadUserData} /> : null}
+
+        {/* Babies Section */}
+        <View style={styles.settingsSection}>
+          <ThemedText style={styles.sectionTitle}>Babies</ThemedText>
+          {babies.map(b => (
+            <View key={b.id} style={styles.settingItem}>
+              <Text style={styles.settingLabel}>{b.name}{b.birth_date ? `  ·  born ${b.birth_date}` : ''}</Text>
+              <Pressable onPress={() => confirmDeleteBaby(b)}>
+                <Text style={[styles.settingValue, { color: '#ff9db1' }]}>Remove</Text>
+              </Pressable>
+            </View>
+          ))}
+          <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={() => router.push('/survey')}>
+            <Text style={styles.settingLabel}>Add or edit babies (twins, triplets & more)</Text>
+            <Text style={styles.settingValue}>→</Text>
+          </Pressable>
+        </View>
+
         {/* Household Section */}
         <View style={styles.settingsSection}>
           <ThemedText style={styles.sectionTitle}>Household</ThemedText>
@@ -270,9 +336,36 @@ export default function SettingsScreen() {
           ) : null}
 
           <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={() => router.push('/survey')}>
-            <Text style={styles.settingLabel}>Update my info & baby details</Text>
+            <Text style={styles.settingLabel}>Update my info</Text>
             <Text style={styles.settingValue}>→</Text>
           </Pressable>
+        </View>
+
+        {isModerator ? (
+          <View style={styles.settingsSection}>
+            <ThemedText style={styles.sectionTitle}>Moderation</ThemedText>
+            <Pressable style={styles.settingItem} onPress={() => router.push('/moderation')}>
+              <Text style={styles.settingLabel}>Review reported posts</Text>
+              <Text style={styles.settingValue}>→</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Change password */}
+        <View style={styles.settingsSection}>
+          <Pressable style={styles.settingItem} onPress={() => setShowPw(v => !v)}>
+            <Text style={styles.settingLabel}>Change password</Text>
+            <Text style={styles.settingValue}>{showPw ? '▲' : '→'}</Text>
+          </Pressable>
+          {showPw ? (
+            <>
+              <TextInput style={styles.codeInput} placeholder="New password" placeholderTextColor="#A4CDD3" secureTextEntry value={newPw} onChangeText={setNewPw} />
+              {pwMsg ? <Text style={styles.settingValue}>{pwMsg}</Text> : null}
+              <Pressable style={styles.photoButton} onPress={submitPassword}>
+                <Text style={styles.photoButtonText}>Update password</Text>
+              </Pressable>
+            </>
+          ) : null}
         </View>
 
         {/* Logout Button */}

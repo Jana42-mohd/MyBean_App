@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { friendlyError } from '@/components/LoadError';
 
 // Requirement indicator component
 const RequirementRow = ({ met, text }: { met: boolean; text: string }) => (
@@ -56,13 +57,19 @@ export default function SignupScreen() {
       return;
     }
     setError('');
-    const { data, error: err } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { name: username.trim() } },
-    });
+    let data, err;
+    try {
+      ({ data, error: err } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { name: username.trim() } },
+      }));
+    } catch (e) {
+      setError(friendlyError(e));
+      return;
+    }
     if (err) {
-      setError(err.message);
+      setError(friendlyError(err));
       return;
     }
     if (!data.session) {

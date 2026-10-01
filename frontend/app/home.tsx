@@ -1,9 +1,12 @@
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { fetchLogs } from '@/lib/logs';
+import { LogRow, fetchLogs } from '@/lib/logs';
+import { Baby, babyNames, fetchBabies } from '@/lib/babies';
+import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
+import { LoadError, friendlyError } from '@/components/LoadError';
 import { getHousehold, loadSurvey } from '@/lib/household';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -31,17 +34,18 @@ export default function HomeScreen() {
   const router = useRouter();
   const [data, setData] = useState<SurveyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [partners, setPartners] = useState<string[]>([]);
-  const [todayStats, setTodayStats] = useState({
-    feedings: 0,
-    diapers: 0,
-    sleepMinutes: 0,
-    lastUpdate: new Date(),
-  });
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [selected, setSelected] = useState(ALL_BABIES);
+  const [todayRows, setTodayRows] = useState<LogRow[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [survey, hh] = await Promise.all([loadSurvey(), getHousehold()]);
+      setError('');
+      const [survey, hh, babyList] = await Promise.all([loadSurvey(), getHousehold(), fetchBabies()]);
+      setBabies(babyList);
+      setPartners((hh?.members ?? []).map(m => m.name));
       if (survey) {
         setData(survey as SurveyData);
       } else {
@@ -49,42 +53,16 @@ export default function HomeScreen() {
         const { data: prof } = u.user
           ? await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle()
           : { data: null };
-        setData({
-          parentName: prof?.name || 'Parent',
-          pronouns: '',
-          relationship: '',
-          numberOfChildren: '',
-          primaryCaregiver: '',
-          babyName: (hh?.baby?.babyName as string) || 'Baby',
-          babyGender: '',
-          babyBirthDate: new Date().toISOString(),
-          gestationalAge: '',
-          feedingType: '',
-          trackingPreferences: [],
-        });
+        setData({ parentName: prof?.name || 'Parent' } as SurveyData);
       }
-      setPartners((hh?.members ?? []).map(m => m.name));
 
       // One query for today's logs (local midnight onward)
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-      const rows = await fetchLogs(['diaper', 'feeding', 'nap'], 500, startOfDay.toISOString());
-
-      let sleepMinutes = 0;
-      for (const r of rows) {
-        if (r.type === 'nap') {
-          const mins = Math.floor((new Date(r.data.end).getTime() - new Date(r.data.start).getTime()) / 60000);
-          if (mins > 0) sleepMinutes += mins;
-        }
-      }
-      setTodayStats({
-        feedings: rows.filter(r => r.type === 'feeding').length,
-        diapers: rows.filter(r => r.type === 'diaper').length,
-        sleepMinutes,
-        lastUpdate: new Date(),
-      });
+      setTodayRows(await fetchLogs(['diaper', 'feeding', 'nap'], 500, startOfDay.toISOString()));
     } catch (e) {
       console.error('Error loading data:', e);
+      setError(friendlyError(e));
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +74,22 @@ export default function HomeScreen() {
       loadData();
     }, [loadData])
   );
+
+  const todayStats = useMemo(() => {
+    const rows = selected === ALL_BABIES ? todayRows : todayRows.filter(r => r.baby_id === selected);
+    let sleepMinutes = 0;
+    for (const r of rows) {
+      if (r.type === 'nap') {
+        const mins = Math.floor((new Date(r.data.end).getTime() - new Date(r.data.start).getTime()) / 60000);
+        if (mins > 0) sleepMinutes += mins;
+      }
+    }
+    return {
+      feedings: rows.filter(r => r.type === 'feeding').length,
+      diapers: rows.filter(r => r.type === 'diaper').length,
+      sleepMinutes,
+    };
+  }, [todayRows, selected]);
 
   const formatSleepTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
@@ -117,13 +111,16 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ThemedText style={styles.greeting}>Hi {data.parentName}!</ThemedText>
-          {data.babyName && data.babyName !== 'Baby' ? (
+          {babies.length > 0 ? (
             <Text style={styles.sectionTitle}>
-              Here's how {data.babyName}'s day is going
+              Today with {babyNames(babies)}
               {partners.length > 1 ? ` · with ${partners.filter(n => n !== data.parentName).join(' & ')}` : ''}
             </Text>
           ) : null}
         </View>
+
+        {error ? <LoadError message={error} onRetry={loadData} /> : null}
+        <BabyPicker babies={babies} value={selected} onChange={setSelected} />
 
         {/* Core Stats */}
         <View style={styles.section}>

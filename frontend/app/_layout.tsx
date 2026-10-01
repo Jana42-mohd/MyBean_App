@@ -1,11 +1,14 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
+import { sessionFromUrl } from '@/lib/auth';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -29,12 +32,27 @@ export default function RootLayout() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Password-reset emails open the app with a recovery link: sign in from it, then show the new-password screen
+  useEffect(() => {
+    const handle = async (url: string | null) => {
+      if (!url || !url.includes('reset-password')) return;
+      try {
+        if (await sessionFromUrl(url)) router.replace('/reset-password');
+      } catch (e) {
+        console.error('Reset link failed:', e);
+      }
+    };
+    Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener('url', ({ url }) => handle(url));
+    return () => sub.remove();
+  }, []);
+
   // Signed-out users can only see the welcome, login and signup screens.
   useEffect(() => {
     if (!ready) return;
     const segs = segments as string[];
     const leaf = segs[segs.length - 1] ?? 'index';
-    const isPublic = segs.length === 0 || (segs[0] === '(tabs)' && PUBLIC_SCREENS.includes(leaf));
+    const isPublic = segs.length === 0 || segs[0] === 'reset-password' || (segs[0] === '(tabs)' && PUBLIC_SCREENS.includes(leaf));
     if (!session && !isPublic) router.replace('/');
   }, [ready, session, segments]);
 
@@ -43,7 +61,10 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="survey" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+        <Stack.Screen name="moderation" options={{ headerShown: false }} />
       </Stack>
+      <OfflineBanner />
       <StatusBar style="auto" />
     </ThemeProvider>
   );

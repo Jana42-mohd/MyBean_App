@@ -8,12 +8,8 @@ export interface Member {
 export interface Household {
   id: string;
   invite_code: string;
-  baby: Record<string, any>;
   members: Member[];
 }
-
-// Fields of the survey that belong to the shared baby (the rest are per-parent)
-export const BABY_FIELDS = ['babyName', 'babyGender', 'babyBirthDate', 'gestationalAge', 'feedingType', 'trackingPreferences'];
 
 export async function getHousehold(): Promise<Household | null> {
   const { data: u } = await supabase.auth.getUser();
@@ -21,7 +17,7 @@ export async function getHousehold(): Promise<Household | null> {
   const { data: me } = await supabase.from('profiles').select('household_id').eq('id', u.user.id).maybeSingle();
   if (!me?.household_id) return null;
   const [h, m] = await Promise.all([
-    supabase.from('households').select('id,invite_code,baby').eq('id', me.household_id).maybeSingle(),
+    supabase.from('households').select('id,invite_code').eq('id', me.household_id).maybeSingle(),
     supabase.from('profiles').select('id,name').eq('household_id', me.household_id),
   ]);
   if (!h.data) return null;
@@ -38,35 +34,31 @@ export async function leaveHousehold() {
   if (error) throw error;
 }
 
-// Survey: parent fields -> surveys (private), baby fields -> household (shared). Also updates display name.
+// Survey (parent part). Babies are saved separately via lib/babies. Also updates the display name.
 export async function saveSurvey(data: Record<string, any>) {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error('Not signed in');
-  const baby: Record<string, any> = {};
-  const parent: Record<string, any> = {};
-  for (const [k, v] of Object.entries(data)) (BABY_FIELDS.includes(k) ? baby : parent)[k] = v;
-
-  const hh = await getHousehold();
-  if (!hh) throw new Error('No household found');
-
-  const r1 = await supabase.from('surveys').upsert({ user_id: u.user.id, data: parent, updated_at: new Date().toISOString() });
+  const r1 = await supabase.from('surveys').upsert({ user_id: u.user.id, data, updated_at: new Date().toISOString() });
   if (r1.error) throw r1.error;
-  const r2 = await supabase.from('households').update({ baby }).eq('id', hh.id);
-  if (r2.error) throw r2.error;
-  if (parent.parentName) {
-    const r3 = await supabase.from('profiles').update({ name: parent.parentName }).eq('id', u.user.id);
-    if (r3.error) throw r3.error;
+  if (data.parentName) {
+    const r2 = await supabase.from('profiles').update({ name: data.parentName }).eq('id', u.user.id);
+    if (r2.error) throw r2.error;
   }
 }
 
-// Combined survey (my parent answers + shared baby info), or null if I haven't done it yet
+// My parent answers, or null if I haven't done the survey yet
 export async function loadSurvey(): Promise<Record<string, any> | null> {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return null;
-  const [s, hh] = await Promise.all([
-    supabase.from('surveys').select('data').eq('user_id', u.user.id).maybeSingle(),
-    getHousehold(),
+  const { data } = await supabase.from('surveys').select('data').eq('user_id', u.user.id).maybeSingle();
+  return (data?.data as any) ?? null;
+}
+
+// Onboarding is done once I've answered the survey and there is at least one baby in the household
+export async function hasCompletedSurvey(): Promise<boolean> {
+  const [survey, { count }] = await Promise.all([
+    loadSurvey(),
+    supabase.from('babies').select('id', { count: 'exact', head: true }),
   ]);
-  if (!s.data) return null;
-  return { ...(s.data.data as any), ...(hh?.baby ?? {}) };
+  return !!survey && (count ?? 0) > 0;
 }

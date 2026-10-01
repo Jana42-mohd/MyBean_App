@@ -4,7 +4,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { loadSurvey } from '@/lib/household';
+import { hasCompletedSurvey } from '@/lib/household';
+import { sendPasswordReset, signInWithGoogle } from '@/lib/auth';
+import { friendlyError } from '@/components/LoadError';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,22 +14,58 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+
+  const goAfterLogin = async () => {
+    // First login (no survey yet) -> survey, otherwise straight to home
+    const done = await hasCompletedSurvey().catch(() => false);
+    router.replace(done ? '/(tabs)/home' : '/survey');
+  };
 
   const onLogin = async () => {
     if (!email || !password) return;
     setSubmitting(true);
     setError('');
+    setInfo('');
     try {
       const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (err) {
-        setError(err.message);
+        setError(friendlyError(err));
         return;
       }
-      // First login (no survey yet) -> survey, otherwise straight to home
-      const survey = await loadSurvey().catch(() => null);
-      router.replace(survey ? '/(tabs)/home' : '/survey');
+      await goAfterLogin();
+    } catch (e) {
+      setError(friendlyError(e));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onGoogle = async () => {
+    setError('');
+    setInfo('');
+    try {
+      if (await signInWithGoogle()) await goAfterLogin();
+    } catch (e: any) {
+      const msg = String(e?.message ?? '');
+      setError(/provider is not enabled|unsupported provider/i.test(msg)
+        ? 'Google sign-in is not set up yet. Please log in with email for now.'
+        : friendlyError(e));
+    }
+  };
+
+  const onForgot = async () => {
+    setError('');
+    setInfo('');
+    if (!email.trim()) {
+      setError('Type your email above first, then tap "Forgot password?".');
+      return;
+    }
+    try {
+      await sendPasswordReset(email);
+      setInfo("If an account exists for that email, we've sent a link to reset your password.");
+    } catch (e) {
+      setError(friendlyError(e));
     }
   };
 
@@ -66,12 +104,17 @@ export default function LoginScreen() {
         />
 
         {error ? <Text style={{ color: '#FDFECC', marginBottom: 8 }}>{error}</Text> : null}
+        {info ? <Text style={{ color: '#A4CDD3', marginBottom: 8 }}>{info}</Text> : null}
 
         <Pressable style={styles.mainButton} onPress={onLogin} disabled={submitting}>
           <Text style={styles.mainButtonText}>Log In</Text>
         </Pressable>
 
-        <Pressable style={styles.googleButton}>
+        <Pressable onPress={onForgot}>
+          <Text style={[styles.footerText, { marginBottom: 12 }]}>Forgot password?</Text>
+        </Pressable>
+
+        <Pressable style={styles.googleButton} onPress={onGoogle}>
           <Text style={styles.googleText}>Sign in with Google</Text>
         </Pressable>
 

@@ -8,12 +8,14 @@ export interface LogRow {
   logged_at: string;
   data: any;
   author?: string;
+  baby_id: string | null;
+  baby?: string;
 }
 
 export async function fetchLogs(types?: LogType | LogType[], limit = 200, since?: string): Promise<LogRow[]> {
   let q = supabase
     .from('logs')
-    .select('id,type,logged_at,data,profiles(name)')
+    .select('id,type,logged_at,data,baby_id,babies(name),profiles(name)')
     .order('logged_at', { ascending: false })
     .limit(limit);
   if (Array.isArray(types)) q = q.in('type', types);
@@ -27,13 +29,34 @@ export async function fetchLogs(types?: LogType | LogType[], limit = 200, since?
     logged_at: r.logged_at,
     data: r.data,
     author: r.profiles?.name,
+    baby_id: r.baby_id,
+    baby: r.babies?.name,
   }));
 }
 
-export async function addLog(type: LogType, data: any, loggedAt: string = new Date().toISOString()) {
+// Logs one entry for each baby in babyIds (e.g. feeding twins together = one row per twin).
+// Pumping isn't tied to a baby: pass an empty list.
+export async function addLog(type: LogType, data: any, babyIds: string[], loggedAt: string = new Date().toISOString()) {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error('Not signed in');
+  if (babyIds.length === 0 && type !== 'pumping') throw new Error('Add a baby first');
   // household_id is filled in by the database from the signed-in user
-  const { error } = await supabase.from('logs').insert({ user_id: u.user.id, type, data, logged_at: loggedAt });
+  const targets: (string | null)[] = type === 'pumping' ? [null] : babyIds;
+  const rows = targets.map(baby_id => ({ user_id: u.user!.id, baby_id, type, data, logged_at: loggedAt }));
+  const { error } = await supabase.from('logs').insert(rows);
+  if (error) throw error;
+}
+
+export async function deleteLog(id: string) {
+  const { error } = await supabase.from('logs').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Edits the free-text note on an entry (other fields stay as logged)
+export async function updateLogNotes(id: string, data: any, notes: string) {
+  const next = { ...data };
+  if (notes.trim()) next.notes = notes.trim();
+  else delete next.notes;
+  const { error } = await supabase.from('logs').update({ data: next }).eq('id', id);
   if (error) throw error;
 }

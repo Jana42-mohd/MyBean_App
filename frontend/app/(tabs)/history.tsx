@@ -1,9 +1,12 @@
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Alert, Modal, TextInput } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { fetchLogs } from '@/lib/logs';
+import { deleteLog, fetchLogs, updateLogNotes } from '@/lib/logs';
+import { Baby, fetchBabies } from '@/lib/babies';
+import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
+import { LoadError, friendlyError } from '@/components/LoadError';
 
 interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: string; consistency?: string; notes?: string }
 interface FeedingLog { time: string; method: 'breast' | 'formula' | 'mixed'; amount?: string; nextInHours?: string }
@@ -18,21 +21,32 @@ interface HistoryEntry {
   timestamp: string;
   data: any;
   author?: string;
+  baby?: string;
+  baby_id?: string | null;
 }
 
 export default function HistoryScreen() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [babyFilter, setBabyFilter] = useState(ALL_BABIES);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState<HistoryEntry | null>(null);
+  const [editNotes, setEditNotes] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping'>('all');
 
   const loadHistory = useCallback(async () => {
       try {
-        const rows = await fetchLogs();
+        setError('');
+        const [rows, babyList] = await Promise.all([fetchLogs(), fetchBabies()]);
+        setBabies(babyList);
         const entries: HistoryEntry[] = rows.map(r => ({
           id: r.id,
           type: r.type,
           timestamp: r.type === 'nap' ? r.data.start : r.type === 'milestone' ? r.data.date : r.data.time ?? r.logged_at,
           data: r.data,
           author: r.author,
+          baby: r.baby,
+          baby_id: r.baby_id,
         }));
 
         // Sort by timestamp (newest first)
@@ -40,6 +54,7 @@ export default function HistoryScreen() {
         setHistory(entries);
       } catch (e) {
         console.error('Error loading history:', e);
+        setError(friendlyError(e));
       }
   }, []);
 
@@ -142,9 +157,45 @@ export default function HistoryScreen() {
     return colors[type] || '#A4CDD3';
   };
 
-  const filteredHistory = selectedFilter === 'all' 
-    ? history 
-    : history.filter(entry => entry.type === selectedFilter);
+  const filteredHistory = history.filter(
+    entry =>
+      (selectedFilter === 'all' || entry.type === selectedFilter) &&
+      (babyFilter === ALL_BABIES || entry.baby_id === babyFilter || entry.baby_id === null)
+  );
+
+  const confirmDelete = (entry: HistoryEntry) => {
+    Alert.alert('Delete this entry?', 'This removes it for everyone in your household and cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteLog(entry.id);
+            setHistory(prev => prev.filter(h => h.id !== entry.id));
+          } catch (e) {
+            Alert.alert('Could not delete', friendlyError(e));
+          }
+        },
+      },
+    ]);
+  };
+
+  const startEdit = (entry: HistoryEntry) => {
+    setEditing(entry);
+    setEditNotes(entry.data?.notes ?? '');
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    try {
+      await updateLogNotes(editing.id, editing.data, editNotes);
+      setEditing(null);
+      loadHistory();
+    } catch (e) {
+      Alert.alert('Could not save', friendlyError(e));
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -153,6 +204,8 @@ export default function HistoryScreen() {
         <Text style={styles.subtitle}>Complete log of all tracked activities</Text>
 
         {/* Filter Buttons */}
+        {error ? <LoadError message={error} onRetry={loadHistory} /> : null}
+        <BabyPicker babies={babies} value={babyFilter} onChange={setBabyFilter} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <Pressable 
             style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
@@ -187,20 +240,50 @@ export default function HistoryScreen() {
                     <Text style={styles.typeTagText}>{getTypeLabel(entry.type)}</Text>
                   </View>
                   <Text style={styles.timestamp}>
-                    {entry.author ? `${entry.author} · ` : ''}{formatDate(entry.timestamp)}
+                    {entry.baby ? `${entry.baby} · ` : ''}{entry.author ? `${entry.author} · ` : ''}{formatDate(entry.timestamp)}
                   </Text>
                 </View>
                 {renderEntryDetails(entry)}
+                <View style={styles.entryActions}>
+                  <Pressable onPress={() => startEdit(entry)}><Text style={styles.actionText}>Edit note</Text></Pressable>
+                  <Pressable onPress={() => confirmDelete(entry)}><Text style={[styles.actionText, styles.deleteText]}>Delete</Text></Pressable>
+                </View>
               </View>
             ))}
           </View>
         )}
       </ScrollView>
+      <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Edit note</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editNotes}
+              onChangeText={setEditNotes}
+              placeholder="Add a note"
+              placeholderTextColor="#A4CDD3"
+              multiline
+            />
+            <View style={styles.entryActions}>
+              <Pressable onPress={() => setEditing(null)}><Text style={styles.actionText}>Cancel</Text></Pressable>
+              <Pressable onPress={saveEdit}><Text style={[styles.actionText, { color: '#FED8FE' }]}>Save</Text></Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  entryActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginTop: 10 },
+  actionText: { color: '#A4CDD3', fontSize: 13, fontWeight: '600' },
+  deleteText: { color: '#ff9db1' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#2F9BA8' },
+  modalTitle: { color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  modalInput: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF', minHeight: 70 },
   container: {
     flex: 1,
     backgroundColor: '#09282eff',

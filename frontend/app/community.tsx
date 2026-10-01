@@ -3,9 +3,11 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { LoadError, friendlyError } from '@/components/LoadError';
 
 interface Post {
   id: string;
+  user_id?: string;
   title: string;
   excerpt: string;
   author: string;
@@ -21,6 +23,9 @@ const topicTags = ['Sleep', 'Feeding', 'Breastfeeding', 'Milestones', 'Health', 
 export default function CommunityScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [myId, setMyId] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [reporting, setReporting] = useState<Post | null>(null);
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -36,6 +41,7 @@ export default function CommunityScreen() {
     const init = async () => {
       const { data: u } = await supabase.auth.getUser();
       if (u.user) {
+        setMyId(u.user.id);
         const { data: prof } = await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle();
         setUserName(prof?.name || 'Anonymous');
       }
@@ -47,6 +53,7 @@ export default function CommunityScreen() {
   const loadPosts = async () => {
     try {
       setPostsLoading(true);
+      setLoadError('');
       const { data: u } = await supabase.auth.getUser();
       const [feed, likes, saves] = await Promise.all([
         supabase.from('posts_feed').select('*').order('created_at', { ascending: false }).limit(100),
@@ -59,7 +66,7 @@ export default function CommunityScreen() {
       setUserSaves((saves.data ?? []).map((r: any) => r.post_id));
     } catch (error) {
       console.error('Error loading posts:', error);
-      Alert.alert('Error', 'Could not load posts.');
+      setLoadError(friendlyError(error));
     } finally {
       setPostsLoading(false);
     }
@@ -146,6 +153,37 @@ export default function CommunityScreen() {
     }
   };
 
+  const REPORT_REASONS = ['spam', 'harassment', 'medical misinformation', 'inappropriate', 'other'];
+
+  const submitReport = async (reason: string) => {
+    if (!reporting) return;
+    const post = reporting;
+    setReporting(null);
+    const { error } = await supabase.from('post_reports').insert({ post_id: post.id, reason });
+    if (error && error.code !== '23505') {
+      Alert.alert('Could not send report', friendlyError(error));
+      return;
+    }
+    // Hide it for the reporter right away
+    setPosts(prev => prev.filter(p => p.id !== post.id));
+    Alert.alert('Thanks for letting us know', 'Our moderators will review this post. If several people report it, it is hidden automatically.');
+  };
+
+  const confirmDeletePost = (post: Post) => {
+    Alert.alert('Delete your post?', 'This permanently removes it, including its likes and saves.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('posts').delete().eq('id', post.id);
+          if (error) Alert.alert('Could not delete', friendlyError(error));
+          else setPosts(prev => prev.filter(p => p.id !== post.id));
+        },
+      },
+    ]);
+  };
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -209,6 +247,7 @@ export default function CommunityScreen() {
         </View>
 
         {/* Posts List */}
+        {loadError ? <LoadError message={loadError} onRetry={loadPosts} /> : null}
         {postsLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FED8FE" />
@@ -273,6 +312,16 @@ export default function CommunityScreen() {
                       {userSaves.includes(post.id) ? 'Saved' : 'Save'} ({post.saves_count})
                     </Text>
                   </Pressable>
+
+                  {post.user_id === myId ? (
+                    <Pressable style={styles.actionButton} onPress={() => confirmDeletePost(post)}>
+                      <Text style={styles.actionButtonText}>Delete</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable style={styles.actionButton} onPress={() => setReporting(post)}>
+                      <Text style={styles.actionButtonText}>Report</Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
             ))}
@@ -309,6 +358,10 @@ export default function CommunityScreen() {
                 </Text>
               </Pressable>
             </View>
+
+            <Text style={{ color: '#A4CDD3', fontSize: 12, lineHeight: 18, marginBottom: 14 }}>
+              Be kind and respectful. No spam or harassment. Share experiences, not medical advice: for health concerns, talk to your doctor. Posts can be reported and removed.
+            </Text>
 
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>Title</Text>
@@ -373,6 +426,22 @@ export default function CommunityScreen() {
             )}
           </ScrollView>
         </ThemedView>
+      </Modal>
+      <Modal visible={!!reporting} transparent animationType="fade" onRequestClose={() => setReporting(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#2F9BA8' }}>
+            <Text style={{ color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 4 }}>Report this post</Text>
+            <Text style={{ color: '#A4CDD3', marginBottom: 12 }}>What's wrong with it?</Text>
+            {REPORT_REASONS.map(r => (
+              <Pressable key={r} onPress={() => submitReport(r)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#2F9BA8' }}>
+                <Text style={{ color: '#E8FBFF', fontSize: 15, textTransform: 'capitalize' }}>{r}</Text>
+              </Pressable>
+            ))}
+            <Pressable onPress={() => setReporting(null)} style={{ paddingTop: 12 }}>
+              <Text style={{ color: '#A4CDD3', textAlign: 'center' }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
     </ThemedView>
   );

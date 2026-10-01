@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { getHousehold, loadSurvey, saveSurvey } from '@/lib/household';
+import { loadSurvey, saveSurvey } from '@/lib/household';
+import { BabyDraft, emptyBaby, fetchBabies, saveBabies, toDraft } from '@/lib/babies';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -12,14 +13,22 @@ interface SurveyData {
   parentName: string;
   pronouns: 'he/him' | 'she/her' | 'they/them' | 'other' | '';
   relationship: 'mother' | 'father' | 'parent' | 'guardian' | 'other family member' | '';
-  numberOfChildren: string;
   primaryCaregiver: 'yes' | 'no' | 'shared' | '';
-  babyName: string;
-  babyGender: 'boy' | 'girl' | 'prefer not to say' | '';
-  babyBirthDate: string;
-  gestationalAge: 'full-term' | 'premature' | 'post-term' | '';
-  feedingType: 'breast' | 'formula' | 'mixed' | ''; 
-  trackingPreferences: string[]; 
+  trackingPreferences: string[];
+}
+
+const BIRTH_DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+function Choices({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
+  return (
+    <View style={styles.choices}>
+      {options.map(opt => (
+        <Pressable key={opt} onPress={() => onPick(opt)} style={[styles.choice, value === opt ? styles.choiceActive : null]}>
+          <Text style={[styles.choiceText, value === opt && styles.choiceTextActive]}>{opt}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
 }
 
 export default function SurveyScreen() {
@@ -28,35 +37,29 @@ export default function SurveyScreen() {
     parentName: '',
     pronouns: '',
     relationship: '',
-    numberOfChildren: '',
     primaryCaregiver: '',
-    babyName: '',
-    babyGender: '',
-    babyBirthDate: '',
-    gestationalAge: '',
-    feedingType: '',
     trackingPreferences: [],
   });
+  const [babies, setBabies] = useState<BabyDraft[]>([emptyBaby()]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Prefill from a previous survey, or from the shared baby info if a partner already filled it in
+  // Prefill from a previous survey, or from babies a partner already added to the household
   useEffect(() => {
     (async () => {
       try {
-        const existing = await loadSurvey();
+        const [existing, existingBabies, { data: u }] = await Promise.all([
+          loadSurvey(),
+          fetchBabies(),
+          supabase.auth.getUser(),
+        ]);
         if (existing) {
           setData(prev => ({ ...prev, ...existing }));
-        } else {
-          const [{ data: u }, hh] = await Promise.all([supabase.auth.getUser(), getHousehold()]);
-          const { data: prof } = u.user
-            ? await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle()
-            : { data: null };
-          setData(prev => ({
-            ...prev,
-            ...(hh?.baby ?? {}),
-            parentName: prof?.name && prof.name !== 'Parent' ? prof.name : prev.parentName,
-          }));
+        } else if (u.user) {
+          const { data: prof } = await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle();
+          if (prof?.name && prof.name !== 'Parent') setData(prev => ({ ...prev, parentName: prof.name }));
         }
+        if (existingBabies.length) setBabies(existingBabies.map(toDraft));
       } catch (e) {
         console.error('Survey preload failed:', e);
       } finally {
@@ -65,42 +68,57 @@ export default function SurveyScreen() {
     })();
   }, []);
 
-  const update = (key: keyof SurveyData, value: string) => {
-    setData(prev => ({ ...prev, [key]: value }));
-  };
+  const update = (key: keyof SurveyData, value: string) => setData(prev => ({ ...prev, [key]: value }));
 
   const toggleTracking = (pref: string) => {
     setData(prev => ({
       ...prev,
       trackingPreferences: prev.trackingPreferences.includes(pref)
         ? prev.trackingPreferences.filter(p => p !== pref)
-        : [...prev.trackingPreferences, pref]
+        : [...prev.trackingPreferences, pref],
     }));
   };
 
+  const updateBaby = (i: number, key: keyof BabyDraft, value: string) =>
+    setBabies(prev => prev.map((b, idx) => (idx === i ? { ...b, [key]: value } : b)));
+
+  const addBaby = () => setBabies(prev => [...prev, emptyBaby(prev[prev.length - 1])]);
+  const removeBaby = (i: number) => setBabies(prev => prev.filter((_, idx) => idx !== i));
+
+  const babyDone = (b: BabyDraft) => [b.name, b.gender, b.birthDate, b.gestationalAge, b.feedingType].every(Boolean);
+
   const getProgress = () => {
-    const fields = [
-      data.parentName, data.pronouns, data.relationship, data.numberOfChildren,
-      data.primaryCaregiver, data.babyName, data.babyGender, data.babyBirthDate,
-      data.gestationalAge, data.feedingType
-    ];
-    const filled = fields.filter(f => f).length;
-    return Math.round((filled / fields.length) * 100);
+    const parentFields = [data.parentName, data.pronouns, data.relationship, data.primaryCaregiver];
+    const babyFields = babies.flatMap(b => [b.name, b.gender, b.birthDate, b.gestationalAge, b.feedingType]);
+    const all = [...parentFields, ...babyFields];
+    return Math.round((all.filter(f => f).length / all.length) * 100);
   };
 
   const submit = async () => {
-    if (!data.parentName || !data.pronouns || !data.relationship || !data.numberOfChildren ||
-        !data.primaryCaregiver || !data.babyName || !data.babyGender || !data.babyBirthDate ||
-        !data.gestationalAge || !data.feedingType) {
-      Alert.alert('Missing info', 'Please fill out all fields.');
+    if (!data.parentName || !data.pronouns || !data.relationship || !data.primaryCaregiver) {
+      Alert.alert('Missing info', 'Please fill out the "About You" section.');
       return;
     }
+    const incomplete = babies.findIndex(b => !babyDone(b));
+    if (incomplete >= 0) {
+      Alert.alert('Missing info', `Please fill out everything for baby ${incomplete + 1}.`);
+      return;
+    }
+    const badDate = babies.findIndex(b => !BIRTH_DATE_RE.test(b.birthDate));
+    if (badDate >= 0) {
+      Alert.alert('Birth date', `Baby ${badDate + 1}'s birth date needs the format YYYY-MM-DD, e.g. 2025-03-14.`);
+      return;
+    }
+    setSaving(true);
     try {
-      await saveSurvey(data);
+      await saveSurvey({ ...data, numberOfChildren: String(babies.length) });
+      await saveBabies(babies);
     } catch (e: any) {
       Alert.alert('Could not save', e?.message || 'Please try again.');
+      setSaving(false);
       return;
     }
+    setSaving(false);
     router.replace('/home');
   };
 
@@ -111,7 +129,7 @@ export default function SurveyScreen() {
       <ScrollView contentContainerStyle={styles.card} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Welcome! Let's get to know you</ThemedText>
         <Text style={styles.subtitle}>This helps us personalize your experience</Text>
-        
+
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${getProgress()}%` }]} />
         </View>
@@ -119,150 +137,104 @@ export default function SurveyScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionHeader}> About You</Text>
-          
+
           <Text style={styles.label}>Your name</Text>
-        <TextInput
-          style={styles.input}
-          value={data.parentName}
-          onChangeText={(t: string) => update('parentName', t)}
-          placeholder="e.g., Alex"
-          placeholderTextColor="#A4CDD3"
-        />
-
-        <Text style={styles.label}>Your pronouns</Text>
-        <View style={styles.choices}>
-          {['he/him','she/her','they/them','other'].map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => update('pronouns', opt)}
-              style={[styles.choice, data.pronouns === opt ? styles.choiceActive : null]}
-            >
-              <Text style={[styles.choiceText, data.pronouns === opt && styles.choiceTextActive]}>{opt}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Your relationship to baby</Text>
-        <View style={styles.choices}>
-          {['mother','father','parent','guardian','other family member'].map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => update('relationship', opt)}
-              style={[styles.choice, data.relationship === opt ? styles.choiceActive : null]}
-            >
-              <Text style={[styles.choiceText, data.relationship === opt && styles.choiceTextActive]}>{opt}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Number of children (including this baby)</Text>
-        <TextInput
-          style={styles.input}
-          value={data.numberOfChildren}
-          onChangeText={(t: string) => update('numberOfChildren', t)}
-          placeholder="e.g., 1"
-          placeholderTextColor="#A4CDD3"
-          keyboardType="numeric"
-        />
-
-        <Text style={styles.label}>Are you the primary caregiver?</Text>
-        <View style={styles.choices}>
-          {['yes','no','shared'].map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => update('primaryCaregiver', opt)}
-              style={[styles.choice, data.primaryCaregiver === opt ? styles.choiceActive : null]}
-            >
-              <Text style={[styles.choiceText, data.primaryCaregiver === opt && styles.choiceTextActive]}>{opt}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}> About Baby</Text>
-          
-          <Text style={styles.label}>Baby's name</Text>
           <TextInput
             style={styles.input}
-            value={data.babyName}
-            onChangeText={(t: string) => update('babyName', t)}
-            placeholder="e.g., Mia"
+            value={data.parentName}
+            onChangeText={(t: string) => update('parentName', t)}
+            placeholder="e.g., Alex"
             placeholderTextColor="#A4CDD3"
           />
 
-        <Text style={styles.label}>Baby's gender</Text>
-        <View style={styles.choices}>
-          {['boy','girl','prefer not to say'].map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => update('babyGender', opt)}
-              style={[styles.choice, data.babyGender === opt ? styles.choiceActive : null]}
-            >
-              <Text style={[styles.choiceText, data.babyGender === opt && styles.choiceTextActive]}>{opt}</Text>
-            </Pressable>
-          ))}
+          <Text style={styles.label}>Your pronouns</Text>
+          <Choices options={['he/him', 'she/her', 'they/them', 'other']} value={data.pronouns} onPick={v => update('pronouns', v)} />
+
+          <Text style={styles.label}>Your relationship to baby</Text>
+          <Choices
+            options={['mother', 'father', 'parent', 'guardian', 'other family member']}
+            value={data.relationship}
+            onPick={v => update('relationship', v)}
+          />
+
+          <Text style={styles.label}>Are you the primary caregiver?</Text>
+          <Choices options={['yes', 'no', 'shared']} value={data.primaryCaregiver} onPick={v => update('primaryCaregiver', v)} />
         </View>
 
-        <Text style={styles.label}>Baby's birth date</Text>
-        <TextInput
-          style={styles.input}
-          value={data.babyBirthDate}
-          onChangeText={(t: string) => update('babyBirthDate', t)}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#A4CDD3"
-        />
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}> {babies.length > 1 ? 'About Your Babies' : 'About Baby'}</Text>
+          <Text style={styles.helperText}>
+            Twins, triplets or more? Tap "Add another baby". Each one gets their own logs, and you can log for all of them at once.
+          </Text>
 
-        <Text style={styles.label}>Gestational age at birth</Text>
-        <View style={styles.choices}>
-          {['full-term','premature','post-term'].map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => update('gestationalAge', opt)}
-              style={[styles.choice, data.gestationalAge === opt ? styles.choiceActive : null]}
-            >
-              <Text style={[styles.choiceText, data.gestationalAge === opt && styles.choiceTextActive]}>{opt}</Text>
-            </Pressable>
+          {babies.map((b, i) => (
+            <View key={b.id ?? `new-${i}`} style={styles.babyCard}>
+              <View style={styles.babyHeader}>
+                <Text style={styles.babyTitle}>{b.name.trim() || `Baby ${i + 1}`}</Text>
+                {!b.id && babies.length > 1 ? (
+                  <Pressable onPress={() => removeBaby(i)}>
+                    <Text style={styles.removeText}>Remove</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <Text style={styles.label}>Name</Text>
+              <TextInput
+                style={styles.input}
+                value={b.name}
+                onChangeText={(t: string) => updateBaby(i, 'name', t)}
+                placeholder="e.g., Mia"
+                placeholderTextColor="#A4CDD3"
+              />
+
+              <Text style={styles.label}>Gender</Text>
+              <Choices options={['boy', 'girl', 'prefer not to say']} value={b.gender} onPick={v => updateBaby(i, 'gender', v)} />
+
+              <Text style={styles.label}>Birth date</Text>
+              <TextInput
+                style={styles.input}
+                value={b.birthDate}
+                onChangeText={(t: string) => updateBaby(i, 'birthDate', t)}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#A4CDD3"
+                keyboardType="numbers-and-punctuation"
+              />
+
+              <Text style={styles.label}>Gestational age at birth</Text>
+              <Choices
+                options={['full-term', 'premature', 'post-term']}
+                value={b.gestationalAge}
+                onPick={v => updateBaby(i, 'gestationalAge', v)}
+              />
+
+              <Text style={styles.label}>Feeding type</Text>
+              <Choices options={['breast', 'formula', 'mixed']} value={b.feedingType} onPick={v => updateBaby(i, 'feedingType', v)} />
+            </View>
           ))}
-        </View>
 
+          <Pressable style={styles.addBaby} onPress={addBaby}>
+            <Text style={styles.addBabyText}>+ Add another baby</Text>
+          </Pressable>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionHeader}> Care & Tracking</Text>
-          
-          <Text style={styles.label}>Feeding type</Text>
-          <View style={styles.choices}>
-            {['breast','formula','mixed'].map(opt => (
+          <Text style={styles.label}>What would you like to track?</Text>
+          <Text style={styles.helperText}>Select all that apply (optional)</Text>
+          <View style={styles.choicesWrap}>
+            {['sleep', 'feeding', 'diapers', 'milestones', 'growth', 'mood'].map(opt => (
               <Pressable
                 key={opt}
-                onPress={() => update('feedingType', opt)}
-                style={[styles.choice, data.feedingType === opt ? styles.choiceActive : null]}
-              >
-                <Text style={[styles.choiceText, data.feedingType === opt && styles.choiceTextActive]}>{opt}</Text>
+                onPress={() => toggleTracking(opt)}
+                style={[styles.choice, data.trackingPreferences.includes(opt) ? styles.choiceActive : null]}>
+                <Text style={[styles.choiceText, data.trackingPreferences.includes(opt) && styles.choiceTextActive]}>{opt}</Text>
               </Pressable>
             ))}
           </View>
-
-          <Text style={styles.label}>What would you like to track?</Text>
-          <Text style={styles.helperText}>Select all that apply (optional)</Text>
-        <View style={styles.choicesWrap}>
-          {['sleep','feeding','diapers','milestones','growth','mood'].map(opt => (
-            <Pressable
-              key={opt}
-              onPress={() => toggleTracking(opt)}
-              style={[styles.choice, data.trackingPreferences.includes(opt) ? styles.choiceActive : null]}
-            >
-              <Text style={[styles.choiceText, data.trackingPreferences.includes(opt) && styles.choiceTextActive]}>{opt}</Text>
-            </Pressable>
-          ))}
         </View>
 
-        </View>
-
-        <Pressable style={styles.submit} onPress={submit}>
-          <Text style={styles.submitText}>Finish</Text>
+        <Pressable style={styles.submit} onPress={submit} disabled={saving}>
+          <Text style={styles.submitText}>{saving ? 'Saving...' : 'Finish'}</Text>
         </Pressable>
       </ScrollView>
     </ThemedView>
@@ -397,4 +369,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 17,
   },
+  babyCard: {
+    borderWidth: 1,
+    borderColor: '#2F9BA8',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    backgroundColor: '#0f3a41ff',
+  },
+  babyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  babyTitle: { color: '#FED8FE', fontWeight: '700', fontSize: 16 },
+  removeText: { color: '#A4CDD3', fontSize: 13, textDecorationLine: 'underline' },
+  addBaby: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#FED8FE',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  addBabyText: { color: '#FED8FE', fontWeight: '600' },
 });

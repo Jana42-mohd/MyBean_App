@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
-import { addLog, fetchLogs, LogType } from '@/lib/logs';
+import { addLog, fetchLogs, LogRow, LogType } from '@/lib/logs';
+import { Baby, fetchBabies } from '@/lib/babies';
+import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
+import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -13,12 +17,19 @@ interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying
 
 
 export default function TrackScreen() {
-  const [naps, setNaps] = useState<NapLog[]>([]);
-  const [diapers, setDiapers] = useState<DiaperLog[]>([]);
-  const [feedings, setFeedings] = useState<FeedingLog[]>([]);
-  const [pumps, setPumps] = useState<PumpLog[]>([]);
-  const [milestones, setMilestones] = useState<MilestoneLog[]>([]);
-  const [moods, setMoods] = useState<MoodLog[]>([]);
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [selected, setSelected] = useState(ALL_BABIES);
+  const [rows, setRows] = useState<LogRow[]>([]);
+  const [loadError, setLoadError] = useState('');
+  // Entries for the chosen baby (pumping belongs to the parent, so it always shows)
+  const of = <T,>(t: LogType): T[] =>
+    rows.filter(r => r.type === t && (selected === ALL_BABIES || r.baby_id === selected || r.baby_id === null)).map(r => r.data as T);
+  const naps = of<NapLog>('nap');
+  const diapers = of<DiaperLog>('diaper');
+  const feedings = of<FeedingLog>('feeding');
+  const pumps = of<PumpLog>('pumping');
+  const milestones = of<MilestoneLog>('milestone');
+  const moods = of<MoodLog>('mood');
 
   // Form state
   const [napStart, setNapStart] = useState('');
@@ -77,37 +88,34 @@ export default function TrackScreen() {
 
     setDatePickerVisible(false);
   };
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const rows = await fetchLogs(undefined, 300);
-        const of = (t: LogType) => rows.filter(r => r.type === t).map(r => r.data);
-        setNaps(of('nap'));
-        setDiapers(of('diaper'));
-        setFeedings(of('feeding'));
-        setPumps(of('pumping'));
-        setMilestones(of('milestone'));
-        setMoods(of('mood'));
-      } catch (e) {
-        console.error('Error loading logs:', e);
-      }
-    };
-    load();
+  const load = useCallback(async () => {
+    try {
+      setLoadError('');
+      const [b, r] = await Promise.all([fetchBabies(), fetchLogs(undefined, 300)]);
+      setBabies(b);
+      setRows(r);
+    } catch (e) {
+      console.error('Error loading logs:', e);
+      setLoadError(friendlyError(e));
+    }
   }, []);
 
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Logs for the selected baby, or one entry per baby when "All babies" is selected
   const save = async (type: LogType, entry: any, loggedAt?: string) => {
     try {
-      await addLog(type, entry, loggedAt);
+      const ids = selected === ALL_BABIES ? babies.map(b => b.id) : [selected];
+      await addLog(type, entry, ids, loggedAt);
+      await load();
     } catch (e: any) {
-      Alert.alert('Could not save', e?.message || 'Please try again.');
+      Alert.alert('Could not save', friendlyError(e));
     }
   };
 
   const logNap = async () => {
     if (!napStart || !napEnd) return;
     const entry: NapLog = { start: napStart, end: napEnd, notes: napNotes || undefined };
-    const updated = [entry, ...naps].slice(0, 20);
-    setNaps(updated);
     await save('nap', entry, new Date(napStart.replace(' ', 'T') + ':00Z').toISOString());
     setNapStart(''); setNapEnd(''); setNapNotes('');
   };
@@ -115,8 +123,6 @@ export default function TrackScreen() {
   const logDiaper = async () => {
     const time = new Date().toISOString();
     const entry: DiaperLog = { time, type: diaperType, color: diaperType==='poop'? (poopColor||undefined) : undefined, consistency: diaperType==='poop'? (poopConsistency||undefined) : undefined, notes: diaperNotes || undefined };
-    const updated = [entry, ...diapers].slice(0, 30);
-    setDiapers(updated);
     await save('diaper', entry, time);
     setDiaperNotes(''); setPoopColor(''); setPoopConsistency('');
   };
@@ -124,8 +130,6 @@ export default function TrackScreen() {
   const logFeeding = async () => {
     const time = new Date().toISOString();
     const entry: FeedingLog = { time, method: feedMethod, amount: feedAmount || undefined, nextInHours: nextInHours || undefined };
-    const updated = [entry, ...feedings].slice(0, 30);
-    setFeedings(updated);
     await save('feeding', entry, time);
     setFeedAmount(''); setNextInHours('');
   };
@@ -134,8 +138,6 @@ export default function TrackScreen() {
     const now = new Date();
     const ampm: 'AM'|'PM' = now.getHours() < 12 ? 'AM' : 'PM';
     const entry: PumpLog = { time: now.toISOString(), volumeOz: pumpVolume || '0', side: pumpSide, ampm };
-    const updated = [entry, ...pumps].slice(0, 30);
-    setPumps(updated);
     await save('pumping', entry, entry.time);
     setPumpVolume('');
   };
@@ -143,8 +145,6 @@ export default function TrackScreen() {
   const logMilestone = async () => {
     if (!milestoneText || !milestoneDate) return;
     const entry: MilestoneLog = { date: milestoneDate, milestone: milestoneText, notes: milestoneNotes || undefined };
-    const updated = [entry, ...milestones].slice(0, 50);
-    setMilestones(updated);
     await save('milestone', entry, new Date(milestoneDate).toISOString());
     setMilestoneText(''); setMilestoneDate(''); setMilestoneNotes('');
   };
@@ -152,8 +152,6 @@ export default function TrackScreen() {
   const logMood = async () => {
     const time = new Date().toISOString();
     const entry: MoodLog = { time, mood: moodType, notes: moodNotes || undefined };
-    const updated = [entry, ...moods].slice(0, 50);
-    setMoods(updated);
     await save('mood', entry, time);
     setMoodNotes('');
   };
@@ -163,6 +161,11 @@ export default function TrackScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Track Baby Activity</ThemedText>
         <Text style={styles.subtitle}>Log feeding, sleep, diapers, milestones & mood</Text>
+        {loadError ? <LoadError message={loadError} onRetry={load} /> : null}
+        {babies.length === 0 && !loadError ? (
+          <LoadError message="Add your baby first: open Settings → Update my info & baby details." />
+        ) : null}
+        <BabyPicker babies={babies} value={selected} onChange={setSelected} allLabel="All babies (log together)" />
 
         {/* Naps */}
         <View style={styles.card}>
