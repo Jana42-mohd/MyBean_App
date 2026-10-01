@@ -15,7 +15,7 @@ export async function setPreferredColorScheme(theme: Theme) {
 }
 
 export function useColorScheme(): Theme {
-	const system = Appearance.getColorScheme() ?? 'light';
+	const system: Theme = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 	const [theme, setTheme] = useState<Theme>(preferred ?? system);
 
 	useEffect(() => {
@@ -30,7 +30,7 @@ export function useColorScheme(): Theme {
 	useEffect(() => {
 		const sub = Appearance.addChangeListener(({ colorScheme }) => {
 			if (!preferred) {
-				setTheme((colorScheme as Theme) ?? 'light');
+				setTheme(colorScheme === 'dark' ? 'dark' : 'light');
 			}
 		});
 		return () => sub.remove();
@@ -39,7 +39,9 @@ export function useColorScheme(): Theme {
 	useEffect(() => {
 		const fn = (value: Theme) => setTheme(value);
 		subscribers.add(fn);
-		return () => subscribers.delete(fn);
+		return () => {
+			subscribers.delete(fn);
+		};
 	}, []);
 
 	return theme;
