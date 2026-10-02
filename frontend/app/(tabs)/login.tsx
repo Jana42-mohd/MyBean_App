@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   backText: {
     color: '#E8FBFF',
     fontSize: 25,
-    lineHeight: 15,
+    lineHeight: 32,
   },
   card: {
     width: '90%',
