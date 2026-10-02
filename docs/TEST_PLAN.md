@@ -34,3 +34,19 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Post, like, save. Delete own post works; other people's posts show Report.
 - [ ] Three different accounts report one post -> it disappears from the feed.
 - [ ] Moderator account: Settings -> Moderation shows it; Keep restores it, Delete removes it.
+
+## Quick logging, timers & editing
+- [ ] Home -> Feeding -> tap Breast: toast "Logged feeding for <baby>" appears; Undo removes it. Diaper works the same.
+- [ ] With twins: pick "All babies" in the sheet -> one entry per baby appears in History.
+- [ ] Sleep card starts a timer (banner counts up). Close and reopen the app: it is still running. "Woke up" saves a nap; under one minute is discarded.
+- [ ] History -> Edit on each type (diaper, feeding, nap, pumping, mood, milestone): change the time/amount, save, the entry updates.
+
+## Insights
+- [ ] Home -> Insights & trends: charts for sleep, feedings, diapers; tap a bar to see its value; "Table" shows the same numbers; 7/30 day switch.
+- [ ] A sleep that crosses midnight (e.g. 10pm-6am) is split across both days.
+- [ ] "Share summary" opens the share sheet with a plain-text summary.
+
+## Reminders (local, this phone only)
+- [ ] Settings -> Reminders -> turn on "Next feeding": the phone asks permission. Set 1 h (or log a feeding with "next in" hours) and confirm the notification arrives.
+- [ ] Logging a new feeding replaces the earlier pending reminder. Turning the switch off cancels it.
+- [ ] Weekly check-in on: tapping the notification opens Wellbeing.

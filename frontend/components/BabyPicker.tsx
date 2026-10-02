@@ -9,14 +9,16 @@ export function BabyPicker({
   value,
   onChange,
   allLabel = 'All babies',
+  showAll = true,
 }: {
   babies: Baby[];
   value: string;
   onChange: (id: string) => void;
   allLabel?: string;
+  showAll?: boolean; // false: only the individual babies
 }) {
   if (babies.length < 2) return null;
-  const items = [{ id: ALL_BABIES, name: allLabel }, ...babies];
+  const items = showAll ? [{ id: ALL_BABIES, name: allLabel }, ...babies] : babies;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll} contentContainerStyle={styles.content}>
       {items.map(b => (

@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments }
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import * as Linking from 'expo-linking';
+import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
 import 'react-native-reanimated';
 
@@ -9,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import { sessionFromUrl } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { setupNotifications } from '@/lib/reminders';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -30,6 +32,16 @@ export default function RootLayout() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // Reminders: configure how they look, and open the right screen when one is tapped
+  useEffect(() => {
+    setupNotifications().catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(resp => {
+      const screen = resp.notification.request.content.data?.screen;
+      router.push(screen === 'wellbeing' ? '/(tabs)/wellbeing' : '/(tabs)/home');
+    });
+    return () => sub.remove();
   }, []);
 
   // Password-reset emails open the app with a recovery link: sign in from it, then show the new-password screen
@@ -63,6 +75,7 @@ export default function RootLayout() {
         <Stack.Screen name="survey" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="moderation" options={{ headerShown: false }} />
+        <Stack.Screen name="insights" options={{ headerShown: false }} />
       </Stack>
       <OfflineBanner />
       <StatusBar style="auto" />

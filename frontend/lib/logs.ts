@@ -36,15 +36,16 @@ export async function fetchLogs(types?: LogType | LogType[], limit = 200, since?
 
 // Logs one entry for each baby in babyIds (e.g. feeding twins together = one row per twin).
 // Pumping isn't tied to a baby: pass an empty list.
-export async function addLog(type: LogType, data: any, babyIds: string[], loggedAt: string = new Date().toISOString()) {
+export async function addLog(type: LogType, data: any, babyIds: string[], loggedAt: string = new Date().toISOString()): Promise<string[]> {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error('Not signed in');
   if (babyIds.length === 0 && type !== 'pumping') throw new Error('Add a baby first');
   // household_id is filled in by the database from the signed-in user
   const targets: (string | null)[] = type === 'pumping' ? [null] : babyIds;
   const rows = targets.map(baby_id => ({ user_id: u.user!.id, baby_id, type, data, logged_at: loggedAt }));
-  const { error } = await supabase.from('logs').insert(rows);
+  const { data: inserted, error } = await supabase.from('logs').insert(rows).select('id');
   if (error) throw error;
+  return (inserted ?? []).map((r: any) => r.id as string);
 }
 
 export async function deleteLog(id: string) {
@@ -58,5 +59,13 @@ export async function updateLogNotes(id: string, data: any, notes: string) {
   if (notes.trim()) next.notes = notes.trim();
   else delete next.notes;
   const { error } = await supabase.from('logs').update({ data: next }).eq('id', id);
+  if (error) throw error;
+}
+
+// Replaces an entry's data (and optionally its time) after the user edits it
+export async function updateLog(id: string, data: any, loggedAt?: string) {
+  const patch: Record<string, any> = { data };
+  if (loggedAt) patch.logged_at = loggedAt;
+  const { error } = await supabase.from('logs').update(patch).eq('id', id);
   if (error) throw error;
 }

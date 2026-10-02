@@ -1,20 +1,16 @@
-import { StyleSheet, View, Text, ScrollView, Pressable, Alert, Modal, TextInput } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { deleteLog, fetchLogs, updateLogNotes } from '@/lib/logs';
+import { deleteLog, fetchLogs } from '@/lib/logs';
+import { EditEntry } from '@/components/EditEntry';
+import { toDate } from '@/lib/time';
 import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
 
-interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: string; consistency?: string; notes?: string }
-interface FeedingLog { time: string; method: 'breast' | 'formula' | 'mixed'; amount?: string; nextInHours?: string }
-interface NapLog { start: string; end: string; notes?: string }
-interface MilestoneLog { date: string; milestone: string; notes?: string }
-interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying' | 'calm'; notes?: string }
-interface PumpLog { time: string; volumeOz: string; side: 'left' | 'right' | 'both'; ampm: 'AM' | 'PM' }
 
 interface HistoryEntry {
   id: string;
@@ -33,7 +29,6 @@ export default function HistoryScreen() {
   const [babyFilter, setBabyFilter] = useState(ALL_BABIES);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<HistoryEntry | null>(null);
-  const [editNotes, setEditNotes] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping'>('all');
 
   const loadHistory = useCallback(async () => {
@@ -52,7 +47,7 @@ export default function HistoryScreen() {
         }));
 
         // Sort by timestamp (newest first)
-        entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        entries.sort((a, b) => toDate(b.timestamp).getTime() - toDate(a.timestamp).getTime());
         setHistory(entries);
       } catch (e) {
         console.error('Error loading history:', e);
@@ -68,7 +63,7 @@ export default function HistoryScreen() {
 
   const formatDate = (dateStr: string) => {
     try {
-      const date = new Date(dateStr);
+      const date = toDate(dateStr);
       return date.toLocaleString('en-US', { 
         month: 'short', 
         day: 'numeric', 
@@ -183,21 +178,6 @@ export default function HistoryScreen() {
     ]);
   };
 
-  const startEdit = (entry: HistoryEntry) => {
-    setEditing(entry);
-    setEditNotes(entry.data?.notes ?? '');
-  };
-
-  const saveEdit = async () => {
-    if (!editing) return;
-    try {
-      await updateLogNotes(editing.id, editing.data, editNotes);
-      setEditing(null);
-      loadHistory();
-    } catch (e) {
-      Alert.alert('Could not save', friendlyError(e));
-    }
-  };
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
@@ -247,7 +227,7 @@ export default function HistoryScreen() {
                 </View>
                 {renderEntryDetails(entry)}
                 <View style={styles.entryActions}>
-                  <Pressable onPress={() => startEdit(entry)}><Text style={styles.actionText}>Edit note</Text></Pressable>
+                  <Pressable onPress={() => setEditing(entry)}><Text style={styles.actionText}>Edit</Text></Pressable>
                   <Pressable onPress={() => confirmDelete(entry)}><Text style={[styles.actionText, styles.deleteText]}>Delete</Text></Pressable>
                 </View>
               </View>
@@ -255,25 +235,7 @@ export default function HistoryScreen() {
           </View>
         )}
       </ScrollView>
-      <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edit note</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editNotes}
-              onChangeText={setEditNotes}
-              placeholder="Add a note"
-              placeholderTextColor="#A4CDD3"
-              multiline
-            />
-            <View style={styles.entryActions}>
-              <Pressable onPress={() => setEditing(null)}><Text style={styles.actionText}>Cancel</Text></Pressable>
-              <Pressable onPress={saveEdit}><Text style={[styles.actionText, { color: '#FED8FE' }]}>Save</Text></Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <EditEntry entry={editing as any} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); loadHistory(); }} />
     </ThemedView>
   );
 }

@@ -1,13 +1,14 @@
-import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share } from 'react-native';
+import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Household, getHousehold, joinHousehold, leaveHousehold } from '@/lib/household';
 import { Baby, deleteBaby, fetchBabies } from '@/lib/babies';
 import { changePassword, passwordProblems } from '@/lib/auth';
+import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -24,15 +25,12 @@ export default function SettingsScreen() {
   const [babies, setBabies] = useState<Baby[]>([]);
   const [isModerator, setIsModerator] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [rem, setRem] = useState<ReminderSettings>(DEFAULT_REMINDERS);
   const [showPw, setShowPw] = useState(false);
   const [newPw, setNewPw] = useState('');
   const [pwMsg, setPwMsg] = useState('');
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       setLoading(true);
       const { data: u } = await supabase.auth.getUser();
@@ -49,7 +47,15 @@ export default function SettingsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Reload whenever Settings is opened (babies/household may have changed elsewhere)
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+      getReminderSettings().then(setRem);
+    }, [loadUserData])
+  );
 
   const pickImage = async () => {
     try {
@@ -200,6 +206,19 @@ export default function SettingsScreen() {
       setPwMsg(friendlyError(e));
     }
   };
+
+  const updateReminders = async (patch: Partial<ReminderSettings>) => {
+    const next = { ...rem, ...patch };
+    const ok = await saveReminderSettings(next, rem);
+    if (!ok) {
+      Alert.alert('Notifications are off', 'Turn on notifications for My Little Bean in your phone settings, then try again.');
+      return;
+    }
+    setRem(next);
+  };
+
+  const step = (key: 'feedingHours' | 'napHours', delta: number) =>
+    updateReminders({ [key]: Math.min(6, Math.max(1, Math.round((rem[key] + delta) * 2) / 2)) } as Partial<ReminderSettings>);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -358,6 +377,47 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
+        {/* Reminders */}
+        <View style={styles.settingsSection}>
+          <ThemedText style={styles.sectionTitle}>Reminders</ThemedText>
+          <Text style={styles.settingValue}>Saved on this phone. They arrive even when the app is closed.</Text>
+
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>Next feeding</Text>
+            <Switch value={rem.feeding} onValueChange={v => updateReminders({ feeding: v })} trackColor={{ true: '#2F9BA8' }} />
+          </View>
+          {rem.feeding ? (
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>Remind me after</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Pressable onPress={() => step('feedingHours', -0.5)} hitSlop={10}><Text style={styles.stepper}>−</Text></Pressable>
+                <Text style={styles.settingValue}>{rem.feedingHours} h</Text>
+                <Pressable onPress={() => step('feedingHours', 0.5)} hitSlop={10}><Text style={styles.stepper}>+</Text></Pressable>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>Awake too long (nap)</Text>
+            <Switch value={rem.nap} onValueChange={v => updateReminders({ nap: v })} trackColor={{ true: '#2F9BA8' }} />
+          </View>
+          {rem.nap ? (
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>Remind me after a nap ends</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Pressable onPress={() => step('napHours', -0.5)} hitSlop={10}><Text style={styles.stepper}>−</Text></Pressable>
+                <Text style={styles.settingValue}>{rem.napHours} h</Text>
+                <Pressable onPress={() => step('napHours', 0.5)} hitSlop={10}><Text style={styles.stepper}>+</Text></Pressable>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>Weekly wellbeing check-in (Sun 7pm)</Text>
+            <Switch value={rem.wellbeing} onValueChange={v => updateReminders({ wellbeing: v })} trackColor={{ true: '#2F9BA8' }} />
+          </View>
+        </View>
+
         {/* Change password */}
         <View style={styles.settingsSection}>
           <Pressable style={styles.settingItem} onPress={() => setShowPw(v => !v)}>
@@ -385,6 +445,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  stepper: { color: '#FED8FE', fontSize: 24, fontWeight: '700', lineHeight: 28, paddingHorizontal: 6 },
   codeInput: {
     backgroundColor: '#0f3a41ff',
     borderWidth: 1,

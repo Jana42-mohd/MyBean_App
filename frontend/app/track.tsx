@@ -2,7 +2,9 @@ import { useCallback, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
-import { addLog, fetchLogs, LogRow, LogType } from '@/lib/logs';
+import { fetchLogs, LogRow, LogType } from '@/lib/logs';
+import { logEntry } from '@/lib/logActions';
+import { formatShort, toLocalInput } from '@/lib/time';
 import { Baby, bornBabies, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
@@ -78,8 +80,9 @@ export default function TrackScreen() {
     date.setHours(pickerHour);
     date.setMinutes(pickerMinute);
 
-    const formatted = date.toISOString().slice(0, 16).replace('T', ' ');
-    const dateOnly = date.toISOString().slice(0, 10);
+    // nap times are stored as real instants and shown in local time
+    const formatted = date.toISOString();
+    const dateOnly = toLocalInput(date).slice(0, 10);
 
     if (datePickerMode === 'napStart') {
       setNapStart(formatted);
@@ -108,8 +111,8 @@ export default function TrackScreen() {
   // Logs for the selected baby, or one entry per baby when "All babies" is selected
   const save = async (type: LogType, entry: any, loggedAt?: string) => {
     try {
-      const ids = selected === ALL_BABIES ? born.map(b => b.id) : [selected];
-      await addLog(type, entry, ids, loggedAt);
+      const who = selected === ALL_BABIES ? born : born.filter(b => b.id === selected);
+      await logEntry(type, entry, who, loggedAt);
       await load();
     } catch (e: any) {
       Alert.alert('Could not save', friendlyError(e));
@@ -118,8 +121,12 @@ export default function TrackScreen() {
 
   const logNap = async () => {
     if (!napStart || !napEnd) return;
+    if (new Date(napEnd) <= new Date(napStart)) {
+      Alert.alert('Check the times', 'The nap must end after it starts.');
+      return;
+    }
     const entry: NapLog = { start: napStart, end: napEnd, notes: napNotes || undefined };
-    await save('nap', entry, new Date(napStart.replace(' ', 'T') + ':00Z').toISOString());
+    await save('nap', entry, napStart);
     setNapStart(''); setNapEnd(''); setNapNotes('');
   };
 
@@ -181,16 +188,16 @@ export default function TrackScreen() {
           <Text style={styles.cardTitle}>Naps</Text>
           <Text style={styles.label}>Start Time</Text>
           <Pressable style={styles.dateButton} onPress={() => openDateTimePicker('napStart')}>
-            <Text style={styles.dateButtonText}>{napStart || 'Tap to select start time'}</Text>
+            <Text style={styles.dateButtonText}>{napStart ? formatShort(napStart) : 'Tap to select start time'}</Text>
           </Pressable>
           <Text style={styles.label}>End Time</Text>
           <Pressable style={styles.dateButton} onPress={() => openDateTimePicker('napEnd')}>
-            <Text style={styles.dateButtonText}>{napEnd || 'Tap to select end time'}</Text>
+            <Text style={styles.dateButtonText}>{napEnd ? formatShort(napEnd) : 'Tap to select end time'}</Text>
           </Pressable>
           <Text style={styles.label}>Notes</Text>
           <TextInput style={styles.input} value={napNotes} onChangeText={setNapNotes} placeholder="Optional" placeholderTextColor="#A4CDD3" />
           <Pressable style={styles.primaryButton} onPress={logNap}><Text style={styles.primaryButtonText}>Log Nap</Text></Pressable>
-          <View style={styles.list}>{naps.slice(0,5).map((n,i)=>(<Text key={i} style={styles.listItem}>{n.start} → {n.end} {n.notes? `· ${n.notes}`:''}</Text>))}</View>
+          <View style={styles.list}>{naps.slice(0,5).map((n,i)=>(<Text key={i} style={styles.listItem}>{formatShort(n.start)} → {formatShort(n.end)} {n.notes? `· ${n.notes}`:''}</Text>))}</View>
         </View>
 
         {/* Diapers */}

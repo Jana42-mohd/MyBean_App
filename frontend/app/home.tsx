@@ -1,13 +1,14 @@
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { LogRow, fetchLogs } from '@/lib/logs';
 import { Baby, babyNames, bornBabies, daysUntil, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
+import { QuickLog } from '@/components/QuickLog';
+import { toDate } from '@/lib/time';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { getHousehold, loadSurvey } from '@/lib/household';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -26,12 +27,6 @@ interface SurveyData {
   trackingPreferences: string[];
 }
 
-interface LogEntry {
-  type: 'feeding' | 'diaper' | 'sleep' | 'milestone' | 'mood' | 'medication' | 'photo';
-  time: string;
-  data: any;
-}
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -42,6 +37,15 @@ export default function HomeScreen() {
   const [babies, setBabies] = useState<Baby[]>([]);
   const [selected, setSelected] = useState(ALL_BABIES);
   const [todayRows, setTodayRows] = useState<LogRow[]>([]);
+
+  const [toast, setToast] = useState<{ message: string; undo?: () => Promise<void> } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string, undo?: () => Promise<void>) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ message, undo });
+    toastTimer.current = setTimeout(() => setToast(null), 6000);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -83,7 +87,7 @@ export default function HomeScreen() {
     let sleepMinutes = 0;
     for (const r of rows) {
       if (r.type === 'nap') {
-        const mins = Math.floor((new Date(r.data.end).getTime() - new Date(r.data.start).getTime()) / 60000);
+        const mins = Math.floor((toDate(r.data.end).getTime() - toDate(r.data.start).getTime()) / 60000);
         if (mins > 0) sleepMinutes += mins;
       }
     }
@@ -140,7 +144,7 @@ export default function HomeScreen() {
 
         {/* Core Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Overview</Text>
+          <Text style={styles.sectionTitle}>Today&apos;s Overview</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Feedings</Text>
@@ -160,37 +164,21 @@ export default function HomeScreen() {
         {/* Quick Log Section */}
         <View style={[styles.section, styles.quickLogSection]}>
           <Text style={styles.sectionTitle}>Quick Log</Text>
-          <View style={styles.quickLogsGrid}>
-            <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
-              <MaterialCommunityIcons name="baby-bottle-outline" size={26} color="#FDFECC" />
-              <Text style={styles.quickLogLabel}>Feeding</Text>
-            </Pressable>
-            <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
-              <MaterialCommunityIcons name="baby-face-outline" size={26} color="#FDFECC" />
-              <Text style={styles.quickLogLabel}>Diaper</Text>
-            </Pressable>
-            <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
-              <MaterialCommunityIcons name="weather-night" size={26} color="#FDFECC" />
-              <Text style={styles.quickLogLabel}>Sleep</Text>
-            </Pressable>
-            <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
-              <MaterialCommunityIcons name="water-outline" size={26} color="#FDFECC" />
-              <Text style={styles.quickLogLabel}>Pumping</Text>
-            </Pressable>
-            <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
-              <MaterialCommunityIcons name="star-outline" size={26} color="#FDFECC" />
-              <Text style={styles.quickLogLabel}>Milestones</Text>
-            </Pressable>
-            <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
-              <MaterialCommunityIcons name="emoticon-happy-outline" size={26} color="#FDFECC" />
-              <Text style={styles.quickLogLabel}>Mood & Behaviour</Text>
-            </Pressable>
-          </View>
+          <QuickLog babies={bornBabies(babies)} selected={selected} onChanged={loadData} onToast={showToast} />
         </View>
 
         {/* Growth & Development */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Growth & Development</Text>
+          <Pressable style={styles.featureCard} onPress={() => router.push('/insights')}>
+            <View style={styles.featureContent}>
+              <View style={styles.featureTextGroup}>
+                <Text style={styles.featureTitle}>Insights & trends</Text>
+                <Text style={styles.featureSubtitle}>Sleep, feeding and diaper patterns</Text>
+              </View>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
           <Pressable style={styles.featureCard} onPress={() => router.push('/(tabs)/info')}>
             <View style={styles.featureContent}>
               <View style={styles.featureTextGroup}>
@@ -247,11 +235,45 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      {toast ? (
+        <View style={styles.toast} pointerEvents="box-none">
+          <Text style={styles.toastText} numberOfLines={2}>{toast.message}</Text>
+          {toast.undo ? (
+            <Pressable
+              hitSlop={10}
+              onPress={async () => {
+                const undo = toast.undo!;
+                setToast(null);
+                try {
+                  await undo();
+                  loadData();
+                } catch {}
+              }}>
+              <Text style={styles.toastUndo}>Undo</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  toast: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FED8FE',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  toastText: { flex: 1, color: '#09282eff', fontWeight: '600', fontSize: 14 },
+  toastUndo: { color: '#09282eff', fontWeight: '800', textDecorationLine: 'underline' },
   container: {
     flex: 1,
     backgroundColor: '#09282eff',

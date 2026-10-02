@@ -2,7 +2,8 @@ import { StyleSheet, ScrollView, Text, View, Pressable, TextInput, Modal, Activi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { LoadError, friendlyError } from '@/components/LoadError';
 
@@ -39,20 +40,7 @@ export default function CommunityScreen() {
   const [interactionLoading, setInteractionLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) {
-        setMyId(u.user.id);
-        const { data: prof } = await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle();
-        setUserName(prof?.name || 'Anonymous');
-      }
-      await loadPosts();
-    };
-    init();
-  }, []);
-
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
       setPostsLoading(true);
       setLoadError('');
@@ -72,7 +60,22 @@ export default function CommunityScreen() {
     } finally {
       setPostsLoading(false);
     }
-  };
+  }, []);
+
+  // Load (and refresh) whenever the Community tab is opened
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) {
+          setMyId(u.user.id);
+          const { data: prof } = await supabase.from('profiles').select('name').eq('id', u.user.id).maybeSingle();
+          setUserName(prof?.name || 'Anonymous');
+        }
+        await loadPosts();
+      })();
+    }, [loadPosts])
+  );
 
   const handleCreatePost = async () => {
     if (!title.trim() || !excerpt.trim()) {
@@ -433,7 +436,7 @@ export default function CommunityScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#2F9BA8' }}>
             <Text style={{ color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 4 }}>Report this post</Text>
-            <Text style={{ color: '#A4CDD3', marginBottom: 12 }}>What's wrong with it?</Text>
+            <Text style={{ color: '#A4CDD3', marginBottom: 12 }}>What&apos;s wrong with it?</Text>
             {REPORT_REASONS.map(r => (
               <Pressable key={r} onPress={() => submitReport(r)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#2F9BA8' }}>
                 <Text style={{ color: '#E8FBFF', fontSize: 15, textTransform: 'capitalize' }}>{r}</Text>
