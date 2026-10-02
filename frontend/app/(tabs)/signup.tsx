@@ -150,6 +150,13 @@ export default function SignupScreen() {
         />
 
         {error ? <Text style={{ color: '#FDFECC' }}>{error}</Text> : null}
+        <Text style={{ color: '#A4CDD3', fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 10 }}>
+          By signing up you agree to our{' '}
+          <Text style={{ color: '#FDFECC', textDecorationLine: 'underline' }} onPress={() => router.push('/legal?doc=terms')}>Terms</Text>
+          {' '}and{' '}
+          <Text style={{ color: '#FDFECC', textDecorationLine: 'underline' }} onPress={() => router.push('/legal?doc=privacy')}>Privacy Policy</Text>.
+          {' '}You must be 18 or over.
+        </Text>
         <Pressable style={styles.mainButton} onPress={onSignup}>
           <Text style={styles.mainButtonText}>Sign Up</Text>
         </Pressable>

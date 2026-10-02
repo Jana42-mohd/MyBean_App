@@ -64,7 +64,7 @@ export default function RootLayout() {
     if (!ready) return;
     const segs = segments as string[];
     const leaf = segs[segs.length - 1] ?? 'index';
-    const isPublic = segs.length === 0 || segs[0] === 'reset-password' || (segs[0] === '(tabs)' && PUBLIC_SCREENS.includes(leaf));
+    const isPublic = segs.length === 0 || segs[0] === 'reset-password' || segs[0] === 'legal' || (segs[0] === '(tabs)' && PUBLIC_SCREENS.includes(leaf));
     if (!session && !isPublic) router.replace('/');
   }, [ready, session, segments]);
 
@@ -76,9 +76,10 @@ export default function RootLayout() {
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="moderation" options={{ headerShown: false }} />
         <Stack.Screen name="insights" options={{ headerShown: false }} />
+        <Stack.Screen name="legal" options={{ headerShown: false }} />
       </Stack>
       <OfflineBanner />
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }

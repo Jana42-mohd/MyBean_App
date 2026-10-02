@@ -174,6 +174,26 @@ export default function CommunityScreen() {
     Alert.alert('Thanks for letting us know', 'Our moderators will review this post. If several people report it, it is hidden automatically.');
   };
 
+  const blockAuthor = (post: Post) => {
+    setReporting(null);
+    if (!post.user_id) return;
+    Alert.alert(`Block ${post.author}?`, 'You will no longer see their posts. You can unblock them any time in Settings.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('user_blocks').insert({ blocked_id: post.user_id });
+          if (error && error.code !== '23505') {
+            Alert.alert('Could not block', friendlyError(error));
+            return;
+          }
+          setPosts(prev => prev.filter(p => p.user_id !== post.user_id));
+        },
+      },
+    ]);
+  };
+
   const confirmDeletePost = (post: Post) => {
     Alert.alert('Delete your post?', 'This permanently removes it, including its likes and saves.', [
       { text: 'Cancel', style: 'cancel' },
@@ -442,6 +462,9 @@ export default function CommunityScreen() {
                 <Text style={{ color: '#E8FBFF', fontSize: 15, textTransform: 'capitalize' }}>{r}</Text>
               </Pressable>
             ))}
+            <Pressable onPress={() => reporting && blockAuthor(reporting)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#2F9BA8' }}>
+              <Text style={{ color: '#ff9db1', fontSize: 15 }}>Block {reporting?.author ?? 'this member'}</Text>
+            </Pressable>
             <Pressable onPress={() => setReporting(null)} style={{ paddingTop: 12 }}>
               <Text style={{ color: '#A4CDD3', textAlign: 'center' }}>Cancel</Text>
             </Pressable>

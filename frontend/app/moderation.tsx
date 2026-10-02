@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 
 interface ReportedPost {
   id: string;
+  user_id: string;
   title: string;
   excerpt: string;
   hidden: boolean;
@@ -21,15 +22,18 @@ export default function ModerationScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<ReportedPost[]>([]);
   const [error, setError] = useState('');
+  const [suspended, setSuspended] = useState<{ id: string; name: string }[]>([]);
 
   const load = useCallback(async () => {
     setError('');
     const { data, error: err } = await supabase
       .from('posts')
-      .select('id,title,excerpt,hidden,post_reports!inner(reason,details)')
+      .select('id,user_id,title,excerpt,hidden,post_reports!inner(reason,details)')
       .order('created_at', { ascending: false });
     if (err) setError(friendlyError(err));
     else setPosts((data ?? []) as any);
+    const { data: sus } = await supabase.from('profiles').select('id,name').eq('suspended', true);
+    setSuspended((sus ?? []) as any);
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -41,6 +45,20 @@ export default function ModerationScreen() {
     if (r1.error || r2.error) Alert.alert('Error', friendlyError(r1.error || r2.error));
     load();
   };
+
+  const setSuspension = (userId: string, on: boolean, name?: string) =>
+    Alert.alert(on ? 'Suspend this member?' : `Restore ${name ?? 'this member'}?`, on ? 'They will not be able to post, and their posts are hidden from everyone.' : 'They will be able to post again.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: on ? 'Suspend' : 'Restore',
+        style: on ? 'destructive' : 'default',
+        onPress: async () => {
+          const { error: err } = await supabase.rpc('suspend_user', { target: userId, suspend: on });
+          if (err) Alert.alert('Error', friendlyError(err));
+          load();
+        },
+      },
+    ]);
 
   const remove = (id: string) =>
     Alert.alert('Delete post?', 'This permanently removes the post.', [
@@ -71,10 +89,22 @@ export default function ModerationScreen() {
             <Text style={styles.muted}>Reasons: {p.post_reports.map(r => r.reason).join(', ')}</Text>
             <View style={styles.row}>
               <Pressable onPress={() => restore(p.id)}><Text style={styles.action}>Keep (clear reports)</Text></Pressable>
+              <Pressable onPress={() => setSuspension(p.user_id, true)}><Text style={[styles.action, { color: '#ff9db1' }]}>Suspend author</Text></Pressable>
               <Pressable onPress={() => remove(p.id)}><Text style={[styles.action, { color: '#ff9db1' }]}>Delete</Text></Pressable>
             </View>
           </View>
         ))}
+        {suspended.length > 0 ? (
+          <>
+            <ThemedText style={[styles.title, { fontSize: 20, marginTop: 10 }]}>Suspended members</ThemedText>
+            {suspended.map(m => (
+              <View key={m.id} style={[styles.card, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+                <Text style={styles.postTitle}>{m.name}</Text>
+                <Pressable onPress={() => setSuspension(m.id, false, m.name)}><Text style={styles.action}>Restore</Text></Pressable>
+              </View>
+            ))}
+          </>
+        ) : null}
       </ScrollView>
     </ThemedView>
   );

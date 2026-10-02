@@ -11,6 +11,8 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 3. `0003_babies.sql`: multiple babies (twins/triplets); existing data is carried over
 4. `0004_moderation.sql`: delete-own-post, reporting, auto-hide, moderators
 5. `0005_expecting.sql`: expecting parents (due date, switch to "born" later)
+6. `0006_delete_account.sql`: in-app account deletion (store requirement)
+7. `0007_blocks_suspension.sql`: block members + moderator suspension (store requirement for community apps)
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

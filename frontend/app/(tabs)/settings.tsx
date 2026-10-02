@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share, Switch } from 'react-native';
+import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share, Switch, Modal, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { Household, getHousehold, joinHousehold, leaveHousehold } from '@/lib/household';
 import { Baby, deleteBaby, fetchBabies } from '@/lib/babies';
 import { changePassword, passwordProblems } from '@/lib/auth';
+import { deleteAccount, exportMyData, signOutEverywhereOnDevice } from '@/lib/account';
+import { SUPPORT_EMAIL } from '@/lib/appInfo';
 import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,6 +28,11 @@ export default function SettingsScreen() {
   const [isModerator, setIsModerator] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [rem, setRem] = useState<ReminderSettings>(DEFAULT_REMINDERS);
+  const [blocked, setBlocked] = useState<{ id: string; name: string }[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [newPw, setNewPw] = useState('');
   const [pwMsg, setPwMsg] = useState('');
@@ -38,6 +45,12 @@ export default function SettingsScreen() {
       const { data: prof } = await supabase.from('profiles').select('name,avatar_url,is_moderator').eq('id', u.user.id).maybeSingle();
       setIsModerator(!!prof?.is_moderator);
       setBabies(await fetchBabies());
+      const { data: blocks } = await supabase.from('user_blocks').select('blocked_id');
+      const ids = (blocks ?? []).map((b: any) => b.blocked_id);
+      if (ids.length) {
+        const { data: names } = await supabase.from('profiles').select('id,name').in('id', ids);
+        setBlocked((names ?? []) as any);
+      } else setBlocked([]);
       setUser({ id: u.user.id, email: u.user.email, name: prof?.name });
       if (prof?.avatar_url) setProfilePhoto(prof.avatar_url);
       setHousehold(await getHousehold());
@@ -221,8 +234,38 @@ export default function SettingsScreen() {
     updateReminders({ [key]: Math.min(6, Math.max(1, Math.round((rem[key] + delta) * 2) / 2)) } as Partial<ReminderSettings>);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOutEverywhereOnDevice();
     router.replace('/');
+  };
+
+  const unblock = async (id: string) => {
+    const { error } = await supabase.from('user_blocks').delete().eq('blocked_id', id);
+    if (error) Alert.alert('Could not unblock', friendlyError(error));
+    else setBlocked(prev => prev.filter(b => b.id !== id));
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportMyData();
+    } catch (e) {
+      Alert.alert('Could not export', friendlyError(e));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const confirmDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      setDeleteOpen(false);
+      router.replace('/');
+    } catch (e) {
+      Alert.alert('Could not delete your account', friendlyError(e));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -435,11 +478,86 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
+        {blocked.length > 0 ? (
+          <View style={styles.settingsSection}>
+            <ThemedText style={styles.sectionTitle}>Blocked members</ThemedText>
+            {blocked.map(b => (
+              <View key={b.id} style={styles.settingItem}>
+                <Text style={styles.settingLabel}>{b.name}</Text>
+                <Pressable onPress={() => unblock(b.id)}>
+                  <Text style={styles.settingValue}>Unblock</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Your data & legal */}
+        <View style={styles.settingsSection}>
+          <ThemedText style={styles.sectionTitle}>Your data</ThemedText>
+          <Pressable style={styles.settingItem} onPress={handleExport} disabled={exporting}>
+            <Text style={styles.settingLabel}>{exporting ? 'Preparing your file...' : 'Download my data'}</Text>
+            <Text style={styles.settingValue}>→</Text>
+          </Pressable>
+          <Pressable style={styles.settingItem} onPress={() => router.push('/legal?doc=privacy')}>
+            <Text style={styles.settingLabel}>Privacy policy</Text>
+            <Text style={styles.settingValue}>→</Text>
+          </Pressable>
+          <Pressable style={styles.settingItem} onPress={() => router.push('/legal?doc=terms')}>
+            <Text style={styles.settingLabel}>Terms of service</Text>
+            <Text style={styles.settingValue}>→</Text>
+          </Pressable>
+          <Pressable style={styles.settingItem} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
+            <Text style={styles.settingLabel}>Contact support</Text>
+            <Text style={styles.settingValue}>→</Text>
+          </Pressable>
+          <Pressable style={styles.settingItem} onPress={() => { setDeleteText(''); setDeleteOpen(true); }}>
+            <Text style={[styles.settingLabel, { color: '#ff9db1' }]}>Delete my account</Text>
+            <Text style={[styles.settingValue, { color: '#ff9db1' }]}>→</Text>
+          </Pressable>
+        </View>
+
         {/* Logout Button */}
         <Pressable style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Log Out</Text>
         </Pressable>
       </ScrollView>
+      <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={() => setDeleteOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 20, borderWidth: 1, borderColor: '#ff9db1' }}>
+            <Text style={{ color: '#ff9db1', fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 10 }}>Delete your account?</Text>
+            <Text style={{ color: '#E8FBFF', fontSize: 14, lineHeight: 21 }}>
+              This permanently deletes your profile, survey answers, wellbeing check-ins, pumping logs, community posts and photo. It cannot be undone.
+            </Text>
+            <Text style={{ color: '#E8FBFF', fontSize: 14, lineHeight: 21, marginTop: 10 }}>
+              {household && household.members.length > 1
+                ? 'Your partner stays in the household and keeps the baby records, including the logs you entered.'
+                : 'You are the only member, so your babies and all their logs are deleted too.'}
+            </Text>
+            <Text style={{ color: '#A4CDD3', fontSize: 13, marginTop: 14, marginBottom: 6 }}>Type DELETE to confirm</Text>
+            <TextInput
+              style={styles.codeInput}
+              value={deleteText}
+              onChangeText={setDeleteText}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              placeholder="DELETE"
+              placeholderTextColor="#A4CDD3"
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+              <Pressable onPress={() => setDeleteOpen(false)} disabled={deleting}>
+                <Text style={{ color: '#A4CDD3', fontSize: 15 }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmDeleteAccount}
+                disabled={deleteText.trim() !== 'DELETE' || deleting}
+                style={{ backgroundColor: deleteText.trim() === 'DELETE' ? '#ff9db1' : 'rgba(255,157,177,0.3)', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 18 }}>
+                <Text style={{ color: '#09282eff', fontWeight: '700' }}>{deleting ? 'Deleting...' : 'Delete forever'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }

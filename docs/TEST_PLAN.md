@@ -50,3 +50,14 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Settings -> Reminders -> turn on "Next feeding": the phone asks permission. Set 1 h (or log a feeding with "next in" hours) and confirm the notification arrives.
 - [ ] Logging a new feeding replaces the earlier pending reminder. Turning the switch off cancels it.
 - [ ] Weekly check-in on: tapping the notification opens Wellbeing.
+
+## Launch-readiness checks
+- [ ] Settings -> Download my data: the share sheet offers a .json file; it contains your profile, babies, logs, wellbeing entries and posts.
+- [ ] Settings -> Delete my account: type DELETE -> signed out, the same email can no longer log in and the profile row is gone.
+  - Two parents: delete parent A. Parent B still sees the babies and the logs A entered; A's wellbeing, posts and pumping logs are gone.
+  - Last parent: household, babies and logs are gone.
+- [ ] Privacy policy and Terms open from Settings and from the signup screen (while signed out). No `[[...]]` placeholders show.
+- [ ] Community: Report -> Block <member>: their posts disappear; Settings -> Blocked members -> Unblock brings them back.
+- [ ] Moderator: Moderation -> Suspend author: they cannot post and their posts vanish; Restore reverses it.
+- [ ] Log out, then log in as a different person on the same phone: no reminders or sleep timer from the first person remain.
+- [ ] `cd frontend && npm run check:launch` passes.

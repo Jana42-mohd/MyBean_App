@@ -1,0 +1,85 @@
+# Privacy Policy
+
+## Who we are
+
+My Little Bean is a baby-tracking and parent-support app published by [[LEGAL_NAME]] ("we", "us"). This policy explains what information the app collects, why, who can see it, and the choices you have. Last updated: [[POLICY_DATE]].
+
+Questions or requests: [[SUPPORT_EMAIL]].
+
+## What we collect
+
+- Account: your email address, name, and a password (stored only as a secure hash by our authentication provider). A profile photo if you add one.
+
+- About you: pronouns, your relationship to the baby, whether you are the primary caregiver, and what you want to track.
+
+- About your baby or babies: names, birth date or due date, gender, gestational age at birth and feeding type.
+
+- Activity logs: feedings, diapers, naps and sleep, pumping, milestones and mood notes, with times and any notes you type.
+
+- Wellbeing: daily mood and sleep check-ins, answers and scores from the Edinburgh Postnatal Depression Scale screening, and notes you choose to write.
+
+- Community: posts you write, and your likes, saves, reports, and the members you block.
+
+- Reminders: your reminder settings are stored on your phone only.
+
+We do not currently use advertising, analytics or cross-app tracking tools, and we do not collect your precise location or contacts.
+
+## How we use it
+
+- To run the app: sign you in, save your logs, show charts, sync between your devices and with your household.
+
+- To send reminders that you turn on. They are scheduled on your own phone.
+
+- To keep the community safe, including reviewing posts that are reported.
+
+- To secure and fix the service.
+
+We do not sell your information, use it for advertising, or use it to build marketing profiles.
+
+## Who can see your information
+
+- Household: if you link with a partner, you both see the shared babies, logs, and each other's names. Anyone who has your invite code can join your household, so keep it private. You can leave a household at any time.
+
+- Community: your posts show your name to other signed-in users.
+
+- Wellbeing: your check-ins and screening results are private to you. They are never shown to your partner or other users.
+
+- Moderators can see reported posts and the reasons for the reports.
+
+- Our service providers (below) store and process data for us. Administrators with database access could technically read stored data. We only do so to run, secure or repair the service, or if the law requires.
+
+## Service providers and where data is stored
+
+Your data is stored with Supabase, which provides our database, sign-in and file storage. Our project is hosted in [[DATA_REGION]]. Sign-up and password-reset emails are sent through [[EMAIL_PROVIDER]]. Apple and Google distribute the app to your phone. We share information with these providers only as needed to provide the service.
+
+Data is encrypted in transit (HTTPS) and encrypted at rest by our hosting provider. Access to your data is restricted by account-level security rules. No system is perfectly secure, so please use a strong, unique password.
+
+## How long we keep it, and deleting your account
+
+We keep your information while your account is open. You can delete your account in the app at any time (Settings, then Delete my account).
+
+Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves and profile photo. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies and all their logs are deleted as well.
+
+Deleted data may remain in encrypted backups for up to [[BACKUP_DAYS]] days before it is permanently erased.
+
+## Your choices and rights
+
+- Access and export: Settings, then Download my data, gives you a copy of your information.
+
+- Correct: you can edit your details, babies and logs in the app.
+
+- Delete: see above.
+
+Depending on where you live (for example under Canada's PIPEDA, the EU/UK GDPR or California law) you may have additional rights, including to object to or restrict processing and to complain to your local privacy regulator. Contact [[SUPPORT_EMAIL]] and we will respond within a reasonable time.
+
+## Children
+
+My Little Bean is for parents and caregivers aged 18 or over. Information about a baby is provided by their parent or caregiver. We do not knowingly collect information directly from children.
+
+## Health information
+
+Wellbeing tools and information in the app are for general support only and are not medical advice or a diagnosis. If you are worried about your health or your baby's, contact a doctor, midwife or nurse. In an emergency call your local emergency number. In Canada and the US you can call or text 9-8-8 for the Suicide Crisis Helpline.
+
+## Changes to this policy
+
+If we make important changes we will tell you in the app before they take effect. The date at the top shows when this policy was last updated.
