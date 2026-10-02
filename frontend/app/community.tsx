@@ -1,4 +1,5 @@
 import { StyleSheet, ScrollView, Text, View, Pressable, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useEffect, useState } from 'react';
@@ -21,6 +22,7 @@ interface Post {
 const topicTags = ['Sleep', 'Feeding', 'Breastfeeding', 'Milestones', 'Health', 'Development', 'Mental Health'];
 
 export default function CommunityScreen() {
+  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [myId, setMyId] = useState('');
@@ -194,7 +196,7 @@ export default function CommunityScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Community Board</ThemedText>
         <Text style={styles.subtitle}>Ask questions, share stories, and support each other.</Text>
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#09282eff',
   },
   content: {
-    paddingTop: 80,
+    paddingTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 24,
     paddingBottom: 40,

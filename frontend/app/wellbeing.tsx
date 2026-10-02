@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
@@ -29,7 +30,7 @@ function CardTitle({ icon, children }: { icon: IconName; children: string }) {
   return (
     <View style={styles.titleRow}>
       <MaterialCommunityIcons name={icon} size={22} color="#FED8FE" />
-      <Text style={[styles.cardTitle, { marginBottom: 0 }]}>{children}</Text>
+      <Text style={[styles.cardTitle, { marginBottom: 0, flex: 1, flexShrink: 1 }]}>{children}</Text>
     </View>
   );
 }
@@ -71,6 +72,7 @@ function CrisisCard() {
 }
 
 export default function WellbeingScreen() {
+  const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [mood, setMood] = useState<number | null>(null);
   const [sleep, setSleep] = useState<string | null>(null);
@@ -124,7 +126,7 @@ export default function WellbeingScreen() {
   const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Your Wellbeing</ThemedText>
         <Text style={styles.subtitle}>
@@ -275,7 +277,7 @@ export default function WellbeingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#09282eff' },
-  content: { paddingTop: 80, paddingHorizontal: 20, paddingBottom: 60 },
+  content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
   title: { fontSize: 26, color: '#FED8FE', fontWeight: '700', marginBottom: 6 },
   subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 18, lineHeight: 20 },
   card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 16 },

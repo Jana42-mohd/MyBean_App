@@ -1,4 +1,5 @@
 import { StyleSheet, ScrollView, Text, View, Pressable, Linking } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
@@ -7,8 +8,9 @@ const openURL = (url: string) => {
 };
 
 export default function InfoScreen() {
+  const insets = useSafeAreaInsets();
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Information Hub</ThemedText>
         <Text style={styles.subtitle}>Resources for growth, development, safety & health</Text>
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#09282eff',
   },
   content: {
-    paddingTop: 80,
+    paddingTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 24,
     paddingBottom: 40,

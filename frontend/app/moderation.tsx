@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
@@ -16,6 +17,7 @@ interface ReportedPost {
 
 // Moderators only (profiles.is_moderator = true). Row-level security enforces this on the server too.
 export default function ModerationScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [posts, setPosts] = useState<ReportedPost[]>([]);
   const [error, setError] = useState('');
@@ -55,7 +57,7 @@ export default function ModerationScreen() {
     ]);
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back</Text></Pressable>
         <ThemedText style={styles.title}>Reported posts</ThemedText>
@@ -80,7 +82,7 @@ export default function ModerationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#09282eff' },
-  content: { paddingTop: 70, paddingHorizontal: 20, paddingBottom: 40 },
+  content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 40 },
   back: { color: '#A4CDD3', marginBottom: 12 },
   title: { fontSize: 24, color: '#FED8FE', fontWeight: '700', marginBottom: 16 },
   card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 14 },

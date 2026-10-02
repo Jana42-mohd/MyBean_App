@@ -1,4 +1,6 @@
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useCallback, useMemo, useState } from 'react';
@@ -31,6 +33,7 @@ interface LogEntry {
 }
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [data, setData] = useState<SurveyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,14 +103,14 @@ export default function HomeScreen() {
 
   if (isLoading || !data) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
         <Text style={styles.loadingText}>Loading...</Text>
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ThemedText style={styles.greeting}>Hi {data.parentName}!</ThemedText>
@@ -159,21 +162,27 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Quick Log</Text>
           <View style={styles.quickLogsGrid}>
             <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
+              <MaterialCommunityIcons name="baby-bottle-outline" size={26} color="#FDFECC" />
               <Text style={styles.quickLogLabel}>Feeding</Text>
             </Pressable>
             <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
+              <MaterialCommunityIcons name="baby-face-outline" size={26} color="#FDFECC" />
               <Text style={styles.quickLogLabel}>Diaper</Text>
             </Pressable>
             <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
+              <MaterialCommunityIcons name="weather-night" size={26} color="#FDFECC" />
               <Text style={styles.quickLogLabel}>Sleep</Text>
             </Pressable>
             <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
+              <MaterialCommunityIcons name="water-outline" size={26} color="#FDFECC" />
               <Text style={styles.quickLogLabel}>Pumping</Text>
             </Pressable>
             <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
+              <MaterialCommunityIcons name="star-outline" size={26} color="#FDFECC" />
               <Text style={styles.quickLogLabel}>Milestones</Text>
             </Pressable>
             <Pressable style={styles.quickLogCard} onPress={() => router.push('/(tabs)/track')}>
+              <MaterialCommunityIcons name="emoticon-happy-outline" size={26} color="#FDFECC" />
               <Text style={styles.quickLogLabel}>Mood & Behaviour</Text>
             </Pressable>
           </View>
@@ -248,7 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#09282eff',
   },
   scrollContent: {
-    paddingTop: 80,
+    paddingTop: 16,
     paddingVertical: 24,
     paddingHorizontal: 20,
     paddingBottom: 40,

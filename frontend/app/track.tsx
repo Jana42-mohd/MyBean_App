@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
 import { addLog, fetchLogs, LogRow, LogType } from '@/lib/logs';
@@ -17,6 +18,7 @@ interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying
 
 
 export default function TrackScreen() {
+  const insets = useSafeAreaInsets();
   const [babies, setBabies] = useState<Baby[]>([]);
   const [selected, setSelected] = useState(ALL_BABIES);
   const [rows, setRows] = useState<LogRow[]>([]);
@@ -158,7 +160,7 @@ export default function TrackScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Track Baby Activity</ThemedText>
         <Text style={styles.subtitle}>Log feeding, sleep, diapers, milestones & mood</Text>
@@ -411,7 +413,7 @@ export default function TrackScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#09282eff' },
-  content: { paddingTop: 80, paddingHorizontal: 20, paddingVertical: 24, paddingBottom: 40, gap: 16 },
+  content: { paddingTop: 16, paddingHorizontal: 20, paddingVertical: 24, paddingBottom: 40, gap: 16 },
   title: { fontSize: 24, color: '#FED8FE', fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#A4CDD3' },
   card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', gap: 10 },

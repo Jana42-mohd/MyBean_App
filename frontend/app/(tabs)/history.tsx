@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, ScrollView, Pressable, Alert, Modal, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
@@ -26,6 +27,7 @@ interface HistoryEntry {
 }
 
 export default function HistoryScreen() {
+  const insets = useSafeAreaInsets();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [babyFilter, setBabyFilter] = useState(ALL_BABIES);
@@ -198,7 +200,7 @@ export default function HistoryScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Activity History</ThemedText>
         <Text style={styles.subtitle}>Complete log of all tracked activities</Text>
@@ -289,7 +291,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#09282eff',
   },
   scrollContent: {
-    paddingTop: 80,
+    paddingTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 24,
     paddingBottom: 40,

@@ -1,4 +1,5 @@
 import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useRouter } from 'expo-router';
@@ -11,6 +12,7 @@ import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
@@ -206,14 +208,14 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#6B9BA8" />
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Settings</ThemedText>
 
@@ -399,7 +401,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 80,
+    paddingTop: 16,
     paddingBottom: 40,
   },
   title: {
@@ -495,6 +497,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(107, 155, 168, 0.15)',
   },
   settingLabel: {
+    flex: 1,
+    marginRight: 12,
     fontSize: 14,
     color: '#A4CDD3',
     fontWeight: '600',

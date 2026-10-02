@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -30,6 +31,7 @@ function Choices({ options, value, onPick }: { options: string[]; value: string;
 }
 
 export default function SurveyScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [data, setData] = useState<SurveyData>({
     parentName: '',
@@ -139,7 +141,7 @@ export default function SurveyScreen() {
   if (loading) return null;
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.card} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Welcome! Let's get to know you</ThemedText>
         <Text style={styles.subtitle}>This helps us personalize your experience</Text>
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#09282eff',
   },
   card: {
-    paddingTop: 80,
+    paddingTop: 16,
     paddingVertical: 32,
     paddingHorizontal: 20,
     paddingBottom: 40,
