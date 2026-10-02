@@ -323,11 +323,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   quickLogSection: {
-    marginBottom: 75,
+    marginBottom: 16,
   },
   quickLogCard: {
-    flex: 1,
-    minWidth: 70,
+    // 3 per row: 30% basis + grow fills the row. (flex: 1 inside a wrapping row mis-measures height in RN.)
+    flexGrow: 1,
+    flexBasis: '30%',
+    minHeight: 92,
     backgroundColor: '#0f3a41ff',
     borderRadius: 14,
     padding: 12,
