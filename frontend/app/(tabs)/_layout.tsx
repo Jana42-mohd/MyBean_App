@@ -16,6 +16,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].accentYellow,
         tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].bean,
         tabBarStyle: { backgroundColor: '#0f3a41ff', borderTopColor: '#2F9BA8' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
@@ -29,8 +30,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="info"
         options={{
-          title: 'Info',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="book.fill" color={color} />,
+          href: null, // reached from the cards on Home; keeps the tab bar to 5 tabs
         }}
       />
       <Tabs.Screen

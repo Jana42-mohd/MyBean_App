@@ -1,4 +1,5 @@
 import { StyleSheet, ScrollView, Text, View, Pressable, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
@@ -9,9 +10,13 @@ const openURL = (url: string) => {
 
 export default function InfoScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={() => router.navigate('/(tabs)/home')} hitSlop={10}>
+          <Text style={{ color: '#A4CDD3', marginBottom: 12, fontSize: 14 }}>← Home</Text>
+        </Pressable>
         <ThemedText style={styles.title}>Information Hub</ThemedText>
         <Text style={styles.subtitle}>Resources for growth, development, safety & health</Text>
 
