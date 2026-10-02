@@ -60,7 +60,7 @@ export default function ModerationScreen() {
         <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back</Text></Pressable>
         <ThemedText style={styles.title}>Reported posts</ThemedText>
         {error ? <LoadError message={error} onRetry={load} /> : null}
-        {posts.length === 0 && !error ? <Text style={styles.muted}>Nothing to review. 🎉</Text> : null}
+        {posts.length === 0 && !error ? <Text style={styles.muted}>Nothing to review right now.</Text> : null}
         {posts.map(p => (
           <View key={p.id} style={styles.card}>
             <Text style={styles.status}>{p.hidden ? 'HIDDEN' : 'Visible'} · {p.post_reports.length} report(s)</Text>

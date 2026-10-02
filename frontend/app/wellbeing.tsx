@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { supabase } from '@/lib/supabase';
 
 interface Entry {
@@ -13,13 +14,25 @@ interface Entry {
   created_at: string;
 }
 
-const MOODS = [
-  { value: 1, emoji: '😞', label: 'Really low' },
-  { value: 2, emoji: '😕', label: 'Down' },
-  { value: 3, emoji: '😐', label: 'Okay' },
-  { value: 4, emoji: '🙂', label: 'Good' },
-  { value: 5, emoji: '😊', label: 'Great' },
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const MOODS: { value: number; icon: IconName; color: string; label: string }[] = [
+  { value: 1, icon: 'emoticon-cry-outline', color: '#ff9db1', label: 'Really low' },
+  { value: 2, icon: 'emoticon-sad-outline', color: '#f4b69a', label: 'Down' },
+  { value: 3, icon: 'emoticon-neutral-outline', color: '#FDFECC', label: 'Okay' },
+  { value: 4, icon: 'emoticon-happy-outline', color: '#a8e6cf', label: 'Good' },
+  { value: 5, icon: 'emoticon-excited-outline', color: '#7fe3b4', label: 'Great' },
 ];
+
+// Small icon shown before each card title
+function CardTitle({ icon, children }: { icon: IconName; children: string }) {
+  return (
+    <View style={styles.titleRow}>
+      <MaterialCommunityIcons name={icon} size={22} color="#FED8FE" />
+      <Text style={[styles.cardTitle, { marginBottom: 0 }]}>{children}</Text>
+    </View>
+  );
+}
 
 const SLEEP = ['Under 3 hrs', '3-5 hrs', '5-7 hrs', '7+ hrs'];
 
@@ -132,12 +145,17 @@ export default function WellbeingScreen() {
         {/* Daily check-in */}
         {!quiz && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Daily check-in</Text>
+            <CardTitle icon="calendar-heart">Daily check-in</CardTitle>
             <Text style={styles.label}>How are you feeling today?</Text>
             <View style={styles.row}>
               {MOODS.map(m => (
-                <Pressable key={m.value} onPress={() => setMood(m.value)} style={[styles.moodBtn, mood === m.value && styles.active]}>
-                  <Text style={styles.emoji}>{m.emoji}</Text>
+                <Pressable
+                  key={m.value}
+                  onPress={() => setMood(m.value)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Mood: ${m.label}`}
+                  style={[styles.moodBtn, mood === m.value && styles.active]}>
+                  <MaterialCommunityIcons name={m.icon} size={32} color={m.color} />
                   <Text style={styles.moodLabel}>{m.label}</Text>
                 </Pressable>
               ))}
@@ -181,7 +199,7 @@ export default function WellbeingScreen() {
         {/* EPDS screening */}
         {!quiz && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Pregnancy & postpartum check (EPDS)</Text>
+            <CardTitle icon="clipboard-text-outline">Pregnancy & postpartum check (EPDS)</CardTitle>
             <Text style={styles.body}>
               A 10-question screening used by doctors and midwives worldwide, during pregnancy and after birth. It takes about 2 minutes. It is not a diagnosis, but it can help you know when to reach out.
             </Text>
@@ -239,7 +257,7 @@ export default function WellbeingScreen() {
 
         {/* Resources */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Support, any time</Text>
+          <CardTitle icon="phone-in-talk">Support, any time</CardTitle>
           <Pressable style={styles.link} onPress={() => call('988')}>
             <Text style={styles.linkText}>9-8-8 Suicide Crisis Helpline (Canada & US): call or text</Text>
           </Pressable>
@@ -272,8 +290,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
   wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   moodBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#2F9BA8' },
-  emoji: { fontSize: 26 },
-  moodLabel: { color: '#E8FBFF', fontSize: 10, marginTop: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  moodLabel: { color: '#E8FBFF', fontSize: 10, marginTop: 6, textAlign: 'center' },
   chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
   chipText: { color: '#E8FBFF', fontSize: 13 },
   active: { backgroundColor: '#2F9BA8', borderColor: '#FED8FE' },
