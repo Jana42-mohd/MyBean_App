@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
@@ -11,12 +12,14 @@ import { supabase } from '@/lib/supabase';
 import { sessionFromUrl } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { setupNotifications } from '@/lib/reminders';
+import { hasCompletedSurvey } from '@/lib/household';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-const PUBLIC_SCREENS = ['index', 'login', 'signup'];
+// Keep the splash screen up until we know whether someone is signed in (no flash of the login screen)
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -25,11 +28,19 @@ export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
 
+  const redirecting = useRef(false);
+  // while a password-reset link is being handled, the guard must not send the (now signed-in) person to Home
+  const holdRedirectUntil = useRef(0);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setReady(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch(() => {})
+      .finally(() => {
+        setReady(true);
+        SplashScreen.hideAsync().catch(() => {});
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -48,6 +59,7 @@ export default function RootLayout() {
   useEffect(() => {
     const handle = async (url: string | null) => {
       if (!url || !url.includes('reset-password')) return;
+      holdRedirectUntil.current = Date.now() + 10000;
       try {
         if (await sessionFromUrl(url)) router.replace('/reset-password');
       } catch (e) {
@@ -59,18 +71,37 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  // Signed-out users can only see the welcome, login and signup screens.
+  // Route guard.
+  //  - Signed out: only the welcome/login/signup group, password reset and legal pages.
+  //  - Signed in: never the welcome/login/signup group again (also skips it when the app is reopened).
   useEffect(() => {
     if (!ready) return;
-    const segs = segments as string[];
-    const leaf = segs[segs.length - 1] ?? 'index';
-    const isPublic = segs.length === 0 || segs[0] === 'reset-password' || segs[0] === 'legal' || (segs[0] === '(tabs)' && PUBLIC_SCREENS.includes(leaf));
-    if (!session && !isPublic) router.replace('/');
+    const first = (segments as string[])[0];
+    const inAuth = first === '(auth)' || (segments as string[]).length === 0;
+    const isPublic = inAuth || first === 'reset-password' || first === 'legal';
+
+    if (!session && !isPublic) {
+      router.replace('/');
+    } else if (session && inAuth && !redirecting.current && Date.now() >= holdRedirectUntil.current) {
+      redirecting.current = true;
+      hasCompletedSurvey()
+        .catch(() => true)
+        .then(done => {
+          if (Date.now() < holdRedirectUntil.current) return;
+          router.replace(done ? '/(tabs)/home' : '/survey');
+        })
+        .finally(() => {
+          redirecting.current = false;
+        });
+    }
   }, [ready, session, segments]);
+
+  if (!ready) return null;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="survey" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />

@@ -8,8 +8,8 @@ import { ThemedView } from '@/components/themed-view';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const goSignup = () => router.push('/(tabs)/signup');
-  const goLogin = () => router.push('/(tabs)/login');
+  const goSignup = () => router.push('/(auth)/signup');
+  const goLogin = () => router.push('/(auth)/login');
 
   return (
     <ThemedView style={styles.container}>

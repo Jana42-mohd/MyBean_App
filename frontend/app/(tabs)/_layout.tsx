@@ -16,7 +16,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].accentYellow,
         tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].bean,
         tabBarStyle: { backgroundColor: '#0f3a41ff', borderTopColor: '#2F9BA8' },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginHorizontal: -4 },
+        tabBarItemStyle: { paddingHorizontal: 0 },
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
@@ -63,24 +64,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="track"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="signup"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="login"
         options={{
           href: null,
         }}

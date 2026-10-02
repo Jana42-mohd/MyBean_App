@@ -2,6 +2,13 @@
 
 Use two phones/emulators or a phone + the web build, with two email addresses (A = mum, B = partner).
 
+## Navigation guard
+- [ ] Welcome, Login and Signup screens show no tab bar. Signed-in screens show all five tabs, with "Community" readable in full.
+- [ ] Signed in: reopen the app (swipe it away and open again) -> straight to Home, no welcome/login flash.
+- [ ] Signed in: you cannot get back to Login or Signup (try the Android back button / iOS swipe back from Home): it stays on Home, or the survey if it is unfinished.
+- [ ] Signed out: the app never shows Home, Settings, etc.; after Log out you are on the welcome screen and cannot go "back" into the app.
+- [ ] Finish the survey -> Home appears WITH the tab bar and no "back" header.
+
 ## Signup / login / reset
 - [ ] A signs up -> lands on the survey. Name, pronouns, relationship, caregiver, and **two babies** (use "Add another baby"; birth date copies over).
 - [ ] Finish -> Home says "Hi <A's name>!" and "Today with <Baby1> & <Baby2>".

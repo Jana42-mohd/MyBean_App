@@ -135,7 +135,7 @@ export default function SurveyScreen() {
       return;
     }
     setSaving(false);
-    router.replace('/home');
+    router.replace('/(tabs)/home');
   };
 
   if (loading) return null;

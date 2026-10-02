@@ -162,7 +162,7 @@ export default function SignupScreen() {
         </Pressable>
 
 
-        <Pressable onPress={() => router.push('/(tabs)/login')}>
+        <Pressable onPress={() => router.push('/(auth)/login')}>
           <Text style={styles.footerText}>Already have an account? Log in</Text>
         </Pressable>
       </View>
