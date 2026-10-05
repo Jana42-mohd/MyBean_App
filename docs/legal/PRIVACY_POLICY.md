@@ -20,6 +20,8 @@ Questions or requests: [[SUPPORT_EMAIL]].
 
 - Community: posts you write, and your likes, saves, reports, and the members you block.
 
+- Parents near you (optional): a country, city and neighbourhood that you type yourself (we never use GPS or your phone's location), and a switch saying whether nearby parents may find you. It is off until you turn it on. Connection requests, the messages you exchange with parents you have accepted, and any reports you send about people.
+
 - Reminders: your reminder settings are stored on your phone only.
 
 - Notifications: if you allow them, an address for your phone (a push token) is stored so we can tell your partner when you log something, and tell you when they do. The message contains the same details that are already shared in your household, for example "Blake logged a feeding for Mia". Wellbeing entries never trigger a notification.
@@ -34,7 +36,11 @@ We do not currently use advertising, analytics or cross-app tracking tools, and 
 
 - To send reminders that you turn on (scheduled on your own phone) and notifications about your partner's entries (you can switch these off in Settings).
 
-- To keep the community safe, including reviewing posts that are reported.
+- To keep the community safe, including reviewing posts and people that are reported.
+
+- Parents near you: if you switch it on, other parents who also switched it on can see your name, profile photo, city and neighbourhood, and can send you a request. They never see your babies, logs, wellbeing check-ins, email address or household members. Nobody can message you until you accept their request. Blocking someone ends the connection and deletes the chat for both of you.
+
+- Messages between parents are stored on our servers so they can be delivered. Moderators cannot read your chats; they only see the one message (and your note) that you or someone else chooses to report. Notifications about requests and messages say who wrote, never what they wrote.
 
 - To secure and fix the service.
 
@@ -62,7 +68,7 @@ Data is encrypted in transit (HTTPS) and encrypted at rest by our hosting provid
 
 We keep your information while your account is open. You can delete your account in the app at any time (Settings, then Delete my account).
 
-Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.
+Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo, place, connections, messages and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.
 
 Deleted data may remain in encrypted backups for up to [[BACKUP_DAYS]] days before it is permanently erased.
 

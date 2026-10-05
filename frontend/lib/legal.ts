@@ -27,6 +27,7 @@ export const PRIVACY: LegalDoc = {
         '- Activity logs: feedings, diapers, naps and sleep, pumping, milestones and mood notes, with times and any notes you type. Photos you add to a milestone are stored privately and are visible only to the members of your household.',
         '- Wellbeing: daily mood and sleep check-ins, answers and scores from the Edinburgh Postnatal Depression Scale screening, and notes you choose to write.',
         '- Community: posts you write, and your likes, saves, reports, and the members you block.',
+        '- Parents near you (optional): a country, city and neighbourhood that you type yourself (we never use GPS or your phone\'s location), and a switch saying whether nearby parents may find you. It is off until you turn it on. Connection requests, the messages you exchange with parents you have accepted, and any reports you send about people.',
         '- Reminders: your reminder settings are stored on your phone only.',
         '- Notifications: if you allow them, an address for your phone (a push token) is stored so we can tell your partner when you log something, and tell you when they do. The message contains the same details that are already shared in your household, for example "Blake logged a feeding for Mia". Wellbeing entries never trigger a notification.',
         '- Offline: when there is no signal, entries you make are kept on your phone until they can be sent. They are removed from the phone once sent, or when you delete your account.',
@@ -38,7 +39,9 @@ export const PRIVACY: LegalDoc = {
       body: [
         '- To run the app: sign you in, save your logs, show charts, sync between your devices and with your household.',
         '- To send reminders that you turn on (scheduled on your own phone) and notifications about your partner\'s entries (you can switch these off in Settings).',
-        '- To keep the community safe, including reviewing posts that are reported.',
+        '- To keep the community safe, including reviewing posts and people that are reported.',
+        '- Parents near you: if you switch it on, other parents who also switched it on can see your name, profile photo, city and neighbourhood, and can send you a request. They never see your babies, logs, wellbeing check-ins, email address or household members. Nobody can message you until you accept their request. Blocking someone ends the connection and deletes the chat for both of you.',
+        '- Messages between parents are stored on our servers so they can be delivered. Moderators cannot read your chats; they only see the one message (and your note) that you or someone else chooses to report. Notifications about requests and messages say who wrote, never what they wrote.',
         '- To secure and fix the service.',
         'We do not sell your information, use it for advertising, or use it to build marketing profiles.',
       ],
@@ -64,7 +67,7 @@ export const PRIVACY: LegalDoc = {
       heading: 'How long we keep it, and deleting your account',
       body: [
         'We keep your information while your account is open. You can delete your account in the app at any time (Settings, then Delete my account).',
-        'Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner\'s account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.',
+        'Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo, place, connections, messages and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner\'s account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.',
         'Deleted data may remain in encrypted backups for up to {{BACKUP_DAYS}} days before it is permanently erased.',
       ],
     },
@@ -130,6 +133,7 @@ export const TERMS: LegalDoc = {
       body: [
         'The community is for mutual support. You agree not to post anything that is harassing, hateful, sexually explicit, misleading, spam, illegal, or that shares someone else\'s private information. Share experiences rather than medical instructions.',
         'You can report any post, and block a member so you no longer see their posts. Our moderators review reports, and we aim to act on harmful content quickly. We may hide or remove content, and suspend or close accounts, that break these rules or that we reasonably think could cause harm.',
+        'Parents near you: you must be at least 18 to use this feature. Be respectful in messages, do not ask for or share addresses, and never pressure anyone to meet. Meeting someone in person is your own decision and your own responsibility: choose a public place and tell someone you trust. You can block or report anyone at any time, and we may remove people from this feature if we receive reports about them.',
         'You keep ownership of what you post. You give us a limited licence to store and show it to other users of the app so the community can work.',
       ],
     },

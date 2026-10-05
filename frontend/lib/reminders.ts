@@ -51,6 +51,10 @@ export async function setupNotifications() {
       name: 'Reminders',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
+    await Notifications.setNotificationChannelAsync('connections', {
+      name: 'Requests and messages',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
     await Notifications.setNotificationChannelAsync('partner', {
       name: 'Partner activity',
       importance: Notifications.AndroidImportance.DEFAULT,

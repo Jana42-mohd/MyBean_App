@@ -3,7 +3,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { incomingRequestCount } from '@/lib/neighbors';
 import { supabase } from '@/lib/supabase';
 import { LoadError, friendlyError } from '@/components/LoadError';
 
@@ -39,6 +40,8 @@ export default function CommunityScreen() {
   const [userSaves, setUserSaves] = useState<string[]>([]);
   const [interactionLoading, setInteractionLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
+  const router = useRouter();
+  const [requests, setRequests] = useState(0);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -65,6 +68,7 @@ export default function CommunityScreen() {
   // Load (and refresh) whenever the Community tab is opened
   useFocusEffect(
     useCallback(() => {
+      incomingRequestCount().then(setRequests).catch(() => setRequests(0));
       (async () => {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {
@@ -223,6 +227,15 @@ export default function CommunityScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Community Board</ThemedText>
         <Text style={styles.subtitle}>Ask questions, share stories, and support each other.</Text>
+
+        <Pressable style={styles.neighborsCard} onPress={() => router.push('/neighbors')}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.neighborsTitle}>Parents near you</Text>
+            <Text style={styles.neighborsText}>Meet parents in your neighbourhood, city or country.</Text>
+          </View>
+          {requests > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{requests}</Text></View> : null}
+          <Text style={styles.neighborsChevron}>›</Text>
+        </Pressable>
 
         <Pressable 
           style={styles.primaryButton}
@@ -496,6 +509,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#A4CDD3',
   },
+  neighborsCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 12 },
+  neighborsTitle: { color: '#FED8FE', fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  neighborsText: { color: '#A4CDD3', fontSize: 12, lineHeight: 17, marginTop: 2 },
+  neighborsChevron: { color: '#A4CDD3', fontSize: 24 },
+  badge: { backgroundColor: '#FED8FE', borderRadius: 10, minWidth: 20, height: 20, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: '#09282eff', fontSize: 12, fontWeight: '700' },
   primaryButton: {
     marginTop: 6,
     backgroundColor: '#FED8FE',

@@ -22,6 +22,8 @@ The community is for mutual support. You agree not to post anything that is hara
 
 You can report any post, and block a member so you no longer see their posts. Our moderators review reports, and we aim to act on harmful content quickly. We may hide or remove content, and suspend or close accounts, that break these rules or that we reasonably think could cause harm.
 
+Parents near you: you must be at least 18 to use this feature. Be respectful in messages, do not ask for or share addresses, and never pressure anyone to meet. Meeting someone in person is your own decision and your own responsibility: choose a public place and tell someone you trust. You can block or report anyone at any time, and we may remove people from this feature if we receive reports about them.
+
 You keep ownership of what you post. You give us a limited licence to store and show it to other users of the app so the community can work.
 
 ## Using the service

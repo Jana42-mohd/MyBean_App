@@ -13,6 +13,7 @@ import { SUPPORT_EMAIL } from '@/lib/appInfo';
 import { restartLiveSync } from '@/lib/liveSync';
 import { getPendingCount } from '@/lib/outbox';
 import { useLiveRefresh } from '@/hooks/use-live';
+import { PlaceSettings } from '@/components/PlaceSettings';
 import { getPartnerNotifications, setPartnerNotifications } from '@/lib/push';
 import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
@@ -457,6 +458,8 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
         ) : null}
+
+        <PlaceSettings />
 
         {/* Partner notifications */}
         <View style={styles.settingsSection}>

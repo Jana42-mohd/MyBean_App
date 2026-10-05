@@ -120,3 +120,18 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] A photo taken with location on: after saving, the stored file has no GPS data (check with any EXIF viewer).
 - [ ] A photo link copied from one account does not open for a different household (private bucket; links also expire after an hour).
 - [ ] Deleting an account as the only household member removes the photos from Storage.
+
+## Parents near you (three phones/accounts: A and B in the same neighbourhood, C in the same city, D in another country)
+- [ ] Settings -> Parents near you: pick a country, type a city and neighbourhood, Save. The switch is OFF until you turn it on, and turning it on shows a confirmation that says exactly what others will see.
+- [ ] Before anyone turns the switch on, "Find parents near me" says you are hidden and sends you to Settings. A hidden person sees nobody (you only see others once you are visible).
+- [ ] A and B both visible: each sees the other under the neighbourhood tab; C sees A and B under the city tab but not under the neighbourhood tab (if C's neighbourhood differs); D sees them only if D is in the same country.
+- [ ] "The Annex" and "the  annex." (capitals, extra space, full stop) count as the same neighbourhood.
+- [ ] A partner in the same household never appears in your list.
+- [ ] A taps Connect, writes an intro, sends. B gets a push ("A parent near you would like to connect"; the intro text is NOT in it) and a badge on the Community tab. Tapping the push opens Connections.
+- [ ] B accepts: A gets a push, and both can open the chat. A message sent by one shows on the other within about 5 seconds, and a push says "<name> sent you a message" without the text.
+- [ ] Before B accepts, there is no chat. If B declines, A can no longer find B and cannot ask again; B no longer sees the request.
+- [ ] Long-press your own message to delete it; long-press theirs to report it.
+- [ ] Report someone from the chat menu: it confirms. In a moderator account, Settings -> Moderation -> Reported parents shows the reason and ONLY the reported message. After 3 different people report someone they disappear from every list; "Clear reports" brings them back.
+- [ ] Block someone from the chat menu: the chat disappears for both, neither sees the other in lists, and a new request is refused.
+- [ ] Switch visibility off: you disappear from the lists immediately; existing connections keep working. Turn off "Notify me about requests and messages": no pushes.
+- [ ] Download my data includes your place, connections and messages. Delete account: your connections and messages are gone for the other person too.

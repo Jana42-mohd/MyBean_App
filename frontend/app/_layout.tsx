@@ -83,8 +83,14 @@ export default function RootLayout() {
   useEffect(() => {
     setupNotifications().catch(() => {});
     const sub = Notifications.addNotificationResponseReceivedListener(resp => {
-      const screen = resp.notification.request.content.data?.screen;
-      router.push(screen === 'wellbeing' ? '/(tabs)/wellbeing' : '/(tabs)/home');
+      const data = resp.notification.request.content.data as Record<string, any> | undefined;
+      if (data?.type === 'message' || data?.type === 'connection_accepted') {
+        router.push(data.connection ? { pathname: '/chat', params: { id: String(data.connection) } } : '/connections');
+      } else if (data?.type === 'connection_request') {
+        router.push('/connections');
+      } else {
+        router.push(data?.screen === 'wellbeing' ? '/(tabs)/wellbeing' : '/(tabs)/home');
+      }
     });
     return () => sub.remove();
   }, []);
@@ -143,6 +149,9 @@ export default function RootLayout() {
         <Stack.Screen name="insights" options={{ headerShown: false }} />
         <Stack.Screen name="legal" options={{ headerShown: false }} />
         <Stack.Screen name="growth" options={{ headerShown: false }} />
+        <Stack.Screen name="neighbors" options={{ headerShown: false }} />
+        <Stack.Screen name="connections" options={{ headerShown: false }} />
+        <Stack.Screen name="chat" options={{ headerShown: false }} />
         <Stack.Screen name="milestones" options={{ headerShown: false }} />
       </Stack>
       <OfflineBanner />

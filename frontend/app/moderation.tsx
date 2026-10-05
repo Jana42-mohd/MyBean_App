@@ -22,6 +22,7 @@ export default function ModerationScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<ReportedPost[]>([]);
   const [error, setError] = useState('');
+  const [reports, setReports] = useState<{ id: string; reported: string; reason: string; details: string | null; message_excerpt: string | null; name: string }[]>([]);
   const [suspended, setSuspended] = useState<{ id: string; name: string }[]>([]);
 
   const load = useCallback(async () => {
@@ -32,6 +33,11 @@ export default function ModerationScreen() {
       .order('created_at', { ascending: false });
     if (err) setError(friendlyError(err));
     else setPosts((data ?? []) as any);
+    const { data: ur } = await supabase
+      .from('user_reports')
+      .select('id,reported,reason,details,message_excerpt,created_at,who:profiles!user_reports_reported_fkey(name)')
+      .order('created_at', { ascending: false });
+    setReports(((ur ?? []) as any[]).map(r => ({ ...r, name: r.who?.name ?? 'Parent' })));
     const { data: sus } = await supabase.from('profiles').select('id,name').eq('suspended', true);
     setSuspended((sus ?? []) as any);
   }, []);
@@ -54,6 +60,19 @@ export default function ModerationScreen() {
         style: on ? 'destructive' : 'default',
         onPress: async () => {
           const { error: err } = await supabase.rpc('suspend_user', { target: userId, suspend: on });
+          if (err) Alert.alert('Error', friendlyError(err));
+          load();
+        },
+      },
+    ]);
+
+  const clearReports = (userId: string, name: string) =>
+    Alert.alert(`Clear reports about ${name}?`, 'They go back in the "Parents near you" lists (if they chose to be visible) and the reports are closed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        onPress: async () => {
+          const { error: err } = await supabase.rpc('clear_discovery_block', { target: userId });
           if (err) Alert.alert('Error', friendlyError(err));
           load();
         },
@@ -94,6 +113,23 @@ export default function ModerationScreen() {
             </View>
           </View>
         ))}
+        {reports.length > 0 ? (
+          <>
+            <ThemedText style={[styles.title, { fontSize: 20, marginTop: 10 }]}>Reported parents</ThemedText>
+            {reports.map(r => (
+              <View key={r.id} style={styles.card}>
+                <Text style={styles.status}>{r.reason.toUpperCase()}</Text>
+                <Text style={styles.postTitle}>{r.name}</Text>
+                {r.details ? <Text style={styles.body}>{r.details}</Text> : null}
+                {r.message_excerpt ? <Text style={[styles.body, { fontStyle: 'italic', marginTop: 6 }]}>Message: "{r.message_excerpt}"</Text> : null}
+                <View style={styles.row}>
+                  <Pressable onPress={() => clearReports(r.reported, r.name)}><Text style={styles.action}>Clear reports</Text></Pressable>
+                  <Pressable onPress={() => setSuspension(r.reported, true)}><Text style={[styles.action, { color: '#ff9db1' }]}>Suspend</Text></Pressable>
+                </View>
+              </View>
+            ))}
+          </>
+        ) : null}
         {suspended.length > 0 ? (
           <>
             <ThemedText style={[styles.title, { fontSize: 20, marginTop: 10 }]}>Suspended members</ThemedText>

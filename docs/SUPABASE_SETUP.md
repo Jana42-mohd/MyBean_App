@@ -17,6 +17,7 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 9. `0009_growth.sql`: growth measurements (weight, length, head size) as a new log type
 10. `0010_security_hardening.sql`: invite-code throttle, size limits, post rate limit, tighter profile visibility
 11. `0011_push_and_photos.sql`: partner notifications (push tokens + a database trigger) and the private `milestone-photos` bucket
+12. `0012_neighbors.sql`: parents near you (private location table, connection requests, chat, reports, notifications)
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
@@ -36,6 +37,19 @@ Photos live in a **private** bucket (`milestone-photos`, 5 MB, jpeg/png/webp). O
 file path can see them; the app shows them through links that expire after an hour. The app shrinks each photo to
 1600 px and re-encodes it, which also removes location data. Photos are deleted when their milestone is deleted, and
 when the last member of a household deletes their account.
+
+### Parents near you (0012)
+Opt-in only. Parents type a country, city and neighbourhood (no GPS) and must switch "Let nearby parents find me" on
+themselves; until then nobody can see them. Others see only name, photo, city and neighbourhood. A request must be
+accepted before anyone can message. Blocking deletes the connection and its chat. Three different people reporting
+someone hides them from the lists until a moderator reviews them (Settings -> Moderation -> Reported parents, where you can
+clear the reports or suspend). Moderators cannot read chats: a report carries a copy of only the reported message.
+Chats refresh every 5 seconds while open (there is no live channel); requests and new messages send a push
+notification that says who wrote, never what. The people of a household never appear in each other's lists.
+Matching is on the text typed, ignoring capitals, punctuation and extra spaces ("The Annex" = "the  annex."), but not
+spelling or accents. If you want people to pick from a list of cities instead, that is a next step.
+Before launch: the Terms ask users to be 18+, and App Store / Google Play review will look at the report/block tools and
+moderation process for this feature. Make sure someone is assigned to review reports (see `docs/RELEASE.md`).
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of
