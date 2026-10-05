@@ -25,8 +25,9 @@ export async function getHousehold(): Promise<Household | null> {
 }
 
 export async function joinHousehold(code: string) {
-  const { error } = await supabase.rpc('join_household', { code });
+  const { data, error } = await supabase.rpc('join_household', { code });
   if (error) throw error;
+  if (!data) throw new Error('Invalid invite code'); // the server answers NULL for a code that does not exist
 }
 
 export async function leaveHousehold() {
