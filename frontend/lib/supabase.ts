@@ -30,5 +30,7 @@ export const supabase = createClient(url, key, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE: a returned link only works on the phone that asked for it, so a forged link cannot sign the user into someone else's account
+    flowType: 'pkce',
   },
 });
