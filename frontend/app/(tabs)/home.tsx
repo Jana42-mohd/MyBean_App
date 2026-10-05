@@ -215,7 +215,7 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.arrow}>›</Text>
           </Pressable>
-          <Pressable style={styles.featureCard} onPress={() => router.push('/(tabs)/info')}>
+          <Pressable style={styles.featureCard} onPress={() => router.push('/growth')}>
             <View style={styles.featureContent}>
               <View style={styles.featureTextGroup}>
                 <Text style={styles.featureTitle}>Growth Tracking</Text>
@@ -224,7 +224,7 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.arrow}>›</Text>
           </Pressable>
-          <Pressable style={styles.featureCard} onPress={() => router.push('/(tabs)/info')}>
+          <Pressable style={styles.featureCard} onPress={() => router.push('/milestones')}>
             <View style={styles.featureContent}>
               <View style={styles.featureTextGroup}>
                 <Text style={styles.featureTitle}>Milestones</Text>

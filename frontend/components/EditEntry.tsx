@@ -4,6 +4,9 @@ import { friendlyError } from '@/components/LoadError';
 import { LogType, updateLog } from '@/lib/logs';
 import { formatDateTimeInput, localInputToIso, toLocalInput } from '@/lib/time';
 import { formatDateInput, isValidDate } from '@/lib/babies';
+import { GrowthForm } from '@/components/GrowthForm';
+import { GrowthData } from '@/lib/growth';
+import { useUnits } from '@/lib/units';
 
 export interface EditableEntry {
   id: string;
@@ -34,7 +37,33 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 // Edit everything about a logged entry: times, amounts, choices and notes.
 export function EditEntry({ entry, onClose, onSaved }: { entry: EditableEntry | null; onClose: () => void; onSaved: () => void }) {
   if (!entry) return null;
+  if (entry.type === 'growth') return <GrowthEdit key={entry.id} entry={entry} onClose={onClose} onSaved={onSaved} />;
   return <Form key={entry.id} entry={entry} onClose={onClose} onSaved={onSaved} />;
+}
+
+function GrowthEdit({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () => void; onSaved: () => void }) {
+  const [units] = useUnits();
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={styles.sheet}>
+          <Text style={[styles.title, { marginBottom: 12 }]}>Edit measurement{entry.baby ? ` for ${entry.baby}` : ''}</Text>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <GrowthForm
+              units={units}
+              initial={entry.data as GrowthData}
+              submitLabel="Save changes"
+              onCancel={onClose}
+              onSubmit={async data => {
+                await updateLog(entry.id, data, new Date(`${data.date}T12:00:00`).toISOString());
+                onSaved();
+              }}
+            />
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () => void; onSaved: () => void }) {
@@ -129,7 +158,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
     }
   };
 
-  const title = { diaper: 'Diaper', feeding: 'Feeding', nap: 'Nap', pumping: 'Pumping', mood: 'Mood', milestone: 'Milestone' }[entry.type];
+  const title = { diaper: 'Diaper', feeding: 'Feeding', nap: 'Nap', pumping: 'Pumping', mood: 'Mood', milestone: 'Milestone', growth: 'Growth' }[entry.type];
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>

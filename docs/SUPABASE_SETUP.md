@@ -14,6 +14,7 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 6. `0006_delete_account.sql`: in-app account deletion (store requirement)
 7. `0007_blocks_suspension.sql`: block members + moderator suspension (store requirement for community apps)
 8. `0008_live_sync.sql`: live sync between partners + shared sleep timers (turns on Realtime for the needed tables)
+9. `0009_growth.sql`: growth measurements (weight, length, head size) as a new log type
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.

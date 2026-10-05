@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type LogType = 'nap' | 'diaper' | 'feeding' | 'pumping' | 'milestone' | 'mood';
+export type LogType = 'nap' | 'diaper' | 'feeding' | 'pumping' | 'milestone' | 'mood' | 'growth';
 
 export interface LogRow {
   id: string;

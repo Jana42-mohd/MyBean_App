@@ -8,6 +8,8 @@ import { deleteLog, fetchLogs } from '@/lib/logs';
 import { EditEntry } from '@/components/EditEntry';
 import { useLiveRefresh } from '@/hooks/use-live';
 import { toDate } from '@/lib/time';
+import { formatLength, formatWeight } from '@/lib/growth';
+import { useUnits } from '@/lib/units';
 import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
@@ -15,7 +17,7 @@ import { LoadError, friendlyError } from '@/components/LoadError';
 
 interface HistoryEntry {
   id: string;
-  type: 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping';
+  type: 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping' | 'growth';
   timestamp: string;
   data: any;
   author?: string;
@@ -26,11 +28,12 @@ interface HistoryEntry {
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [units] = useUnits();
   const [babies, setBabies] = useState<Baby[]>([]);
   const [babyFilter, setBabyFilter] = useState(ALL_BABIES);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<HistoryEntry | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping' | 'growth'>('all');
 
   const loadHistory = useCallback(async () => {
       try {
@@ -127,6 +130,15 @@ export default function HistoryScreen() {
             <Text style={styles.detailText}>Time: <Text style={styles.detailValue}>{entry.data.ampm}</Text></Text>
           </View>
         );
+      case 'growth':
+        return (
+          <View style={styles.entryDetails}>
+            {entry.data.weightKg !== undefined && <Text style={styles.detailText}>Weight: <Text style={styles.detailValue}>{formatWeight(entry.data.weightKg, units)}</Text></Text>}
+            {entry.data.lengthCm !== undefined && <Text style={styles.detailText}>Length: <Text style={styles.detailValue}>{formatLength(entry.data.lengthCm, units)}</Text></Text>}
+            {entry.data.headCm !== undefined && <Text style={styles.detailText}>Head: <Text style={styles.detailValue}>{formatLength(entry.data.headCm, units)}</Text></Text>}
+            {entry.data.notes && <Text style={styles.detailText}>Notes: <Text style={styles.detailValue}>{entry.data.notes}</Text></Text>}
+          </View>
+        );
       default:
         return null;
     }
@@ -140,6 +152,7 @@ export default function HistoryScreen() {
       milestone: 'Milestone',
       mood: 'Mood',
       pumping: 'Pumping',
+      growth: 'Growth',
     };
     return labels[type] || type;
   };
@@ -152,6 +165,7 @@ export default function HistoryScreen() {
       milestone: '#FDFECC',
       mood: '#DDA0DD',
       pumping: '#98FB98',
+      growth: '#9fd0ff',
     };
     return colors[type] || '#A4CDD3';
   };
@@ -197,7 +211,7 @@ export default function HistoryScreen() {
           >
             <Text style={[styles.filterButtonText, selectedFilter === 'all' && styles.filterButtonTextActive]}>All</Text>
           </Pressable>
-          {['diaper', 'feeding', 'nap', 'milestone', 'mood', 'pumping'].map(type => (
+          {['diaper', 'feeding', 'nap', 'milestone', 'mood', 'pumping', 'growth'].map(type => (
             <Pressable
               key={type}
               style={[styles.filterButton, selectedFilter === type && styles.filterButtonActive]}

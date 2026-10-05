@@ -116,6 +116,8 @@ export default function RootLayout() {
         <Stack.Screen name="moderation" options={{ headerShown: false }} />
         <Stack.Screen name="insights" options={{ headerShown: false }} />
         <Stack.Screen name="legal" options={{ headerShown: false }} />
+        <Stack.Screen name="growth" options={{ headerShown: false }} />
+        <Stack.Screen name="milestones" options={{ headerShown: false }} />
       </Stack>
       <OfflineBanner />
       <StatusBar style="light" />

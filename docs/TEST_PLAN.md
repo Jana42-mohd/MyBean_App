@@ -79,3 +79,11 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Background B's app for a minute, A logs something, bring B back: B shows it.
 - [ ] A leaves the household: B stops getting A's updates. A rejoins with the code: updates flow again.
 - [ ] A third account (not in the household) never sees these entries or notices.
+
+## Growth tracker and milestones
+- [ ] Home -> Growth Tracking opens the Growth screen (not the Info page); Home -> Milestones opens the Milestones screen.
+- [ ] Growth: add a measurement (weight, length, head: any of them). The chart shows grey WHO percentile lines and your baby's dots; tapping a dot shows value, age and percentile.
+- [ ] kg/cm <-> lb/in toggle changes the inputs, axis and list; values stay consistent. Typing 65 kg for a newborn is rejected with a clear message.
+- [ ] A baby with gender "prefer not to say" shows the measurements without percentile lines and says why. A premature baby shows the corrected-age note.
+- [ ] Edit and delete a measurement. History shows growth entries (filter "Growth").
+- [ ] Milestones: tap a suggestion, add with a date, see "<n> months old" next to it. With twins, "All babies" adds one per baby.
