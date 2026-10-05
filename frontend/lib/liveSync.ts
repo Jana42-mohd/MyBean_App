@@ -37,6 +37,8 @@ export const onLiveStatus = (l: (s: LiveStatus) => void) => {
   statusListeners.add(l);
   return () => { statusListeners.delete(l); };
 };
+// Lets other modules ask every screen to reload (e.g. after the offline queue was sent)
+export const emitResync = () => emit({ table: 'resync', type: 'RESYNC' });
 export const getLiveStatus = () => status;
 export const getMyId = () => myId;
 

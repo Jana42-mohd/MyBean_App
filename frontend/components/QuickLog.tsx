@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { friendlyError } from '@/components/LoadError';
-import { useLiveRefresh } from '@/hooks/use-live';
+import { useLiveRefresh, useOutboxCount } from '@/hooks/use-live';
 import { Baby, babyNames } from '@/lib/babies';
 import { getMyId } from '@/lib/liveSync';
-import { logEntry, undoEntry } from '@/lib/logActions';
+import { isOnline, logEntryEx, undoEntry } from '@/lib/logActions';
+import { isTransientError } from '@/lib/netError';
+import { flush, getPendingCount } from '@/lib/outbox';
 import { LogType } from '@/lib/logs';
-import { ActiveSleep, claimSleep, discardSleep, formatElapsed, getActiveSleeps, restoreSleep, startSleeps } from '@/lib/timer';
+import { ActiveSleep, claimSleep, discardSleep, formatElapsed, getActiveSleeps, queueSleepStop, restoreSleep, startSleeps, withPendingSleeps } from '@/lib/timer';
 import { formatDuration } from '@/lib/time';
 
 type Sheet = null | 'feeding' | 'diaper' | 'sleep';
@@ -40,7 +42,10 @@ export function QuickLog({
   const [sheet, setSheet] = useState<Sheet>(null);
   const [target, setTarget] = useState(ALL_BABIES);
   const [amount, setAmount] = useState('');
-  const [sleeps, setSleeps] = useState<ActiveSleep[]>([]);
+  const [serverSleeps, setServerSleeps] = useState<ActiveSleep[]>([]);
+  const pending = useOutboxCount(); // re-derive the list when entries are queued or sent
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sleeps = useMemo(() => withPendingSleeps(serverSleeps, getMyId()), [serverSleeps, pending]);
   const [now, setNow] = useState(() => Date.now());
   const disabled = babies.length === 0;
   const asleepIds = new Set(sleeps.map(x => x.baby_id));
@@ -49,7 +54,7 @@ export function QuickLog({
   // Sleep timers are shared with the household: load on focus, and again whenever a partner changes one
   const loadSleeps = useCallback(async () => {
     try {
-      setSleeps(await getActiveSleeps());
+      setServerSleeps(await getActiveSleeps());
     } catch {
       /* offline: keep what we have */
     }
@@ -82,9 +87,9 @@ export function QuickLog({
     if (who.length === 0) return;
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const ids = await logEntry(type, data, who);
+      const { ids, queued } = await logEntryEx(type, data, who);
       setSheet(null);
-      onToast(`${label} for ${babyNames(who)}`, () => undoEntry(type, ids, who));
+      onToast(`${label} for ${babyNames(who)}${queued ? ' (saved offline, will sync)' : ''}`, () => undoEntry(type, ids, who));
       onChanged();
     } catch (e) {
       onToast(`Could not save: ${friendlyError(e)}`);
@@ -95,10 +100,10 @@ export function QuickLog({
     if (who.length === 0) return;
     try {
       Haptics.selectionAsync();
-      await startSleeps(who.map(b => b.id));
+      const { queued } = await startSleeps(who.map(b => ({ id: b.id, name: b.name })));
       setSheet(null);
       await loadSleeps();
-      onToast(`Sleep timer started for ${babyNames(who)}`);
+      onToast(`Sleep timer started for ${babyNames(who)}${queued ? ' (saved offline, will sync)' : ''}`);
     } catch (e) {
       onToast(`Could not start the timer: ${friendlyError(e)}`);
     }
@@ -115,8 +120,24 @@ export function QuickLog({
 
   const wakeUp = async (sl: ActiveSleep) => {
     try {
+      // anything made offline goes first, so the timer exists on the server before we stop it
+      if (getPendingCount() > 0 && (await isOnline())) await flush().catch(() => {});
+      if (!(await isOnline())) {
+        await queueSleepStop(sl.baby_id, sl.baby_name);
+        onToast(`Woke up saved offline: ${sl.baby_name}'s nap will be logged when you're back online`);
+        return;
+      }
+
       // Claim the timer first: if the other parent already stopped it we get nothing back and must not log a second nap
-      const startedAt = await claimSleep(sl.baby_id);
+      let startedAt: string | null;
+      try {
+        startedAt = await claimSleep(sl.baby_id);
+      } catch (e) {
+        if (!isTransientError(e)) throw e;
+        await queueSleepStop(sl.baby_id, sl.baby_name); // connection died just now
+        onToast(`Woke up saved offline: ${sl.baby_name}'s nap will be logged when you're back online`);
+        return;
+      }
       await loadSleeps();
       if (!startedAt) {
         onToast(`${sl.baby_name}'s sleep was already stopped`);
@@ -131,11 +152,12 @@ export function QuickLog({
       }
       const baby = { id: sl.baby_id, name: sl.baby_name };
       try {
-        const ids = await logEntry('nap', { start: start.toISOString(), end: end.toISOString() }, [baby], start.toISOString());
-        onToast(`Logged ${formatDuration(minutes)} of sleep for ${sl.baby_name}`, () => undoEntry('nap', ids, [baby]));
+        // if the connection drops right now the nap is queued, not lost
+        const { ids, queued } = await logEntryEx('nap', { start: start.toISOString(), end: end.toISOString() }, [baby], start.toISOString());
+        onToast(`Logged ${formatDuration(minutes)} of sleep for ${sl.baby_name}${queued ? ' (saved offline, will sync)' : ''}`, () => undoEntry('nap', ids, [baby]));
         onChanged();
       } catch (e) {
-        await restoreSleep(sl.baby_id, startedAt).catch(() => {}); // keep the timer so nothing is lost
+        await restoreSleep(sl.baby_id, startedAt).catch(() => {}); // the server refused the nap: keep the timer so nothing is lost
         await loadSleeps();
         onToast(`Could not save the nap: ${friendlyError(e)}`);
       }

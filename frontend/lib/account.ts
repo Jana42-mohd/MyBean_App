@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform, Share } from 'react-native';
+import { clearOutbox } from './outbox';
 import { supabase } from './supabase';
 
 // Remove everything this app stored on THIS phone for the signed-in person (reminders, sleep timer).
@@ -34,6 +35,7 @@ export async function deleteAccount() {
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;
 
+  await clearOutbox(u.user.id);
   await clearLocalData();
   await supabase.auth.signOut({ scope: 'local' }); // the account is gone, so only clear this phone's session
 }

@@ -87,3 +87,13 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] A baby with gender "prefer not to say" shows the measurements without percentile lines and says why. A premature baby shows the corrected-age note.
 - [ ] Edit and delete a measurement. History shows growth entries (filter "Growth").
 - [ ] Milestones: tap a suggestion, add with a date, see "<n> months old" next to it. With twins, "All babies" adds one per baby.
+
+## Working offline (use airplane mode)
+- [ ] Airplane mode on. A yellow/pink banner says you're offline. Home -> Feeding -> Breast: the toast says "(saved offline, will sync)", Today's feedings goes up, and History shows the entry with "Saved on this phone, waiting to sync".
+- [ ] Log a diaper and a growth measurement offline too. Turn airplane mode off: within a few seconds the banner says "Syncing" and disappears; the entries now show Edit/Delete; your partner's phone receives them.
+- [ ] Undo on an offline entry removes it (nothing is ever sent). Undo after it synced deletes it on the server.
+- [ ] Offline: tap Sleep (timer starts, "saved offline"), then Woke up. Go online: exactly one nap appears with the right start/end times.
+- [ ] Offline: log 3 entries, force-close the app, reopen still offline: the 3 entries are still there. Go online: they sync once (no duplicates).
+- [ ] Offline: History/Track/Home still show what you saw last time, not an error screen.
+- [ ] Log out with unsent entries: you get a warning. Log in as someone else on the same phone while online: the first person's entries are NOT sent under the second account. Log back in as the first person: they sync.
+- [ ] Flaky connection (enable airplane mode midway through logging): no entry is lost and none is doubled.

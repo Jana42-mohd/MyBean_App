@@ -28,6 +28,7 @@ export const PRIVACY: LegalDoc = {
         '- Wellbeing: daily mood and sleep check-ins, answers and scores from the Edinburgh Postnatal Depression Scale screening, and notes you choose to write.',
         '- Community: posts you write, and your likes, saves, reports, and the members you block.',
         '- Reminders: your reminder settings are stored on your phone only.',
+        '- Offline: when there is no signal, entries you make are kept on your phone until they can be sent. They are removed from the phone once sent, or when you delete your account.',
         'We do not currently use advertising, analytics or cross-app tracking tools, and we do not collect your precise location or contacts.',
       ],
     },

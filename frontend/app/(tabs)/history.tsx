@@ -23,6 +23,7 @@ interface HistoryEntry {
   author?: string;
   baby?: string;
   baby_id?: string | null;
+  pending?: boolean;
 }
 
 export default function HistoryScreen() {
@@ -48,6 +49,7 @@ export default function HistoryScreen() {
           author: r.author,
           baby: r.baby,
           baby_id: r.baby_id,
+          pending: r.pending,
         }));
 
         // Sort by timestamp (newest first)
@@ -242,10 +244,16 @@ export default function HistoryScreen() {
                   </Text>
                 </View>
                 {renderEntryDetails(entry)}
-                <View style={styles.entryActions}>
-                  <Pressable onPress={() => setEditing(entry)}><Text style={styles.actionText}>Edit</Text></Pressable>
-                  <Pressable onPress={() => confirmDelete(entry)}><Text style={[styles.actionText, styles.deleteText]}>Delete</Text></Pressable>
-                </View>
+                {entry.pending ? (
+                  <View style={styles.entryActions}>
+                    <Text style={styles.actionText}>⏳ Saved on this phone, waiting to sync</Text>
+                  </View>
+                ) : (
+                  <View style={styles.entryActions}>
+                    <Pressable onPress={() => setEditing(entry)}><Text style={styles.actionText}>Edit</Text></Pressable>
+                    <Pressable onPress={() => confirmDelete(entry)}><Text style={[styles.actionText, styles.deleteText]}>Delete</Text></Pressable>
+                  </View>
+                )}
               </View>
             ))}
           </View>

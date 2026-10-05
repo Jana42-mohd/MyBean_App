@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments }
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
@@ -14,6 +15,8 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { setupNotifications } from '@/lib/reminders';
 import { hasCompletedSurvey } from '@/lib/household';
 import { startLiveSync, stopLiveSync } from '@/lib/liveSync';
+import { initOutbox, onOutboxFailure } from '@/lib/outbox';
+import { startOutboxTriggers } from '@/lib/outboxTriggers';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -52,6 +55,23 @@ export default function RootLayout() {
     if (session) startLiveSync().catch(() => {});
     else stopLiveSync().catch(() => {});
   }, [ready, session?.user.id]);
+
+  // Offline queue: belongs to the signed-in person; sends when there is a connection
+  useEffect(() => {
+    if (!ready) return;
+    const uid = session?.user.id ?? null;
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    initOutbox(uid).then(() => {
+      if (!cancelled && uid) stop = startOutboxTriggers();
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [ready, session?.user.id]);
+
+  useEffect(() => onOutboxFailure(message => Alert.alert('Could not send an entry', message)), []);
 
   // Reminders: configure how they look, and open the right screen when one is tapped
   useEffect(() => {

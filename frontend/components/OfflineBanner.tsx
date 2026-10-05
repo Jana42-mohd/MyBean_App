@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { useOutboxCount } from '@/hooks/use-live';
 
-// Thin banner shown on every screen while the phone has no internet connection.
+// Thin banner on every screen: offline, and/or entries saved on this phone waiting to be sent.
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
+  const waiting = useOutboxCount();
 
   useEffect(() => {
     const unsub = NetInfo.addEventListener(state => {
@@ -13,15 +15,22 @@ export function OfflineBanner() {
     return () => unsub();
   }, []);
 
-  if (!offline) return null;
+  if (!offline && waiting === 0) return null;
+  const entries = `${waiting} ${waiting === 1 ? 'entry' : 'entries'}`;
+  const text = offline
+    ? waiting > 0
+      ? `You're offline. ${entries} saved on this phone will sync when you reconnect.`
+      : "You're offline. New entries are saved on this phone and sync when you reconnect."
+    : `Syncing ${entries}…`;
   return (
-    <View style={styles.bar} pointerEvents="none">
-      <Text style={styles.text}>You're offline. Changes can't be saved until you reconnect.</Text>
+    <View style={[styles.bar, !offline && styles.syncing]} pointerEvents="none">
+      <Text style={styles.text}>{text}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#FED8FE', paddingTop: 40, paddingBottom: 8, paddingHorizontal: 16, zIndex: 100 },
+  syncing: { backgroundColor: '#FDFECC' },
   text: { color: '#09282eff', fontWeight: '700', textAlign: 'center', fontSize: 13 },
 });

@@ -11,6 +11,7 @@ import { changePassword, passwordProblems } from '@/lib/auth';
 import { deleteAccount, exportMyData, signOutEverywhereOnDevice } from '@/lib/account';
 import { SUPPORT_EMAIL } from '@/lib/appInfo';
 import { restartLiveSync } from '@/lib/liveSync';
+import { getPendingCount } from '@/lib/outbox';
 import { useLiveRefresh } from '@/hooks/use-live';
 import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
@@ -238,9 +239,22 @@ export default function SettingsScreen() {
   const step = (key: 'feedingHours' | 'napHours', delta: number) =>
     updateReminders({ [key]: Math.min(6, Math.max(1, Math.round((rem[key] + delta) * 2) / 2)) } as Partial<ReminderSettings>);
 
-  const handleLogout = async () => {
+  const doLogout = async () => {
     await signOutEverywhereOnDevice();
     router.replace('/');
+  };
+
+  const handleLogout = () => {
+    const waiting = getPendingCount();
+    if (waiting === 0) return doLogout();
+    Alert.alert(
+      'Entries not synced yet',
+      `${waiting} ${waiting === 1 ? 'entry is' : 'entries are'} saved on this phone but not sent yet. They stay here and are sent the next time you log in with this account while online. Log out anyway?`,
+      [
+        { text: 'Stay logged in', style: 'cancel' },
+        { text: 'Log out', style: 'destructive', onPress: doLogout },
+      ]
+    );
   };
 
   const unblock = async (id: string) => {
