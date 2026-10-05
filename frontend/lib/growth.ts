@@ -106,13 +106,16 @@ export interface GrowthData {
   notes?: string;
 }
 
-// "3 weeks old", "4 months", "1 year 2 months": how old a baby was on a date
+// "3 weeks old", "4 months old", "1 year 2 months old": how old a baby was on a date.
+// Months are calendar months (14 March to 14 May is exactly 2 months), not days / 30.
 export function ageAtLabel(birthDate: string, onDate: string): string {
   const days = Math.round((parseDay(onDate) - parseDay(birthDate)) / 86400000);
   if (days < 0) return 'before birth';
   if (days < 14) return days === 1 ? '1 day old' : `${days} days old`;
   if (days < 61) return `${Math.floor(days / 7)} weeks old`;
-  const months = Math.floor(days / DAYS_PER_MONTH);
+  const [by, bm, bd] = birthDate.split('-').map(Number);
+  const [ny, nm, nd] = onDate.split('-').map(Number);
+  const months = (ny - by) * 12 + (nm - bm) - (nd < bd ? 1 : 0);
   if (months < 24) return `${months} months old`;
   const y = Math.floor(months / 12);
   const rem = months % 12;

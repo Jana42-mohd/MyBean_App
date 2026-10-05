@@ -15,7 +15,8 @@ export async function setPreferredColorScheme(theme: Theme) {
 }
 
 export function useColorScheme(): Theme {
-  const system = (Appearance?.getColorScheme?.() as Theme) ?? (useRNColorScheme() as Theme) ?? 'light';
+  const rnScheme = useRNColorScheme(); // hooks must always be called, never conditionally
+  const system = (Appearance?.getColorScheme?.() as Theme) ?? (rnScheme as Theme) ?? 'light';
   const [theme, setTheme] = useState<Theme>(preferred ?? system);
 
   useEffect(() => {

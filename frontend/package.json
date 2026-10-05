@@ -9,7 +9,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "check:launch": "node scripts/check-launch.js",
-    "legal:export": "node scripts/export-legal.js"
+    "legal:export": "node scripts/export-legal.js",
+    "test": "node tests/run.js",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

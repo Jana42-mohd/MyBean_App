@@ -74,6 +74,7 @@ function CrisisCard() {
 export default function WellbeingScreen() {
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [now, setNow] = useState(() => Date.now()); // refreshed each time the screen loads
   const [mood, setMood] = useState<number | null>(null);
   const [sleep, setSleep] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -88,7 +89,10 @@ export default function WellbeingScreen() {
       .order('created_at', { ascending: false })
       .limit(60);
     if (error) console.error('Wellbeing load failed:', error);
-    else setEntries((data ?? []) as Entry[]);
+    else {
+      setEntries((data ?? []) as Entry[]);
+      setNow(Date.now());
+    }
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -96,7 +100,7 @@ export default function WellbeingScreen() {
   const checkins = entries.filter(e => e.kind === 'checkin');
   const lastEpds = entries.find(e => e.kind === 'epds');
   const recentLow = checkins.length >= 3 && checkins.slice(0, 3).every(c => (c.score ?? 3) <= 2);
-  const daysSinceEpds = lastEpds ? Math.floor((Date.now() - new Date(lastEpds.created_at).getTime()) / 86400000) : null;
+  const daysSinceEpds = lastEpds ? Math.floor((now - new Date(lastEpds.created_at).getTime()) / 86400000) : null;
 
   const saveCheckin = async () => {
     if (!mood) return Alert.alert('How are you feeling?', 'Pick the face that fits best today.');

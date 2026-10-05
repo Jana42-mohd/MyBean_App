@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { supabase } from './supabase';
 import { emitResync } from './liveSync';
 import { isTransientError, permanentReason, tagSupabaseError } from './netError';
@@ -168,12 +169,24 @@ async function execute(entry: Entry) {
   }
 }
 
+// Is the phone offline right now? (If we cannot tell, assume it is not and try.)
+async function isOffline(): Promise<boolean> {
+  try {
+    const s = await NetInfo.fetch();
+    return s.isConnected === false || s.isInternetReachable === false;
+  } catch {
+    return false;
+  }
+}
+
 // Sends everything waiting for the signed-in person, in order. Returns how many entries were sent.
 export function flush(): Promise<number> {
   if (flushing) return flushing;
   flushing = (async () => {
     let sent = 0;
     try {
+      // no point sending while offline: each attempt would only have to time out
+      if (await isOffline()) return 0;
       for (const entry of [...mine()]) {
         try {
           await execute(entry);
