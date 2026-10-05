@@ -6,12 +6,15 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { EditEntry, EditableEntry } from '@/components/EditEntry';
+import { MilestonePhoto } from '@/components/MilestonePhoto';
+import { NO_PHOTO_CHANGE, PhotoChoice, PhotoField } from '@/components/PhotoField';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { useLiveRefresh } from '@/hooks/use-live';
 import { Baby, babyNames, bornBabies, fetchBabies, formatDateInput, isValidDate, todayStr } from '@/lib/babies';
 import { ageAtLabel } from '@/lib/growth';
 import { logEntry } from '@/lib/logActions';
 import { LogRow, deleteLog, fetchLogs } from '@/lib/logs';
+import { photoUrls, uploadPhoto } from '@/lib/photos';
 
 const SUGGESTIONS = [
   'First smile', 'Held head up', 'Rolled over', 'Laughed', 'Sat up', 'First solid food',
@@ -35,12 +38,17 @@ export default function MilestonesScreen() {
   const [date, setDate] = useState(todayStr());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [photo, setPhoto] = useState<PhotoChoice>(NO_PHOTO_CHANGE);
+  const [urls, setUrls] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
       setError('');
       setBabies(bornBabies(await fetchBabies()));
-      setRows(await fetchLogs('milestone', 500));
+      const list = await fetchLogs('milestone', 500);
+      setRows(list);
+      const paths = list.map(r => r.data?.photo).filter(Boolean) as string[];
+      if (paths.length) photoUrls(paths).then(setUrls);
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -61,6 +69,7 @@ export default function MilestonesScreen() {
     setText('');
     setDate(todayStr());
     setNotes('');
+    setPhoto(NO_PHOTO_CHANGE);
     setOpen(true);
   };
 
@@ -72,7 +81,21 @@ export default function MilestonesScreen() {
     if (who.length === 0) return;
     setSaving(true);
     try {
-      await logEntry('milestone', { milestone: text.trim(), date, notes: notes.trim() || undefined }, who, new Date(`${date}T12:00:00`).toISOString());
+      let photoPath: string | undefined;
+      if (photo.local) {
+        try {
+          photoPath = await uploadPhoto(photo.local); // one file, shared by all the babies this milestone is for
+        } catch (e) {
+          const saveWithout = await new Promise<boolean>(resolve =>
+            Alert.alert('The photo did not upload', `${friendlyError(e)}\n\nSave the milestone without it?`, [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Save without photo', onPress: () => resolve(true) },
+            ]),
+          );
+          if (!saveWithout) return;
+        }
+      }
+      await logEntry('milestone', { milestone: text.trim(), date, notes: notes.trim() || undefined, photo: photoPath }, who, new Date(`${date}T12:00:00`).toISOString());
       setOpen(false);
       load();
     } catch (e) {
@@ -90,7 +113,7 @@ export default function MilestonesScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteLog(r.id);
+            await deleteLog(r.id, r.data?.photo);
             load();
           } catch (e) {
             Alert.alert('Could not delete', friendlyError(e));
@@ -134,6 +157,7 @@ export default function MilestonesScreen() {
                   {r.baby ? `${r.baby} · ` : ''}{r.data.date}{birth ? ` · ${ageAtLabel(birth, r.data.date)}` : ''}
                 </Text>
                 {r.data.notes ? <Text style={styles.cardNotes}>{r.data.notes}</Text> : null}
+                {r.data.photo ? <MilestonePhoto path={r.data.photo} url={urls[r.data.photo]} /> : null}
               </View>
               <Pressable onPress={() => setEditing({ id: r.id, type: 'milestone', data: r.data, baby: r.baby })} hitSlop={8}>
                 <Text style={styles.action}>Edit</Text>
@@ -173,6 +197,8 @@ export default function MilestonesScreen() {
               />
               <Text style={styles.label}>Notes (optional)</Text>
               <TextInput style={[styles.input, { minHeight: 56 }]} value={notes} onChangeText={setNotes} multiline placeholder="Anything you want to remember" placeholderTextColor="#A4CDD3" />
+              <Text style={styles.label}>Photo (optional)</Text>
+              <PhotoField value={photo} onChange={setPhoto} />
               <View style={styles.actions}>
                 <Pressable onPress={() => setOpen(false)}><Text style={styles.cancel}>Cancel</Text></Pressable>
                 <Pressable style={styles.saveBtn} onPress={save} disabled={saving}>

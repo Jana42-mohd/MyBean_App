@@ -55,7 +55,9 @@ exports.fakeSupabase = (behave, session = { user: { id: 'u1' } }) => {
           upsert: (p, o) => builder(table, 'upsert', p, o),
           insert: p => builder(table, 'insert', p),
           delete: () => builder(table, 'delete'),
+          update: p => builder(table, 'update', p),
         }),
+        storage: { from: bucket => ({ remove: async paths => { calls.push({ table: `storage:${bucket}`, op: 'remove', payload: paths, filters: {} }); return { data: [], error: null }; } }) },
       },
     },
   };

@@ -13,6 +13,7 @@ import { SUPPORT_EMAIL } from '@/lib/appInfo';
 import { restartLiveSync } from '@/lib/liveSync';
 import { getPendingCount } from '@/lib/outbox';
 import { useLiveRefresh } from '@/hooks/use-live';
+import { getPartnerNotifications, setPartnerNotifications } from '@/lib/push';
 import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
   const [isModerator, setIsModerator] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [rem, setRem] = useState<ReminderSettings>(DEFAULT_REMINDERS);
+  const [notifyPartner, setNotifyPartner] = useState(true);
   const [blocked, setBlocked] = useState<{ id: string; name: string }[]>([]);
   const [exporting, setExporting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -70,6 +72,7 @@ export default function SettingsScreen() {
     useCallback(() => {
       loadUserData();
       getReminderSettings().then(setRem);
+      getPartnerNotifications().then(setNotifyPartner).catch(() => {});
     }, [loadUserData])
   );
   useLiveRefresh(loadUserData);
@@ -164,7 +167,10 @@ export default function SettingsScreen() {
       restartLiveSync().catch(() => {});
       setJoinCode('');
       setHousehold(await getHousehold());
-      Alert.alert('Linked!', "You're now sharing your baby's logs with this household.");
+      Alert.alert('Linked!', "You're now sharing your baby's logs with this household.", [
+        // offer partner notifications now that there is a partner (asks the phone for permission)
+        { text: 'OK', onPress: () => { setPartnerNotifications(true).then(ok => setNotifyPartner(ok)).catch(() => {}); } },
+      ]);
     } catch (e: any) {
       Alert.alert('Could not join', e?.message || 'Please check the code and try again.');
     } finally {
@@ -234,6 +240,19 @@ export default function SettingsScreen() {
       return;
     }
     setRem(next);
+  };
+
+  const togglePartnerNotifications = async (on: boolean) => {
+    setNotifyPartner(on);
+    try {
+      if (!(await setPartnerNotifications(on))) {
+        setNotifyPartner(false);
+        Alert.alert('Notifications are off', 'Turn on notifications for My Little Bean in your phone settings, then try again.');
+      }
+    } catch (e) {
+      setNotifyPartner(!on);
+      Alert.alert('Could not change this', friendlyError(e));
+    }
   };
 
   const step = (key: 'feedingHours' | 'napHours', delta: number) =>
@@ -438,6 +457,18 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
         ) : null}
+
+        {/* Partner notifications */}
+        <View style={styles.settingsSection}>
+          <ThemedText style={styles.sectionTitle}>Partner notifications</ThemedText>
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>Tell me when my partner logs something</Text>
+            <Switch value={notifyPartner} onValueChange={togglePartnerNotifications} trackColor={{ true: '#2F9BA8' }} />
+          </View>
+          <Text style={styles.settingValue}>
+            For example "Blake logged a feeding for Mia". It only sends what was logged, never wellbeing check-ins, and only to people in your household.
+          </Text>
+        </View>
 
         {/* Reminders */}
         <View style={styles.settingsSection}>

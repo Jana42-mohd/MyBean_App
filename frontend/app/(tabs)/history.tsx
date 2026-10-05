@@ -186,7 +186,7 @@ export default function HistoryScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteLog(entry.id);
+            await deleteLog(entry.id, entry.data?.photo);
             setHistory(prev => prev.filter(h => h.id !== entry.id));
           } catch (e) {
             Alert.alert('Could not delete', friendlyError(e));

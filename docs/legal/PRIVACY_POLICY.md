@@ -14,7 +14,7 @@ Questions or requests: [[SUPPORT_EMAIL]].
 
 - About your baby or babies: names, birth date or due date, gender, gestational age at birth and feeding type.
 
-- Activity logs: feedings, diapers, naps and sleep, pumping, milestones and mood notes, with times and any notes you type.
+- Activity logs: feedings, diapers, naps and sleep, pumping, milestones and mood notes, with times and any notes you type. Photos you add to a milestone are stored privately and are visible only to the members of your household.
 
 - Wellbeing: daily mood and sleep check-ins, answers and scores from the Edinburgh Postnatal Depression Scale screening, and notes you choose to write.
 
@@ -22,13 +22,17 @@ Questions or requests: [[SUPPORT_EMAIL]].
 
 - Reminders: your reminder settings are stored on your phone only.
 
+- Notifications: if you allow them, an address for your phone (a push token) is stored so we can tell your partner when you log something, and tell you when they do. The message contains the same details that are already shared in your household, for example "Blake logged a feeding for Mia". Wellbeing entries never trigger a notification.
+
+- Offline: when there is no signal, entries you make are kept on your phone until they can be sent. They are removed from the phone once sent, or when you delete your account.
+
 We do not currently use advertising, analytics or cross-app tracking tools, and we do not collect your precise location or contacts.
 
 ## How we use it
 
 - To run the app: sign you in, save your logs, show charts, sync between your devices and with your household.
 
-- To send reminders that you turn on. They are scheduled on your own phone.
+- To send reminders that you turn on (scheduled on your own phone) and notifications about your partner's entries (you can switch these off in Settings).
 
 - To keep the community safe, including reviewing posts that are reported.
 
@@ -50,7 +54,7 @@ We do not sell your information, use it for advertising, or use it to build mark
 
 ## Service providers and where data is stored
 
-Your data is stored with Supabase, which provides our database, sign-in and file storage. Our project is hosted in [[DATA_REGION]]. Sign-up and password-reset emails are sent through [[EMAIL_PROVIDER]]. Apple and Google distribute the app to your phone. We share information with these providers only as needed to provide the service.
+Your data is stored with Supabase, which provides our database, sign-in and file storage. Our project is hosted in [[DATA_REGION]]. Sign-up and password-reset emails are sent through [[EMAIL_PROVIDER]]. Notifications are delivered through Expo's push service and Apple's and Google's notification systems. Apple and Google distribute the app to your phone. We share information with these providers only as needed to provide the service.
 
 Data is encrypted in transit (HTTPS) and encrypted at rest by our hosting provider. Access to your data is restricted by account-level security rules. No system is perfectly secure, so please use a strong, unique password.
 
@@ -58,7 +62,7 @@ Data is encrypted in transit (HTTPS) and encrypted at rest by our hosting provid
 
 We keep your information while your account is open. You can delete your account in the app at any time (Settings, then Delete my account).
 
-Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves and profile photo. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies and all their logs are deleted as well.
+Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.
 
 Deleted data may remain in encrypted backups for up to [[BACKUP_DAYS]] days before it is permanently erased.
 

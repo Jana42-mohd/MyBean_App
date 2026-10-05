@@ -40,16 +40,19 @@ export async function getReminderSettings(): Promise<ReminderSettings> {
 export async function setupNotifications() {
   if (!supported) return;
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async n => {
+      // a partner's push while the app is open is already shown on Home by live sync
+      const partner = n.request.content.data?.type === 'partner_log';
+      return { shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: !partner, shouldShowList: !partner };
+    },
   });
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('reminders', {
       name: 'Reminders',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+    await Notifications.setNotificationChannelAsync('partner', {
+      name: 'Partner activity',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }

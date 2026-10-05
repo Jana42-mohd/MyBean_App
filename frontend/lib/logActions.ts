@@ -1,21 +1,13 @@
-import NetInfo from '@react-native-community/netinfo';
 import * as Crypto from 'expo-crypto';
 import { LogType, deleteLog } from './logs';
 import { QueuedLogRow, enqueue, insertLogRows, removePendingLogs } from './outbox';
 import { isTransientError } from './netError';
+import { isOnline } from './online';
 import { cancelRemindersFor, scheduleAfterLog } from './reminders';
 import { supabase } from './supabase';
 
+export { isOnline };
 export type BabyRef = { id: string; name: string };
-
-export async function isOnline(): Promise<boolean> {
-  try {
-    const s = await NetInfo.fetch();
-    return s.isConnected !== false && s.isInternetReachable !== false;
-  } catch {
-    return true; // cannot tell: try for real
-  }
-}
 
 // Saves the log(s). With no signal they are kept on the phone and sent later (queued: true).
 // Every row gets its id here, so sending twice can never create a duplicate.
@@ -55,6 +47,6 @@ export async function logEntry(type: LogType, data: any, babies: BabyRef[], logg
 export async function undoEntry(type: LogType, ids: string[], babies: BabyRef[]) {
   const removed = await removePendingLogs(ids);
   const saved = ids.filter(id => !removed.includes(id));
-  await Promise.all(saved.map(deleteLog));
+  await Promise.all(saved.map(id => deleteLog(id)));
   if (type === 'feeding' || type === 'nap') await cancelRemindersFor(type, babies);
 }

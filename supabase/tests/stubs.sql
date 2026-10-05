@@ -21,7 +21,14 @@ create function storage.foldername(name text) returns text[] language sql as $$ 
 
 create publication supabase_realtime;
 
+-- pg_net stand-in: records what would have been sent
+create schema net;
+create table net.sent (url text, body jsonb);
+create function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds integer default 5000)
+returns bigint language sql as $$ insert into net.sent values (url, body) returning 1::bigint $$;
+
 grant usage on schema public, auth, storage to anon, authenticated;
 grant execute on function auth.uid() to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant execute on functions to anon, authenticated, public;
+grant select, insert, update, delete on storage.objects to anon, authenticated;

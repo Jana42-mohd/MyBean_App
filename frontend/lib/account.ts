@@ -4,6 +4,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform, Share } from 'react-native';
 import { clearOutbox } from './outbox';
+import { forgetPushToken } from './push';
 import { supabase } from './supabase';
 
 // Remove everything this app stored on THIS phone for the signed-in person (reminders, sleep timer).
@@ -16,6 +17,7 @@ export async function clearLocalData() {
 }
 
 export async function signOutEverywhereOnDevice() {
+  await forgetPushToken(); // needs the session, so before signing out
   await clearLocalData();
   await supabase.auth.signOut();
 }
@@ -32,10 +34,25 @@ export async function deleteAccount() {
     await supabase.storage.from('avatars').remove(files.map(f => `${u.user!.id}/${f.name}`));
   }
 
+  // Milestone photos belong to the household: they are only removed if nobody else is left to keep them
+  try {
+    const { data: me } = await supabase.from('profiles').select('household_id').eq('id', u.user.id).maybeSingle();
+    if (me?.household_id) {
+      const { data: members } = await supabase.from('profiles').select('id').eq('household_id', me.household_id);
+      if ((members ?? []).length <= 1) {
+        const { data: photos } = await supabase.storage.from('milestone-photos').list(me.household_id, { limit: 1000 });
+        if (photos?.length) await supabase.storage.from('milestone-photos').remove(photos.map(f => `${me.household_id}/${f.name}`));
+      }
+    }
+  } catch (e) {
+    console.warn('Could not remove milestone photos:', e);
+  }
+
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;
 
   await clearOutbox(u.user.id);
+  await AsyncStorage.removeItem('pushToken').catch(() => {});
   await clearLocalData();
   await supabase.auth.signOut({ scope: 'local' }); // the account is gone, so only clear this phone's session
 }

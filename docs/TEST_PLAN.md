@@ -97,3 +97,26 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Offline: History/Track/Home still show what you saw last time, not an error screen.
 - [ ] Log out with unsent entries: you get a warning. Log in as someone else on the same phone while online: the first person's entries are NOT sent under the second account. Log back in as the first person: they sync.
 - [ ] Flaky connection (enable airplane mode midway through logging): no entry is lost and none is doubled.
+- [ ] Offline edit: go offline, History -> Edit a synced feeding (change the amount) and Save: it shows the new value with "waiting to sync". Delete another synced entry: it disappears from the list. Go online: both reach the server and your partner's phone shows the change/removal.
+- [ ] Offline: edit an entry you just logged offline (still unsent): it stays one entry. Delete one: nothing is ever sent.
+- [ ] Edit the same entry on both phones at once (one offline): the later change to reach the server wins, nothing crashes.
+- [ ] Your partner deletes an entry that you edited offline: syncing does not show an error.
+
+## Partner notifications (two phones; a development build on Android, Expo Go works on iPhone)
+- [ ] Settings -> Partner notifications is on. After linking a partner, the phone asks to allow notifications.
+- [ ] Phone A logs a feeding while B's app is closed: B gets "<A> logged a feeding for <baby>". Tapping it opens Home.
+- [ ] Logging for twins ("all babies") sends ONE notification naming both. A diaper right after sends a second one.
+- [ ] B has the app open: no banner on top of the app (Home shows the in-app notice instead).
+- [ ] B turns the switch off: A's next entry sends nothing. Turn it on again: it works again.
+- [ ] A's own phone never gets a notification for A's entries. Pumping, wellbeing check-ins and entries made offline more than 2 hours ago never notify.
+- [ ] B logs out: B's phone stops receiving A's entries' notifications. Another person logging in on that phone does not get B's.
+- [ ] Notifications denied in the phone's settings: turning the switch on explains how to allow them.
+
+## Milestone photos
+- [ ] Milestones -> Add: choose a photo from the library, and take one with the camera; save. The photo shows on the card and on the partner's phone.
+- [ ] A milestone for twins ("All babies") with a photo shows the photo on both babies' cards. Deleting one baby's milestone keeps the photo on the other.
+- [ ] Edit a milestone: replace the photo, remove it. The old file disappears (Supabase -> Storage -> milestone-photos).
+- [ ] Offline: adding/changing a photo says it needs a connection; the milestone itself can still be saved without it.
+- [ ] A photo taken with location on: after saving, the stored file has no GPS data (check with any EXIF viewer).
+- [ ] A photo link copied from one account does not open for a different household (private bucket; links also expire after an hour).
+- [ ] Deleting an account as the only household member removes the photos from Storage.

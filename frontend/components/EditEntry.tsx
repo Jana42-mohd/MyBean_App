@@ -7,6 +7,9 @@ import { formatDateInput, isValidDate } from '@/lib/babies';
 import { GrowthForm } from '@/components/GrowthForm';
 import { GrowthData } from '@/lib/growth';
 import { useUnits } from '@/lib/units';
+import { NO_PHOTO_CHANGE, PhotoChoice, PhotoField } from '@/components/PhotoField';
+import { uploadPhoto } from '@/lib/photos';
+import { removePhotoIfUnused } from '@/lib/photoCleanup';
 
 export interface EditableEntry {
   id: string;
@@ -86,6 +89,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
     notes: d.notes ?? '',
   });
   const [saving, setSaving] = useState(false);
+  const [photo, setPhoto] = useState<PhotoChoice>(NO_PHOTO_CHANGE);
   const set = (k: keyof typeof f) => (v: string) => setF(prev => ({ ...prev, [k]: v }));
 
   const timeInput = (key: 'time' | 'start' | 'end') => (
@@ -104,6 +108,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
     try {
       let data: any = { ...d };
       let loggedAt: string | undefined;
+      let oldPhoto: string | undefined;
       const needTime = (key: 'time' | 'start' | 'end', name: string) => {
         const iso = localInputToIso(f[key]);
         if (!iso) throw new Error(`${name} must be a real date and time, like 2025-03-14 08:30 (24-hour clock).`);
@@ -144,12 +149,15 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
         case 'milestone':
           if (!f.milestone.trim()) throw new Error('Describe the milestone.');
           if (!isValidDate(f.date)) throw new Error('Date must be a real date, like 2025-03-14.');
-          data = { milestone: f.milestone.trim(), date: f.date, notes };
-          loggedAt = new Date(f.date).toISOString();
+          oldPhoto = d.photo;
+          data = { milestone: f.milestone.trim(), date: f.date, notes, photo: photo.removed ? undefined : d.photo };
+          loggedAt = new Date(`${f.date}T12:00:00`).toISOString();
           break;
       }
       setSaving(true);
+      if (entry.type === 'milestone' && photo.local) data.photo = await uploadPhoto(photo.local);
       await updateLog(entry.id, data, loggedAt);
+      if (oldPhoto && oldPhoto !== data.photo) await removePhotoIfUnused(oldPhoto);
       onSaved();
     } catch (e: any) {
       Alert.alert('Check this entry', friendlyError(e));
@@ -220,6 +228,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
                     maxLength={10}
                   />
                 </Field>
+                <Field label="Photo"><PhotoField existing={d.photo} value={photo} onChange={setPhoto} /></Field>
               </>
             ) : null}
 

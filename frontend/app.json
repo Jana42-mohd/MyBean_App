@@ -48,8 +48,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "My Little Bean uses your photos so you can choose a profile picture.",
-          "cameraPermission": "My Little Bean uses the camera so you can take a profile picture.",
+          "photosPermission": "My Little Bean uses your photos so you can choose a profile picture or add a photo to a milestone.",
+          "cameraPermission": "My Little Bean uses the camera so you can take a profile picture or a photo for a milestone.",
           "microphonePermission": false
         }
       ],

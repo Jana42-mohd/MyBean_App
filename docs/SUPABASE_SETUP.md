@@ -15,9 +15,27 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 7. `0007_blocks_suspension.sql`: block members + moderator suspension (store requirement for community apps)
 8. `0008_live_sync.sql`: live sync between partners + shared sleep timers (turns on Realtime for the needed tables)
 9. `0009_growth.sql`: growth measurements (weight, length, head size) as a new log type
+10. `0010_security_hardening.sql`: invite-code throttle, size limits, post rate limit, tighter profile visibility
+11. `0011_push_and_photos.sql`: partner notifications (push tokens + a database trigger) and the private `milestone-photos` bucket
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
+
+### Partner notifications (0011)
+The database sends the notification itself through Expo's push service using the **pg_net** extension, so no server of
+your own is needed. 0011 tries to enable it; if you see the notice "pg_net is not available", turn it on under
+**Database -> Extensions -> pg_net** and run `create extension if not exists pg_net;`.
+Push tokens need an Expo project id: run `npx eas init` once in `frontend/` (it writes it into `app.json`). Remote push
+does **not** work in Expo Go on Android (iPhone Expo Go works); use a development build for Android testing.
+For release builds, iOS needs an APNs key and Android needs FCM credentials added in EAS (`eas credentials`).
+Notifications are sent to the other people in the household only, never contain wellbeing data, and are skipped for
+entries older than 2 hours (offline entries synced late).
+
+### Milestone photos (0011)
+Photos live in a **private** bucket (`milestone-photos`, 5 MB, jpeg/png/webp). Only members of the household named in the
+file path can see them; the app shows them through links that expire after an hour. The app shrinks each photo to
+1600 px and re-encodes it, which also removes location data. Photos are deleted when their milestone is deleted, and
+when the last member of a household deletes their account.
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

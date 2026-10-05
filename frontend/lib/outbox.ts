@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { supabase } from './supabase';
 import { emitResync } from './liveSync';
+import { removePhotoIfUnused } from './photoCleanup';
 import { isTransientError, permanentReason, tagSupabaseError } from './netError';
 
 // The outbox: things done while offline are written here first and sent when the connection is back.
@@ -22,7 +23,10 @@ export interface QueuedLogRow {
 export type Op =
   | { kind: 'log'; rows: QueuedLogRow[] }
   | { kind: 'sleep_start'; baby_ids: string[]; names: string[]; started_at: string }
-  | { kind: 'sleep_stop'; baby_id: string; baby_name: string; ended_at: string; log_id: string };
+  | { kind: 'sleep_stop'; baby_id: string; baby_name: string; ended_at: string; log_id: string }
+  // edits and deletes of entries the server already has
+  | { kind: 'log_update'; id: string; data: any; logged_at?: string }
+  | { kind: 'log_delete'; id: string; photo?: string };
 
 export interface Entry {
   opId: string;
@@ -105,9 +109,53 @@ export async function removePendingLogs(ids: string[]): Promise<string[]> {
   return gone;
 }
 
+// Edits an entry that is still waiting to be sent (it has not reached the server yet). Returns true if it was found.
+export async function patchPendingLog(id: string, patch: { data: any; logged_at?: string }): Promise<boolean> {
+  let found = false;
+  for (const e of mine()) {
+    if (e.op.kind !== 'log') continue;
+    for (const r of e.op.rows) {
+      if (r.id !== id) continue;
+      r.data = patch.data;
+      if (patch.logged_at) r.logged_at = patch.logged_at;
+      found = true;
+    }
+  }
+  if (found) {
+    await persist();
+    notify();
+  }
+  return found;
+}
+
+// Forgets queued edits of an entry (used when it is deleted anyway)
+export async function dropPendingEdits(id: string) {
+  const before = entries.length;
+  entries = entries.filter(e => !(e.userId === userId && e.op.kind === 'log_update' && e.op.id === id));
+  if (entries.length !== before) {
+    await persist();
+    notify();
+  }
+}
+
+// Resolves once a send in progress is over (so an edit or delete never races an insert that is on its way)
+export async function waitForFlush() {
+  if (flushing) await flushing.catch(() => {});
+}
+
 // ---- views of what is waiting, so screens can show it ----
 export function pendingLogRows(): QueuedLogRow[] {
   return mine().flatMap(e => (e.op.kind === 'log' ? e.op.rows : []));
+}
+// Edits and deletes waiting to be sent, for showing the entry the way it will look
+export function pendingLogEdits(): { updates: Map<string, { data: any; logged_at?: string }>; deletes: Set<string> } {
+  const updates = new Map<string, { data: any; logged_at?: string }>();
+  const deletes = new Set<string>();
+  for (const e of mine()) {
+    if (e.op.kind === 'log_update') updates.set(e.op.id, { data: e.op.data, logged_at: e.op.logged_at });
+    else if (e.op.kind === 'log_delete') deletes.add(e.op.id);
+  }
+  return { updates, deletes };
 }
 export function pendingSleepOps() {
   return mine().flatMap(e => (e.op.kind === 'sleep_start' || e.op.kind === 'sleep_stop' ? [e.op] : []));
@@ -145,6 +193,16 @@ async function execute(entry: Entry) {
   const op = entry.op;
   if (op.kind === 'log') {
     await insertLogRows(op.rows, entry.userId);
+  } else if (op.kind === 'log_update') {
+    // 0 rows changed means the entry is already gone (a partner deleted it): nothing left to do
+    const patch: Record<string, any> = { data: op.data };
+    if (op.logged_at) patch.logged_at = op.logged_at;
+    const { error, status } = await supabase.from('logs').update(patch).eq('id', op.id).select('id');
+    if (error) throw tagSupabaseError(error, status);
+  } else if (op.kind === 'log_delete') {
+    const { error, status } = await supabase.from('logs').delete().eq('id', op.id).select('id');
+    if (error) throw tagSupabaseError(error, status);
+    await removePhotoIfUnused(op.photo);
   } else if (op.kind === 'sleep_start') {
     const { error, status } = await supabase
       .from('active_sleeps')

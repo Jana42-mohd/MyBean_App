@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { isTransientError, tagSupabaseError } from './netError';
-import { pendingLogRows } from './outbox';
+import { dropPendingEdits, enqueue, patchPendingLog, pendingLogEdits, pendingLogRows, removePendingLogs, waitForFlush } from './outbox';
+import { isOnline } from './online';
+import { removePhotoIfUnused } from './photoCleanup';
 
 export type LogType = 'nap' | 'diaper' | 'feeding' | 'pumping' | 'milestone' | 'mood' | 'growth';
 
@@ -40,9 +42,17 @@ export async function fetchLogs(types?: LogType | LogType[], limit = 200, since?
   const cacheKey = sess.session && limit <= 600 ? `logsCache:v1:${sess.session.user.id}:${(typeList ?? ['all']).join(',')}:${limit}:${since?.slice(0, 10) ?? ''}` : null;
 
   const withPending = (rows: LogRow[]) => {
-    const have = new Set(rows.map(r => r.id));
-    const extra = pendingAsRows(typeList, since).filter(r => !have.has(r.id));
-    return [...extra, ...rows].sort((a, b) => (a.logged_at < b.logged_at ? 1 : -1)).slice(0, limit);
+    const { updates, deletes } = pendingLogEdits();
+    // edits and deletes made offline show right away, before they reach the server
+    const shown = rows
+      .filter(r => !deletes.has(r.id))
+      .map(r => {
+        const u = updates.get(r.id);
+        return u ? { ...r, data: u.data, logged_at: u.logged_at ?? r.logged_at, pending: true } : r;
+      });
+    const have = new Set(shown.map(r => r.id));
+    const extra = pendingAsRows(typeList, since).filter(r => !have.has(r.id) && !deletes.has(r.id));
+    return [...extra, ...shown].sort((a, b) => (a.logged_at < b.logged_at ? 1 : -1)).slice(0, limit);
   };
 
   let q = supabase
@@ -78,9 +88,39 @@ export async function fetchLogs(types?: LogType | LogType[], limit = 200, since?
   return withPending(rows);
 }
 
-export async function deleteLog(id: string) {
-  const { error, status } = await supabase.from('logs').delete().eq('id', id);
-  if (error) throw tagSupabaseError(error, status);
+// Deleting, editing: with no signal the change is kept on the phone and sent later.
+// Entries that never reached the server are simply changed in the queue.
+export async function deleteLog(id: string, photo?: string): Promise<{ queued: boolean }> {
+  await waitForFlush();
+  if ((await removePendingLogs([id])).length) return { queued: false };
+  await dropPendingEdits(id);
+  if (await isOnline()) {
+    const { error, status } = await supabase.from('logs').delete().eq('id', id);
+    if (!error) {
+      await removePhotoIfUnused(photo);
+      return { queued: false };
+    }
+    const err = tagSupabaseError(error, status);
+    if (!isTransientError(err)) throw err;
+  }
+  await enqueue({ kind: 'log_delete', id, photo });
+  return { queued: true };
+}
+
+// Replaces an entry's data (and optionally its time) after the user edits it
+export async function updateLog(id: string, data: any, loggedAt?: string): Promise<{ queued: boolean }> {
+  await waitForFlush();
+  if (await patchPendingLog(id, { data, logged_at: loggedAt })) return { queued: true };
+  if (await isOnline()) {
+    const patch: Record<string, any> = { data };
+    if (loggedAt) patch.logged_at = loggedAt;
+    const { error, status } = await supabase.from('logs').update(patch).eq('id', id);
+    if (!error) return { queued: false };
+    const err = tagSupabaseError(error, status);
+    if (!isTransientError(err)) throw err;
+  }
+  await enqueue({ kind: 'log_update', id, data, logged_at: loggedAt });
+  return { queued: true };
 }
 
 // Edits the free-text note on an entry (other fields stay as logged)
@@ -88,14 +128,5 @@ export async function updateLogNotes(id: string, data: any, notes: string) {
   const next = { ...data };
   if (notes.trim()) next.notes = notes.trim();
   else delete next.notes;
-  const { error } = await supabase.from('logs').update({ data: next }).eq('id', id);
-  if (error) throw error;
-}
-
-// Replaces an entry's data (and optionally its time) after the user edits it
-export async function updateLog(id: string, data: any, loggedAt?: string) {
-  const patch: Record<string, any> = { data };
-  if (loggedAt) patch.logged_at = loggedAt;
-  const { error } = await supabase.from('logs').update(patch).eq('id', id);
-  if (error) throw error;
+  return updateLog(id, next);
 }

@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { sessionFromUrl } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { setupNotifications } from '@/lib/reminders';
+import { syncPushToken } from '@/lib/push';
 import { hasCompletedSurvey } from '@/lib/household';
 import { startLiveSync, stopLiveSync } from '@/lib/liveSync';
 import { initOutbox, onOutboxFailure } from '@/lib/outbox';
@@ -69,6 +70,11 @@ export default function RootLayout() {
       cancelled = true;
       stop?.();
     };
+  }, [ready, session?.user.id]);
+
+  // This phone's address for partner notifications (only if already allowed; Settings asks)
+  useEffect(() => {
+    if (ready && session) syncPushToken();
   }, [ready, session?.user.id]);
 
   useEffect(() => onOutboxFailure(message => Alert.alert('Could not send an entry', message)), []);
