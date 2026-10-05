@@ -68,3 +68,14 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Moderator: Moderation -> Suspend author: they cannot post and their posts vanish; Restore reverses it.
 - [ ] Log out, then log in as a different person on the same phone: no reminders or sleep timer from the first person remain.
 - [ ] `cd frontend && npm run check:launch` passes.
+
+## Live sync (needs two phones, or a phone + the web build, signed in as the two linked parents)
+- [ ] Both Home screens show "● Live: updates from your partner appear instantly" under the greeting.
+- [ ] A logs a feeding (Home -> Feeding -> Breast): B's Home toast says "<A> logged a feeding for <baby>" and B's Today totals go up within a second or two, without touching anything.
+- [ ] B has History open: A's new entry appears there on its own. Edit and delete by A also show up on B.
+- [ ] A starts the sleep timer: B's Home shows the "<baby> is sleeping (started by A)" banner counting up. B taps **Woke up**: exactly one nap is logged (not two) and A's banner disappears.
+- [ ] A and B both tap **Woke up** at the same moment: still exactly one nap in History.
+- [ ] Put B's phone in airplane mode, A logs two entries, turn airplane mode off: B catches up within a few seconds (or by reopening the app).
+- [ ] Background B's app for a minute, A logs something, bring B back: B shows it.
+- [ ] A leaves the household: B stops getting A's updates. A rejoins with the code: updates flow again.
+- [ ] A third account (not in the household) never sees these entries or notices.

@@ -10,6 +10,8 @@ import { Baby, deleteBaby, fetchBabies } from '@/lib/babies';
 import { changePassword, passwordProblems } from '@/lib/auth';
 import { deleteAccount, exportMyData, signOutEverywhereOnDevice } from '@/lib/account';
 import { SUPPORT_EMAIL } from '@/lib/appInfo';
+import { restartLiveSync } from '@/lib/liveSync';
+import { useLiveRefresh } from '@/hooks/use-live';
 import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
@@ -69,6 +71,7 @@ export default function SettingsScreen() {
       getReminderSettings().then(setRem);
     }, [loadUserData])
   );
+  useLiveRefresh(loadUserData);
 
   const pickImage = async () => {
     try {
@@ -157,6 +160,7 @@ export default function SettingsScreen() {
     setJoining(true);
     try {
       await joinHousehold(joinCode);
+      restartLiveSync().catch(() => {});
       setJoinCode('');
       setHousehold(await getHousehold());
       Alert.alert('Linked!', "You're now sharing your baby's logs with this household.");
@@ -176,6 +180,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await leaveHousehold();
+            restartLiveSync().catch(() => {});
             setHousehold(await getHousehold());
           } catch (e: any) {
             Alert.alert('Error', e?.message || 'Could not leave.');

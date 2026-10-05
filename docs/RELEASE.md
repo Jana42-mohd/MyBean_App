@@ -19,7 +19,7 @@ Do the steps in order. `cd frontend && npm run check:launch` lists what is still
    > To delete your My Little Bean account and its data: open the app, go to Settings, tap "Delete my account" and confirm. If you cannot access the app, email SUPPORT_EMAIL from the address on your account and we will delete it within 30 days. Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts and photo. If a partner remains in your household they keep the shared baby records.
 
 ## 2. Supabase (production readiness)
-- Run migrations `0001` to `0007` in order (see `SUPABASE_SETUP.md`).
+- Run migrations `0001` to `0008` in order (see `SUPABASE_SETUP.md`).
 - **Custom email (SMTP)** and **Confirm email ON** (`SUPABASE_SETUP.md` section 2). The built-in sender is rate-limited and not for real users.
 - **Authentication -> URL Configuration -> Redirect URLs**: add `mylittlebean://**` (needed for password-reset links in the real app).
 - **Rotate the old AWS RDS password** (it is in git history) and shut the instance down if it is no longer used.

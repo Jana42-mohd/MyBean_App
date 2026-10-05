@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { deleteLog, fetchLogs } from '@/lib/logs';
 import { EditEntry } from '@/components/EditEntry';
+import { useLiveRefresh } from '@/hooks/use-live';
 import { toDate } from '@/lib/time';
 import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
@@ -60,6 +61,7 @@ export default function HistoryScreen() {
       loadHistory();
     }, [loadHistory])
   );
+  useLiveRefresh(loadHistory);
 
   const formatDate = (dateStr: string) => {
     try {

@@ -13,6 +13,7 @@ import { sessionFromUrl } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { setupNotifications } from '@/lib/reminders';
 import { hasCompletedSurvey } from '@/lib/household';
+import { startLiveSync, stopLiveSync } from '@/lib/liveSync';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -44,6 +45,13 @@ export default function RootLayout() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Live sync runs while someone is signed in (and follows them into the background and back)
+  useEffect(() => {
+    if (!ready) return;
+    if (session) startLiveSync().catch(() => {});
+    else stopLiveSync().catch(() => {});
+  }, [ready, session?.user.id]);
 
   // Reminders: configure how they look, and open the right screen when one is tapped
   useEffect(() => {

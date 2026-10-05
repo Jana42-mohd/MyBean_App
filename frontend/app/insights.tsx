@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { BabyPicker } from '@/components/BabyPicker';
 import { BarChart } from '@/components/BarChart';
+import { useLiveRefresh } from '@/hooks/use-live';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { LogRow, fetchLogs } from '@/lib/logs';
@@ -47,6 +48,7 @@ export default function InsightsScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useLiveRefresh(load);
 
   const baby = babies.find(b => b.id === babyId);
   const mine = useMemo(() => rows.filter(r => r.baby_id === babyId), [rows, babyId]);

@@ -9,6 +9,8 @@ import { Baby, babyNames, bornBabies, daysUntil, expectedBabies, fetchBabies } f
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { QuickLog } from '@/components/QuickLog';
 import { toDate } from '@/lib/time';
+import { useLiveEvents, useLiveRefresh, useLiveStatus } from '@/hooks/use-live';
+import { LiveEvent, getMyId } from '@/lib/liveSync';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { getHousehold, loadSurvey } from '@/lib/household';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -34,6 +36,8 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [partners, setPartners] = useState<string[]>([]);
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const liveStatus = useLiveStatus();
   const [babies, setBabies] = useState<Baby[]>([]);
   const [selected, setSelected] = useState(ALL_BABIES);
   const [todayRows, setTodayRows] = useState<LogRow[]>([]);
@@ -53,6 +57,7 @@ export default function HomeScreen() {
       const [survey, hh, babyList] = await Promise.all([loadSurvey(), getHousehold(), fetchBabies()]);
       setBabies(babyList);
       setPartners((hh?.members ?? []).map(m => m.name));
+      setMembers(hh?.members ?? []);
       if (survey) {
         setData(survey as SurveyData);
       } else {
@@ -81,6 +86,32 @@ export default function HomeScreen() {
       loadData();
     }, [loadData])
   );
+
+  // Partner's changes appear without reopening anything
+  useLiveRefresh(loadData);
+
+  const TYPE_LABEL: Record<string, string> = {
+    feeding: 'a feeding',
+    diaper: 'a diaper change',
+    nap: 'a nap',
+    pumping: 'a pumping session',
+    milestone: 'a milestone',
+    mood: 'a mood note',
+  };
+  const onLive = useCallback(
+    (e: LiveEvent) => {
+      if (e.type !== 'INSERT' || !e.record) return;
+      const by = e.record.user_id ?? e.record.started_by;
+      if (!by || by === getMyId()) return; // my own changes need no notice
+      const who = members.find(m => m.id === by)?.name ?? 'Your partner';
+      const baby = babies.find(b => b.id === e.record.baby_id)?.name;
+      if (e.table === 'logs') showToast(`${who} logged ${TYPE_LABEL[e.record.type] ?? 'an entry'}${baby ? ` for ${baby}` : ''}`);
+      else if (e.table === 'active_sleeps') showToast(`${who} started ${baby ? baby + "'s" : 'a'} sleep timer`);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [members, babies, showToast]
+  );
+  useLiveEvents(onLive);
 
   const todayStats = useMemo(() => {
     const rows = selected === ALL_BABIES ? todayRows : todayRows.filter(r => r.baby_id === selected);
@@ -122,6 +153,11 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>
               Today with {babyNames(bornBabies(babies))}
               {partners.length > 1 ? ` · with ${partners.filter(n => n !== data.parentName).join(' & ')}` : ''}
+            </Text>
+          ) : null}
+          {partners.length > 1 ? (
+            <Text style={{ color: liveStatus === 'live' ? '#7fe3b4' : '#A4CDD3', fontSize: 12, marginTop: 4 }}>
+              {liveStatus === 'live' ? '● Live: updates from your partner appear instantly' : liveStatus === 'connecting' ? '○ Connecting…' : '○ Not live right now. Pull to refresh by reopening the screen.'}
             </Text>
           ) : null}
         </View>

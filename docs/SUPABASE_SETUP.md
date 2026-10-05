@@ -13,6 +13,10 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 5. `0005_expecting.sql`: expecting parents (due date, switch to "born" later)
 6. `0006_delete_account.sql`: in-app account deletion (store requirement)
 7. `0007_blocks_suspension.sql`: block members + moderator suspension (store requirement for community apps)
+8. `0008_live_sync.sql`: live sync between partners + shared sleep timers (turns on Realtime for the needed tables)
+
+Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
+**Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

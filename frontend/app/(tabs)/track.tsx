@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
 import { fetchLogs, LogRow, LogType } from '@/lib/logs';
 import { logEntry } from '@/lib/logActions';
+import { useLiveRefresh } from '@/hooks/use-live';
 import { formatShort, toLocalInput } from '@/lib/time';
 import { Baby, bornBabies, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
@@ -107,6 +108,7 @@ export default function TrackScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useLiveRefresh(load);
 
   // Logs for the selected baby, or one entry per baby when "All babies" is selected
   const save = async (type: LogType, entry: any, loggedAt?: string) => {
