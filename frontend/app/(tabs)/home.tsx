@@ -8,6 +8,7 @@ import { LogRow, fetchLogs } from '@/lib/logs';
 import { Baby, babyNames, bornBabies, daysUntil, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { QuickLog } from '@/components/QuickLog';
+import { RightNow } from '@/components/RightNow';
 import { toDate } from '@/lib/time';
 import { useLiveEvents, useLiveRefresh, useLiveStatus } from '@/hooks/use-live';
 import { LiveEvent, getMyId } from '@/lib/liveSync';
@@ -43,7 +44,8 @@ export default function HomeScreen() {
   const liveStatus = useLiveStatus();
   const [babies, setBabies] = useState<Baby[]>([]);
   const [selected, setSelected] = useState(ALL_BABIES);
-  const [todayRows, setTodayRows] = useState<LogRow[]>([]);
+  const [weekRows, setWeekRows] = useState<LogRow[]>([]);   // the last 7 days: today's totals, "right now" and "same as last time" all come from these
+  const [rightNowIds, setRightNowIds] = useState<string[]>([]);
 
   const [toast, setToast] = useState<{ message: string; undo?: () => Promise<void> } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,10 +73,11 @@ export default function HomeScreen() {
         setData({ parentName: prof?.name || 'Parent' } as SurveyData);
       }
 
-      // One query for today's logs (local midnight onward)
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      setTodayRows(await fetchLogs(['diaper', 'feeding', 'nap'], 500, startOfDay.toISOString()));
+      // One query for the last week of logs (the first day starts at local midnight)
+      const weekAgo = new Date();
+      weekAgo.setHours(0, 0, 0, 0);
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      setWeekRows(await fetchLogs(['diaper', 'feeding', 'nap'], 600, weekAgo.toISOString()));
     } catch (e) {
       console.error('Error loading data:', e);
       setError(friendlyError(e));
@@ -117,6 +120,9 @@ export default function HomeScreen() {
   useLiveEvents(onLive);
 
   const todayStats = useMemo(() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const todayRows = weekRows.filter(r => toDate(r.data?.time ?? r.data?.start ?? r.logged_at) >= startOfDay);
     const rows = selected === ALL_BABIES ? todayRows : todayRows.filter(r => r.baby_id === selected);
     let sleepMinutes = 0;
     for (const r of rows) {
@@ -130,7 +136,7 @@ export default function HomeScreen() {
       diapers: rows.filter(r => r.type === 'diaper').length,
       sleepMinutes,
     };
-  }, [todayRows, selected]);
+  }, [weekRows, selected]);
 
   const formatSleepTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
@@ -181,6 +187,8 @@ export default function HomeScreen() {
         })}
         <BabyPicker babies={bornBabies(babies)} value={selected} onChange={setSelected} />
 
+        <RightNow babies={bornBabies(babies)} selected={selected} rows={weekRows} onChanged={loadData} onToast={showToast} onShown={setRightNowIds} />
+
         {/* Core Stats */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today&apos;s Overview</Text>
@@ -203,7 +211,7 @@ export default function HomeScreen() {
         {/* Quick Log Section */}
         <View style={[styles.section, styles.quickLogSection]}>
           <Text style={styles.sectionTitle}>Quick Log</Text>
-          <QuickLog babies={bornBabies(babies)} selected={selected} onChanged={loadData} onToast={showToast} />
+          <QuickLog babies={bornBabies(babies)} selected={selected} onChanged={loadData} onToast={showToast} rows={weekRows} skipBanners={rightNowIds} />
         </View>
 
         {/* Growth & Development */}

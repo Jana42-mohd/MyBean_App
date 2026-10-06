@@ -8,16 +8,23 @@ import { friendlyError } from '@/components/LoadError';
 import { useLiveRefresh, useOutboxCount } from '@/hooks/use-live';
 import { Baby, babyNames } from '@/lib/babies';
 import { getMyId } from '@/lib/liveSync';
-import { isOnline, logEntryEx, undoEntry } from '@/lib/logActions';
-import { isTransientError } from '@/lib/netError';
-import { flush, getPendingCount } from '@/lib/outbox';
-import { LogType } from '@/lib/logs';
-import { ActiveSleep, claimSleep, discardSleep, formatElapsed, getActiveSleeps, queueSleepStop, restoreSleep, startSleeps, withPendingSleeps } from '@/lib/timer';
-import { formatDuration } from '@/lib/time';
+import { logEntryEx, undoEntry } from '@/lib/logActions';
+import { LogRow, LogType } from '@/lib/logs';
+import { computeStatus } from '@/lib/rightNow';
+import { ActiveSleep, discardSleep, formatElapsed, getActiveSleeps, startSleeps, withPendingSleeps } from '@/lib/timer';
+import { wakeUp } from '@/lib/sleepActions';
 import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 type Sheet = null | 'feeding' | 'diaper' | 'sleep';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+const AGO_CHOICES = [
+  { minutes: 0, label: 'Now' },
+  { minutes: 10, label: '10 min ago' },
+  { minutes: 20, label: '20 min ago' },
+  { minutes: 30, label: '30 min ago' },
+  { minutes: 60, label: '1 h ago' },
+  { minutes: 120, label: '2 h ago' },
+];
 
 function Card({ icon, label, onPress, highlight }: { icon: IconName; label: string; onPress: () => void; highlight?: boolean }) {
   const colors = useTheme();
@@ -35,11 +42,15 @@ export function QuickLog({
   selected,
   onChanged,
   onToast,
+  rows = [],
+  skipBanners = [],
 }: {
   babies: Baby[]; // born babies only
   selected: string; // baby picker value on Home
   onChanged: () => void; // reload Home after something was logged
   onToast: (message: string, undo?: () => Promise<void>) => void;
+  rows?: LogRow[]; // the last week of entries: used to offer "same as last time"
+  skipBanners?: string[]; // babies whose sleep timer is already shown on the Right now card
 }) {
   const colors = useTheme();
   const styles = useStyles(makeStyles);
@@ -47,6 +58,7 @@ export function QuickLog({
   const [sheet, setSheet] = useState<Sheet>(null);
   const [target, setTarget] = useState(ALL_BABIES);
   const [amount, setAmount] = useState('');
+  const [ago, setAgo] = useState(0); // minutes ago, for something that happened a little while back
   const [serverSleeps, setServerSleeps] = useState<ActiveSleep[]>([]);
   const pending = useOutboxCount(); // re-derive the list when entries are queued or sent
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,6 +96,7 @@ export function QuickLog({
     const pool = s === 'sleep' ? awake : babies;
     setTarget(pool.length === 1 ? pool[0].id : selected !== ALL_BABIES && pool.some(b => b.id === selected) ? selected : ALL_BABIES);
     setAmount('');
+    setAgo(0);
     setSheet(s);
   };
 
@@ -92,7 +105,8 @@ export function QuickLog({
     if (who.length === 0) return;
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const { ids, queued } = await logEntryEx(type, data, who);
+      const iso = new Date(Date.now() - ago * 60_000).toISOString();
+      const { ids, queued } = await logEntryEx(type, { ...data, time: iso }, who, iso);
       setSheet(null);
       onToast(`${label} for ${babyNames(who)}${queued ? ' (saved offline, will sync)' : ''}`, () => undoEntry(type, ids, who));
       onChanged();
@@ -123,53 +137,7 @@ export function QuickLog({
     else open('sleep');
   };
 
-  const wakeUp = async (sl: ActiveSleep) => {
-    try {
-      // anything made offline goes first, so the timer exists on the server before we stop it
-      if (getPendingCount() > 0 && (await isOnline())) await flush().catch(() => {});
-      if (!(await isOnline())) {
-        await queueSleepStop(sl.baby_id, sl.baby_name);
-        onToast(`Woke up saved offline: ${sl.baby_name}'s nap will be logged when you're back online`);
-        return;
-      }
-
-      // Claim the timer first: if the other parent already stopped it we get nothing back and must not log a second nap
-      let startedAt: string | null;
-      try {
-        startedAt = await claimSleep(sl.baby_id);
-      } catch (e) {
-        if (!isTransientError(e)) throw e;
-        await queueSleepStop(sl.baby_id, sl.baby_name); // connection died just now
-        onToast(`Woke up saved offline: ${sl.baby_name}'s nap will be logged when you're back online`);
-        return;
-      }
-      await loadSleeps();
-      if (!startedAt) {
-        onToast(`${sl.baby_name}'s sleep was already stopped`);
-        return;
-      }
-      const start = new Date(startedAt);
-      const end = new Date();
-      const minutes = (end.getTime() - start.getTime()) / 60000;
-      if (minutes < 1) {
-        onToast('Sleep was under a minute, so it was not saved');
-        return;
-      }
-      const baby = { id: sl.baby_id, name: sl.baby_name };
-      try {
-        // if the connection drops right now the nap is queued, not lost
-        const { ids, queued } = await logEntryEx('nap', { start: start.toISOString(), end: end.toISOString() }, [baby], start.toISOString());
-        onToast(`Logged ${formatDuration(minutes)} of sleep for ${sl.baby_name}${queued ? ' (saved offline, will sync)' : ''}`, () => undoEntry('nap', ids, [baby]));
-        onChanged();
-      } catch (e) {
-        await restoreSleep(sl.baby_id, startedAt).catch(() => {}); // the server refused the nap: keep the timer so nothing is lost
-        await loadSleeps();
-        onToast(`Could not save the nap: ${friendlyError(e)}`);
-      }
-    } catch (e) {
-      onToast(`Could not stop the timer: ${friendlyError(e)}`);
-    }
-  };
+  const wake = (sl: ActiveSleep) => wakeUp(sl, { toast: onToast, changed: onChanged, reloadSleeps: loadSleeps });
 
   const discard = async (sl: ActiveSleep) => {
     try {
@@ -181,10 +149,13 @@ export function QuickLog({
   };
 
   const me = getMyId();
+  // what this baby had last time (only when a single baby is chosen)
+  const single = targets(babies).length === 1 ? targets(babies)[0] : null;
+  const lastFeed = single ? computeStatus(single, rows, [], new Date()).lastFeeding : null;
 
   return (
     <View>
-      {sleeps.map(sl => (
+      {sleeps.filter(sl => !skipBanners.includes(sl.baby_id)).map(sl => (
         <View key={sl.baby_id} style={styles.banner}>
           <MaterialCommunityIcons name="weather-night" size={24} color={colors.onAccent} />
           <View style={{ flex: 1 }}>
@@ -193,7 +164,7 @@ export function QuickLog({
             </Text>
             <Text style={styles.bannerTime}>{formatElapsed(sl.started_at, now)}</Text>
           </View>
-          <Pressable style={styles.bannerBtn} onPress={() => wakeUp(sl)}>
+          <Pressable style={styles.bannerBtn} onPress={() => wake(sl)}>
             <Text style={styles.bannerBtnText}>Woke up</Text>
           </Pressable>
           <Pressable onPress={() => discard(sl)} hitSlop={10}>
@@ -220,11 +191,31 @@ export function QuickLog({
             </Text>
             <BabyPicker babies={sheet === 'sleep' ? awake : babies} value={target} onChange={setTarget} allLabel="All babies" />
 
+            {sheet === 'feeding' || sheet === 'diaper' ? (
+              <>
+                <Text style={styles.sheetHint}>When was it?</Text>
+                <View style={styles.whenRow}>
+                  {AGO_CHOICES.map(c => (
+                    <Pressable key={c.minutes} style={[styles.when, ago === c.minutes && styles.whenOn]} onPress={() => setAgo(c.minutes)} accessibilityRole="button" accessibilityState={{ selected: ago === c.minutes }}>
+                      <Text style={[styles.whenText, ago === c.minutes && styles.whenTextOn]}>{c.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
+            {sheet === 'feeding' && lastFeed && targets(babies).length === 1 ? (
+              <Pressable style={styles.same} onPress={() => save('feeding', { method: lastFeed.method, amount: lastFeed.amount }, 'Logged feeding')}>
+                <MaterialCommunityIcons name="repeat" size={18} color={colors.onAccent} />
+                <Text style={styles.sameText} numberOfLines={1}>Same as last time: {[lastFeed.method, lastFeed.amount].filter(Boolean).join(' · ')}</Text>
+              </Pressable>
+            ) : null}
+
             {sheet === 'feeding' ? (
               <>
                 <TextInput
                   style={styles.input}
-                  placeholder="Amount (optional), e.g. 4 oz"
+                  placeholder={lastFeed?.amount ? `Amount (optional), last time ${lastFeed.amount}` : 'Amount (optional), e.g. 4 oz'}
                   placeholderTextColor={colors.muted}
                   value={amount}
                   onChangeText={setAmount}
@@ -232,8 +223,8 @@ export function QuickLog({
                 <Text style={styles.sheetHint}>Tap how baby was fed. It saves right away.</Text>
                 <View style={styles.optRow}>
                   {(['breast', 'formula', 'mixed'] as const).map(m => (
-                    <Pressable key={m} style={styles.opt} onPress={() => save('feeding', { time: new Date().toISOString(), method: m, amount: amount.trim() || undefined }, 'Logged feeding')}>
-                      <Text style={styles.optText}>{m}</Text>
+                    <Pressable key={m} style={styles.opt} onPress={() => save('feeding', { method: m, amount: amount.trim() || undefined }, 'Logged feeding')}>
+                      <Text style={[styles.optText, lastFeed?.method === m && styles.optTextLast]}>{m}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -245,7 +236,7 @@ export function QuickLog({
                 <Text style={styles.sheetHint}>Tap what you found. It saves right away.</Text>
                 <View style={styles.optRow}>
                   {(['pee', 'poop'] as const).map(t => (
-                    <Pressable key={t} style={styles.opt} onPress={() => save('diaper', { time: new Date().toISOString(), type: t }, `Logged ${t} diaper`)}>
+                    <Pressable key={t} style={styles.opt} onPress={() => save('diaper', { type: t }, `Logged ${t} diaper`)}>
                       <Text style={styles.optText}>{t}</Text>
                     </Pressable>
                   ))}
@@ -297,9 +288,17 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 34, borderWidth: 1, borderColor: colors.border },
   sheetTitle: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 14 },
   sheetHint: { color: colors.muted, fontSize: 13, marginTop: 12, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, marginTop: 12 },
   optRow: { flexDirection: 'row', gap: 10 },
   opt: { flex: 1, backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   optText: { color: colors.onAccent, fontWeight: '700', fontSize: 15, textTransform: 'capitalize' },
+  optTextLast: { textDecorationLine: 'underline' },
+  whenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  when: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
+  whenOn: { backgroundColor: colors.highlight, borderColor: colors.highlight },
+  whenText: { color: colors.text, fontSize: 13 },
+  whenTextOn: { color: colors.onAccent, fontWeight: '700' },
+  same: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.highlight, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 14, marginTop: 14 },
+  sameText: { color: colors.onAccent, fontWeight: '700', fontSize: 14, flexShrink: 1, textTransform: 'capitalize' },
   cancel: { color: colors.muted, textAlign: 'center' },
 });
