@@ -1,7 +1,9 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
+import { Palette, useStyles } from '@/lib/theme';
 
 export function Avatar({ name, url, size = 44 }: { name: string; url?: string | null; size?: number }) {
+  const styles = useStyles(makeStyles);
   const box = { width: size, height: size, borderRadius: size / 2 };
   if (url) return <Image source={{ uri: url }} style={box} contentFit="cover" accessibilityLabel={`${name}'s photo`} />;
   return (
@@ -11,7 +13,7 @@ export function Avatar({ name, url, size = 44 }: { name: string; url?: string | 
   );
 }
 
-const styles = StyleSheet.create({
-  fallback: { backgroundColor: '#2F9BA8', alignItems: 'center', justifyContent: 'center' },
-  initial: { color: '#09282eff', fontWeight: '700' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  fallback: { backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' },
+  initial: { color: colors.onAccent, fontWeight: '700' },
 });

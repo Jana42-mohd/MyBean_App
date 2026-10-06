@@ -8,6 +8,7 @@ import { LoadError, friendlyError } from '@/components/LoadError';
 import { supabase } from '@/lib/supabase';
 import { PostMedia } from '@/components/PostMedia';
 import { PostFile, deletePostWithMedia, fetchPostMedia, mediaUrls } from '@/lib/postMediaStore';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface ReportedPost {
   id: string;
@@ -20,6 +21,8 @@ interface ReportedPost {
 
 // Moderators only (profiles.is_moderator = true). Row-level security enforces this on the server too.
 export default function ModerationScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [posts, setPosts] = useState<ReportedPost[]>([]);
@@ -121,8 +124,8 @@ export default function ModerationScreen() {
             <Text style={styles.muted}>Reasons: {p.post_reports.map(r => r.reason).join(', ')}</Text>
             <View style={styles.row}>
               <Pressable onPress={() => restore(p.id)}><Text style={styles.action}>Keep (clear reports)</Text></Pressable>
-              <Pressable onPress={() => setSuspension(p.user_id, true)}><Text style={[styles.action, { color: '#ff9db1' }]}>Suspend author</Text></Pressable>
-              <Pressable onPress={() => remove(p.id)}><Text style={[styles.action, { color: '#ff9db1' }]}>Delete</Text></Pressable>
+              <Pressable onPress={() => setSuspension(p.user_id, true)}><Text style={[styles.action, { color: colors.danger }]}>Suspend author</Text></Pressable>
+              <Pressable onPress={() => remove(p.id)}><Text style={[styles.action, { color: colors.danger }]}>Delete</Text></Pressable>
             </View>
           </View>
         ))}
@@ -137,7 +140,7 @@ export default function ModerationScreen() {
                 {r.message_excerpt ? <Text style={[styles.body, { fontStyle: 'italic', marginTop: 6 }]}>Message: "{r.message_excerpt}"</Text> : null}
                 <View style={styles.row}>
                   <Pressable onPress={() => clearReports(r.reported, r.name)}><Text style={styles.action}>Clear reports</Text></Pressable>
-                  <Pressable onPress={() => setSuspension(r.reported, true)}><Text style={[styles.action, { color: '#ff9db1' }]}>Suspend</Text></Pressable>
+                  <Pressable onPress={() => setSuspension(r.reported, true)}><Text style={[styles.action, { color: colors.danger }]}>Suspend</Text></Pressable>
                 </View>
               </View>
             ))}
@@ -159,16 +162,16 @@ export default function ModerationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 40 },
-  back: { color: '#A4CDD3', marginBottom: 12 },
-  title: { fontSize: 24, color: '#FED8FE', fontWeight: '700', marginBottom: 16 },
-  card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 14 },
-  status: { color: '#FDFECC', fontSize: 12, fontWeight: '700', marginBottom: 6 },
-  postTitle: { color: '#E8FBFF', fontSize: 16, fontWeight: '700', marginBottom: 6 },
-  body: { color: '#E8FBFF', fontSize: 14, lineHeight: 20 },
-  muted: { color: '#A4CDD3', fontSize: 13, marginTop: 8 },
+  back: { color: colors.muted, marginBottom: 12 },
+  title: { fontSize: 24, color: colors.heading, fontWeight: '700', marginBottom: 16 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 14 },
+  status: { color: colors.link, fontSize: 12, fontWeight: '700', marginBottom: 6 },
+  postTitle: { color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  muted: { color: colors.muted, fontSize: 13, marginTop: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
-  action: { color: '#FED8FE', fontWeight: '700' },
+  action: { color: colors.accentText, fontWeight: '700' },
 });

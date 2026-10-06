@@ -14,6 +14,7 @@ import { LiveEvent, getMyId } from '@/lib/liveSync';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { getHousehold, loadSurvey } from '@/lib/household';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface SurveyData {
   parentName: string;
@@ -30,6 +31,8 @@ interface SurveyData {
 }
 
 export default function HomeScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [data, setData] = useState<SurveyData | null>(null);
@@ -156,7 +159,7 @@ export default function HomeScreen() {
             </Text>
           ) : null}
           {partners.length > 1 ? (
-            <Text style={{ color: liveStatus === 'live' ? '#7fe3b4' : '#A4CDD3', fontSize: 12, marginTop: 4 }}>
+            <Text style={{ color: liveStatus === 'live' ? colors.success : colors.muted, fontSize: 12, marginTop: 4 }}>
               {liveStatus === 'live' ? '● Live: updates from your partner appear instantly' : liveStatus === 'connecting' ? '○ Connecting…' : '○ Not live right now. Pull to refresh by reopening the screen.'}
             </Text>
           ) : null}
@@ -294,7 +297,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   toast: {
     position: 'absolute',
     left: 16,
@@ -303,16 +306,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
-  toastText: { flex: 1, color: '#09282eff', fontWeight: '600', fontSize: 14 },
-  toastUndo: { color: '#09282eff', fontWeight: '800', textDecorationLine: 'underline' },
+  toastText: { flex: 1, color: colors.onAccent, fontWeight: '600', fontSize: 14 },
+  toastUndo: { color: colors.onAccent, fontWeight: '800', textDecorationLine: 'underline' },
   container: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   scrollContent: {
     paddingTop: 16,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   loadingText: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 16,
   },
   header: {
@@ -329,20 +332,20 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 28,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '700',
     marginBottom: 6,
   },
   subgreeting: {
     fontSize: 14,
-    color: '#A4CDD3',
+    color: colors.muted,
   },
   section: {
     marginBottom: 28,
   },
   sectionTitle: {
     fontSize: 18,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
     marginBottom: 14,
   },
@@ -354,11 +357,11 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: 100,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   statIcon: {
@@ -367,12 +370,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#A4CDD3',
+    color: colors.muted,
     marginBottom: 4,
   },
   statValue: {
     fontSize: 18,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '700',
   },
   quickLogsGrid: {
@@ -388,18 +391,18 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: '30%',
     minHeight: 92,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1.5,
-    borderColor: '#FDFECC',
+    borderColor: colors.link,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   quickLogLabel: {
     fontSize: 11,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -407,15 +410,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     marginBottom: 10,
   },
   communityCard: {
-    borderColor: '#FED8FE',
+    borderColor: colors.accent,
     borderWidth: 1.5,
   },
   featureContent: {
@@ -430,20 +433,20 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 15,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '700',
   },
   featureSubtitle: {
     fontSize: 12,
-    color: '#A4CDD3',
+    color: colors.muted,
   },
   arrow: {
     fontSize: 20,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '300',
   },
   primaryButton: {
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -451,7 +454,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   primaryButtonText: {
-    color: '#09282eff',
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 16,
   },

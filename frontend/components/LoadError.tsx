@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Palette, useStyles } from '@/lib/theme';
 
 // Friendly message for failed loads. Network failures get a plain-language explanation.
 export function friendlyError(e: any): string {
@@ -10,6 +11,7 @@ export function friendlyError(e: any): string {
 }
 
 export function LoadError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.box}>
       <Text style={styles.text}>{message}</Text>
@@ -22,9 +24,9 @@ export function LoadError({ message, onRetry }: { message: string; onRetry?: () 
   );
 }
 
-const styles = StyleSheet.create({
-  box: { backgroundColor: '#3a1f2a', borderColor: '#FED8FE', borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 16 },
-  text: { color: '#E8FBFF', fontSize: 14, lineHeight: 20 },
-  btn: { marginTop: 10, alignSelf: 'flex-start', backgroundColor: '#FED8FE', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
-  btnText: { color: '#09282eff', fontWeight: '700' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  box: { backgroundColor: colors.errorBg, borderColor: colors.accent, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 16 },
+  text: { color: colors.text, fontSize: 14, lineHeight: 20 },
+  btn: { marginTop: 10, alignSelf: 'flex-start', backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
+  btnText: { color: colors.onAccent, fontWeight: '700' },
 });

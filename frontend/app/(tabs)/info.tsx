@@ -3,19 +3,22 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 const openURL = (url: string) => {
   Linking.openURL(url).catch(() => {});
 };
 
 export default function InfoScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => router.navigate('/(tabs)/home')} hitSlop={10}>
-          <Text style={{ color: '#A4CDD3', marginBottom: 12, fontSize: 14 }}>← Home</Text>
+          <Text style={{ color: colors.muted, marginBottom: 12, fontSize: 14 }}>← Home</Text>
         </Pressable>
         <ThemedText style={styles.title}>Information Hub</ThemedText>
         <Text style={styles.subtitle}>Resources for growth, development, safety & health</Text>
@@ -177,10 +180,10 @@ export default function InfoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   content: {
     paddingTop: 16,
@@ -191,61 +194,61 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '700',
   },
   subtitle: {
     fontSize: 15,
-    color: '#A4CDD3',
+    color: colors.muted,
   },
   sectionContainer: {
     gap: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '700',
     marginBottom: 4,
   },
   card: {
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     gap: 8,
   },
   warningCard: {
-    borderColor: '#FED8FE',
+    borderColor: colors.accent,
     borderWidth: 1.5,
   },
   cardTitle: {
     fontSize: 15,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '700',
   },
   cardBody: {
     fontSize: 14,
-    color: '#E8FBFF',
+    color: colors.text,
     lineHeight: 21,
   },
   link: {
     fontSize: 14,
-    color: '#FDFECC',
+    color: colors.link,
     marginTop: 8,
     fontWeight: '600',
   },
   reminderCard: {
-    backgroundColor: 'rgba(254, 216, 254, 0.1)',
+    backgroundColor: colors.accentWash,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: '#FED8FE',
+    borderColor: colors.accent,
     marginTop: 8,
   },
   reminderText: {
     fontSize: 15,
-    color: '#FED8FE',
+    color: colors.accentText,
     lineHeight: 22,
     fontWeight: '500',
   },

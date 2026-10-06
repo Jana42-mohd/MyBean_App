@@ -2,8 +2,11 @@ import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COUNTRIES } from '@/lib/countries';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export function CountryPicker({ visible, onPick, onClose }: { visible: boolean; onPick: (code: string) => void; onClose: () => void }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
   const list = useMemo(() => {
@@ -17,7 +20,7 @@ export function CountryPicker({ visible, onPick, onClose }: { visible: boolean; 
           <Text style={styles.title}>Choose your country</Text>
           <Pressable onPress={onClose} hitSlop={10}><Text style={styles.close}>Close</Text></Pressable>
         </View>
-        <TextInput style={styles.input} value={q} onChangeText={setQ} placeholder="Search" placeholderTextColor="#A4CDD3" autoCorrect={false} />
+        <TextInput style={styles.input} value={q} onChangeText={setQ} placeholder="Search" placeholderTextColor={colors.muted} autoCorrect={false} />
         <FlatList
           data={list}
           keyExtractor={c => c.code}
@@ -34,12 +37,12 @@ export function CountryPicker({ visible, onPick, onClose }: { visible: boolean; 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff', paddingHorizontal: 20 },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  title: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26 },
-  close: { color: '#A4CDD3', fontSize: 15 },
-  input: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF', marginBottom: 8 },
-  row: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#164a52' },
-  rowText: { color: '#E8FBFF', fontSize: 16 },
+  title: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  close: { color: colors.muted, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, marginBottom: 8 },
+  row: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
+  rowText: { color: colors.text, fontSize: 16 },
 });

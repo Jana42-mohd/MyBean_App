@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import * as info from '@/lib/appInfo';
 import { PRIVACY, TERMS, fillPlaceholders } from '@/lib/legal';
+import { Palette, useStyles } from '@/lib/theme';
 
 const values = {
   APP_NAME: info.APP_NAME,
@@ -19,6 +20,7 @@ const values = {
 
 // /legal?doc=privacy  or  /legal?doc=terms. Reachable signed out (linked from the signup screen).
 export default function LegalScreen() {
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { doc } = useLocalSearchParams<{ doc?: string }>();
@@ -52,14 +54,14 @@ export default function LegalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 16 },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 16 },
   section: { marginBottom: 20 },
-  heading: { color: '#E8FBFF', fontSize: 17, fontWeight: '700', lineHeight: 24, marginBottom: 8 },
-  body: { color: '#E8FBFF', fontSize: 14, lineHeight: 22, marginBottom: 8 },
+  heading: { color: colors.text, fontSize: 17, fontWeight: '700', lineHeight: 24, marginBottom: 8 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 22, marginBottom: 8 },
   bulletRow: { flexDirection: 'row', gap: 8 },
-  bullet: { color: '#FED8FE', fontSize: 14, lineHeight: 22 },
+  bullet: { color: colors.accentText, fontSize: 14, lineHeight: 22 },
 });

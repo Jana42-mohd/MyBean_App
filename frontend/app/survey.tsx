@@ -9,6 +9,7 @@ import { loadSurvey, saveSurvey } from '@/lib/household';
 import { BabyDraft, daysUntil, emptyBaby, fetchBabies, formatDateInput, isValidDate, saveBabies, todayStr, toDraft } from '@/lib/babies';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface SurveyData {
   parentName: string;
@@ -19,6 +20,7 @@ interface SurveyData {
 }
 
 function Choices({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.choices}>
       {options.map(opt => (
@@ -31,6 +33,8 @@ function Choices({ options, value, onPick }: { options: string[]; value: string;
 }
 
 export default function SurveyScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [data, setData] = useState<SurveyData>({
@@ -160,7 +164,7 @@ export default function SurveyScreen() {
             value={data.parentName}
             onChangeText={(t: string) => update('parentName', t)}
             placeholder="e.g., Alex"
-            placeholderTextColor="#A4CDD3"
+            placeholderTextColor={colors.muted}
           />
 
           <Text style={styles.label}>Your pronouns</Text>
@@ -207,7 +211,7 @@ export default function SurveyScreen() {
                 value={b.name}
                 onChangeText={(t: string) => updateBaby(i, 'name', t)}
                 placeholder="e.g., Mia"
-                placeholderTextColor="#A4CDD3"
+                placeholderTextColor={colors.muted}
               />
 
               {b.status === 'expected' ? (
@@ -218,7 +222,7 @@ export default function SurveyScreen() {
                     value={b.dueDate}
                     onChangeText={(t: string) => updateBaby(i, 'dueDate', formatDateInput(t))}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#A4CDD3"
+                    placeholderTextColor={colors.muted}
                     keyboardType="number-pad"
                     maxLength={10}
                   />
@@ -240,7 +244,7 @@ export default function SurveyScreen() {
                     value={b.birthDate}
                     onChangeText={(t: string) => updateBaby(i, 'birthDate', formatDateInput(t))}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#A4CDD3"
+                    placeholderTextColor={colors.muted}
                     keyboardType="number-pad"
                     maxLength={10}
                   />
@@ -289,10 +293,10 @@ export default function SurveyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   card: {
     paddingTop: 16,
@@ -302,30 +306,30 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '700',
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 15,
-    color: '#A4CDD3',
+    color: colors.muted,
     marginBottom: 20,
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#11464e',
+    backgroundColor: colors.cardAlt,
     borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 6,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     borderRadius: 10,
   },
   progressText: {
     fontSize: 12,
-    color: '#A4CDD3',
+    color: colors.muted,
     marginBottom: 24,
     textAlign: 'right',
   },
@@ -334,32 +338,32 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 18,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '600',
     marginBottom: 16,
   },
   label: {
-    color: '#E8FBFF',
+    color: colors.text,
     marginTop: 14,
     marginBottom: 8,
     fontSize: 15,
     fontWeight: '500',
   },
   helperText: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 13,
     marginTop: -4,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#11464e',
+    backgroundColor: colors.cardAlt,
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
     fontSize: 15,
-    color: '#E8FBFF',
+    color: colors.text,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   choices: {
     flexDirection: 'row',
@@ -375,70 +379,70 @@ const styles = StyleSheet.create({
   },
   choice: {
     borderWidth: 2,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: 'rgba(47, 155, 168, 0.1)',
+    backgroundColor: colors.wash,
   },
   choiceActive: {
-    backgroundColor: '#FED8FE',
-    borderColor: '#FED8FE',
-    shadowColor: '#FED8FE',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+    shadowColor: colors.accent,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   choiceText: {
-    color: '#E8FBFF',
+    color: colors.text,
     textTransform: 'capitalize',
     fontSize: 14,
     fontWeight: '500',
   },
   choiceTextActive: {
-    color: '#12454E',
+    color: colors.cardAlt,
     fontWeight: '700',
   },
   submit: {
     marginTop: 32,
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#FED8FE',
+    shadowColor: colors.accent,
     shadowOpacity: 0.4,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   submitText: {
-    color: '#12454E',
+    color: colors.cardAlt,
     fontWeight: '700',
     fontSize: 17,
   },
   babyCard: {
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     borderRadius: 14,
     padding: 14,
     marginBottom: 14,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
   },
   babyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  babyTitle: { color: '#FED8FE', fontWeight: '700', fontSize: 16 },
-  removeText: { color: '#A4CDD3', fontSize: 13, textDecorationLine: 'underline' },
+  babyTitle: { color: colors.accentText, fontWeight: '700', fontSize: 16 },
+  removeText: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
   addBaby: {
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#FED8FE',
+    borderColor: colors.accent,
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
   },
-  addBabyText: { color: '#FED8FE', fontWeight: '600' },
+  addBabyText: { color: colors.accentText, fontWeight: '600' },
 });

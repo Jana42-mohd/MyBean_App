@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { ActionSheet } from '@/components/ActionSheet';
 import { Avatar } from '@/components/Avatar';
-import { Button, C, Field, Hint, Pad, Row, Section, StepperRow, ToggleRow } from '@/components/settings-ui';
+import { Button, Field, Hint, Pad, Row, Section, Segmented, StepperRow, ToggleRow } from '@/components/settings-ui';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -23,8 +23,11 @@ import { getPartnerNotifications, setPartnerNotifications } from '@/lib/push';
 import { DEFAULT_REMINDERS, ReminderSettings, getReminderSettings, saveReminderSettings } from '@/lib/reminders';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import * as ImagePicker from 'expo-image-picker';
+import { Palette, useStyles, useTheme, useThemePreference } from '@/lib/theme';
 
 export default function SettingsScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -41,6 +44,7 @@ export default function SettingsScreen() {
   const [notifyPartner, setNotifyPartner] = useState(true);
   const [notifyMessages, setNotifyMessages] = useState(true);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [themePref, setThemePref] = useThemePreference();
   const [blocked, setBlocked] = useState<{ id: string; name: string }[]>([]);
   const [exporting, setExporting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -327,7 +331,7 @@ export default function SettingsScreen() {
   if (loading) {
     return (
       <ThemedView style={[styles.container, { paddingTop: insets.top, justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={C.pink} />
+        <ActivityIndicator size="large" color={colors.accent} />
       </ThemedView>
     );
   }
@@ -344,7 +348,7 @@ export default function SettingsScreen() {
           <Pressable onPress={() => setPhotoSheet(true)} disabled={uploading} accessibilityRole="button" accessibilityLabel="Change profile photo">
             <Avatar name={user?.name || 'You'} url={profilePhoto} size={96} />
             <View style={styles.cameraBadge}>
-              {uploading ? <ActivityIndicator size="small" color={C.ink} /> : <MaterialCommunityIcons name="camera" size={16} color={C.ink} />}
+              {uploading ? <ActivityIndicator size="small" color={colors.onAccent} /> : <MaterialCommunityIcons name="camera" size={16} color={colors.onAccent} />}
             </View>
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -417,10 +421,25 @@ export default function SettingsScreen() {
           <ToggleRow icon="heart-outline" label="Weekly wellbeing check-in" sub="Sundays at 7pm" value={rem.wellbeing} onValueChange={v => updateReminders({ wellbeing: v })} />
         </Section>
 
+        <Section title="Appearance">
+          <Pad>
+            <Segmented
+              value={themePref}
+              onChange={setThemePref}
+              options={[
+                { key: 'system', label: 'Auto', icon: 'theme-light-dark' },
+                { key: 'light', label: 'Light', icon: 'white-balance-sunny' },
+                { key: 'dark', label: 'Dark', icon: 'weather-night' },
+              ]}
+            />
+            <Hint>Auto follows your phone. Dark is easier on the eyes for night feeds.</Hint>
+          </Pad>
+        </Section>
+
         {/* Account */}
         <Section title="Account">
           <Row icon="email-outline" label="Email" value={user?.email || ''} />
-          <Row icon="lock-outline" label="Change password" onPress={() => setShowPw(v => !v)} right={<MaterialCommunityIcons name={showPw ? 'chevron-up' : 'chevron-down'} size={22} color={C.muted} />} />
+          <Row icon="lock-outline" label="Change password" onPress={() => setShowPw(v => !v)} right={<MaterialCommunityIcons name={showPw ? 'chevron-up' : 'chevron-down'} size={22} color={colors.muted} />} />
           {showPw ? (
             <Pad>
               <Field label="New password" value={newPw} onChangeText={setNewPw} secureTextEntry placeholder="At least 8 characters" />
@@ -474,7 +493,7 @@ export default function SettingsScreen() {
               autoCapitalize="characters"
               autoCorrect={false}
               placeholder="DELETE"
-              placeholderTextColor={C.muted}
+              placeholderTextColor={colors.muted}
             />
             <View style={styles.modalActions}>
               <Pressable onPress={() => setDeleteOpen(false)} disabled={deleting}><Text style={styles.cancelText}>Cancel</Text></Pressable>
@@ -487,25 +506,25 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 },
-  title: { fontSize: 30, fontWeight: '700', lineHeight: 38, color: C.pink, marginBottom: 18 },
-  profile: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: C.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.line, marginBottom: 26 },
-  cameraBadge: { position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: C.pink, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.card },
-  userName: { fontSize: 20, fontWeight: '700', lineHeight: 27, color: C.text },
-  userEmail: { fontSize: 13, color: C.muted, marginTop: 2 },
-  editLink: { color: C.yellow, fontSize: 14, fontWeight: '600', marginTop: 10 },
-  removeText: { color: C.danger, fontSize: 13, fontWeight: '600' },
-  linkText: { color: C.yellow, fontSize: 14, fontWeight: '600' },
+  title: { fontSize: 30, fontWeight: '700', lineHeight: 38, color: colors.heading, marginBottom: 18 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.line, marginBottom: 26 },
+  cameraBadge: { position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.card },
+  userName: { fontSize: 20, fontWeight: '700', lineHeight: 27, color: colors.text },
+  userEmail: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  editLink: { color: colors.link, fontSize: 14, fontWeight: '600', marginTop: 10 },
+  removeText: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  linkText: { color: colors.link, fontSize: 14, fontWeight: '600' },
   deleteLink: { alignSelf: 'center', padding: 16, marginTop: 8 },
-  deleteText: { color: C.danger, fontSize: 14 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: 24 },
-  modalCard: { backgroundColor: C.card, borderRadius: 18, padding: 20, borderWidth: 1, borderColor: C.danger },
-  modalTitle: { color: C.danger, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 10 },
-  modalText: { color: C.text, fontSize: 14, lineHeight: 21 },
-  modalLabel: { color: C.muted, fontSize: 13, marginTop: 14, marginBottom: 6 },
-  modalInput: { borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, color: C.text, backgroundColor: C.bg },
+  deleteText: { color: colors.danger, fontSize: 14 },
+  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: colors.card, borderRadius: 18, padding: 20, borderWidth: 1, borderColor: colors.danger },
+  modalTitle: { color: colors.danger, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 10 },
+  modalText: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  modalLabel: { color: colors.muted, fontSize: 13, marginTop: 14, marginBottom: 6 },
+  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, backgroundColor: colors.bg },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
-  cancelText: { color: C.muted, fontSize: 15 },
+  cancelText: { color: colors.muted, fontSize: 15 },
 });

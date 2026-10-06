@@ -7,8 +7,11 @@ import { supabase } from '@/lib/supabase';
 import { hasCompletedSurvey } from '@/lib/household';
 import { sendPasswordReset } from '@/lib/auth';
 import { friendlyError } from '@/components/LoadError';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export default function LoginScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,21 +80,21 @@ export default function LoginScreen() {
           placeholder="Email"
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholderTextColor="#A4CDD3"
+          placeholderTextColor={colors.muted}
           value={email}
           onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor="#A4CDD3"
+          placeholderTextColor={colors.muted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        {error ? <Text style={{ color: '#FDFECC', marginBottom: 8 }}>{error}</Text> : null}
-        {info ? <Text style={{ color: '#A4CDD3', marginBottom: 8 }}>{info}</Text> : null}
+        {error ? <Text style={{ color: colors.link, marginBottom: 8 }}>{error}</Text> : null}
+        {info ? <Text style={{ color: colors.muted, marginBottom: 8 }}>{info}</Text> : null}
 
         <Pressable style={styles.mainButton} onPress={onLogin} disabled={submitting}>
           <Text style={styles.mainButtonText}>Log In</Text>
@@ -110,13 +113,13 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   backRow: {
     width: '100%',
@@ -125,7 +128,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   backText: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 25,
     lineHeight: 32,
   },
@@ -133,12 +136,12 @@ const styles = StyleSheet.create({
     width: '90%',
     paddingVertical: 34,
     paddingHorizontal: 24,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 20,
     alignItems: 'center',
     gap: 14,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   logo: {
     width: 150,
@@ -147,37 +150,37 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '700',
     marginBottom: 6,
   },
   input: {
     width: '100%',
-    backgroundColor: '#11464e',
+    backgroundColor: colors.cardAlt,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 12,
     fontSize: 15,
-    color: '#E8FBFF',
+    color: colors.text,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   mainButton: {
     width: '100%',
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
     marginTop: 6,
   },
   mainButtonText: {
-    color: '#12454E',
+    color: colors.cardAlt,
     fontWeight: '700',
     fontSize: 16,
   },
   footerText: {
     marginTop: 8,
-    color: '#FED8FE',
+    color: colors.accentText,
     fontSize: 13,
   },
 });

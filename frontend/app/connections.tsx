@@ -9,8 +9,10 @@ import { ThemedView } from '@/components/themed-view';
 import { Group, myGroups, respondGroupInvite } from '@/lib/groups';
 import { Connection, myConnections, removeConnection, respondToRequest } from '@/lib/neighbors';
 import { timeAgo } from '@/lib/time';
+import { Palette, useStyles } from '@/lib/theme';
 
 export default function ConnectionsScreen() {
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [rows, setRows] = useState<Connection[]>([]);
@@ -130,26 +132,26 @@ export default function ConnectionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 12 },
-  empty: { color: '#A4CDD3', lineHeight: 20, marginBottom: 12 },
-  findBtn: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, marginBottom: 8 },
-  findText: { color: '#FDFECC', fontWeight: '600', textAlign: 'center' },
-  heading: { color: '#A4CDD3', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 18, marginBottom: 8 },
-  card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 10, gap: 10 },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 12 },
+  empty: { color: colors.muted, lineHeight: 20, marginBottom: 12 },
+  findBtn: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, marginBottom: 8 },
+  findText: { color: colors.link, fontWeight: '600', textAlign: 'center' },
+  heading: { color: colors.muted, fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 18, marginBottom: 8 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: colors.border, marginBottom: 10, gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  name: { color: '#E8FBFF', fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  muted: { color: '#A4CDD3', fontSize: 12 },
-  intro: { color: '#E8FBFF', fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
-  accept: { backgroundColor: '#FED8FE', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 18 },
-  acceptText: { color: '#09282eff', fontWeight: '700' },
-  decline: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 18 },
-  declineText: { color: '#E8FBFF' },
-  cancel: { color: '#ff9db1', fontSize: 13, fontWeight: '600' },
-  groupIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#FED8FE', alignItems: 'center', justifyContent: 'center' },
-  groupIconText: { color: '#09282eff', fontWeight: '700', fontSize: 18 },
-  chev: { color: '#A4CDD3', fontSize: 24 },
+  name: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  muted: { color: colors.muted, fontSize: 12 },
+  intro: { color: colors.text, fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
+  accept: { backgroundColor: colors.accent, borderRadius: 18, paddingVertical: 8, paddingHorizontal: 18 },
+  acceptText: { color: colors.onAccent, fontWeight: '700' },
+  decline: { borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingVertical: 8, paddingHorizontal: 18 },
+  declineText: { color: colors.text },
+  cancel: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  groupIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  groupIconText: { color: colors.onAccent, fontWeight: '700', fontSize: 18 },
+  chev: { color: colors.muted, fontSize: 24 },
 });

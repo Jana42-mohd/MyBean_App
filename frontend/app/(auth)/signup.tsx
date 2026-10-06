@@ -5,20 +5,26 @@ import { ThemedView } from '@/components/themed-view';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { friendlyError } from '@/components/LoadError';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 // Requirement indicator component
-const RequirementRow = ({ met, text }: { met: boolean; text: string }) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-    <Text style={{ fontSize: 14, color: met ? '#90EE90' : '#A4CDD3' }}>
-      {met ? '✓' : '○'}
-    </Text>
-    <Text style={{ fontSize: 13, color: met ? '#90EE90' : '#A4CDD3' }}>
-      {text}
-    </Text>
-  </View>
-);
+const RequirementRow = ({ met, text }: { met: boolean; text: string }) => {
+  const colors = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Text style={{ fontSize: 14, color: met ? colors.success : colors.muted }}>
+        {met ? '✓' : '○'}
+      </Text>
+      <Text style={{ fontSize: 13, color: met ? colors.success : colors.muted }}>
+        {text}
+      </Text>
+    </View>
+  );
+};
 
 export default function SignupScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -99,14 +105,14 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="Username"
-          placeholderTextColor="#A4CDD3"
+          placeholderTextColor={colors.muted}
           value={username}
           onChangeText={setUsername}
         />
         <TextInput
           style={styles.input}
           placeholder="Email"
-          placeholderTextColor="#A4CDD3"
+          placeholderTextColor={colors.muted}
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -115,7 +121,7 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor="#A4CDD3"
+          placeholderTextColor={colors.muted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -143,18 +149,18 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="Confirm Password"
-          placeholderTextColor="#A4CDD3"
+          placeholderTextColor={colors.muted}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
 
-        {error ? <Text style={{ color: '#FDFECC' }}>{error}</Text> : null}
-        <Text style={{ color: '#A4CDD3', fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 10 }}>
+        {error ? <Text style={{ color: colors.link }}>{error}</Text> : null}
+        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 10 }}>
           By signing up you agree to our{' '}
-          <Text style={{ color: '#FDFECC', textDecorationLine: 'underline' }} onPress={() => router.push('/legal?doc=terms')}>Terms</Text>
+          <Text style={{ color: colors.link, textDecorationLine: 'underline' }} onPress={() => router.push('/legal?doc=terms')}>Terms</Text>
           {' '}and{' '}
-          <Text style={{ color: '#FDFECC', textDecorationLine: 'underline' }} onPress={() => router.push('/legal?doc=privacy')}>Privacy Policy</Text>.
+          <Text style={{ color: colors.link, textDecorationLine: 'underline' }} onPress={() => router.push('/legal?doc=privacy')}>Privacy Policy</Text>.
           {' '}You must be 18 or over.
         </Text>
         <Pressable style={styles.mainButton} onPress={onSignup}>
@@ -170,13 +176,13 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   backRow: {
     width: '100%',
@@ -185,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   backText: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 25,
     lineHeight: 32,
   },
@@ -193,12 +199,12 @@ const styles = StyleSheet.create({
     width: '90%',
     paddingVertical: 34,
     paddingHorizontal: 24,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 20,
     alignItems: 'center',
     gap: 14,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   logo: {
     width: 150,
@@ -207,47 +213,47 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '700',
     marginBottom: 6,
   },
   input: {
     width: '100%',
-    backgroundColor: '#11464e',
+    backgroundColor: colors.cardAlt,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 12,
     fontSize: 15,
-    color: '#E8FBFF',
+    color: colors.text,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   passwordRequirements: {
     width: '100%',
-    backgroundColor: 'rgba(47, 155, 168, 0.15)',
+    backgroundColor: colors.wash,
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 10,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   mainButton: {
     width: '100%',
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
     marginTop: 6,
   },
   mainButtonText: {
-    color: '#12454E',
+    color: colors.cardAlt,
     fontWeight: '700',
     fontSize: 16,
   },
   footerText: {
     marginTop: 8,
-    color: '#FED8FE',
+    color: colors.accentText,
     fontSize: 13,
   },
 });

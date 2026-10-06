@@ -15,6 +15,7 @@ import { ageAtLabel } from '@/lib/growth';
 import { logEntry } from '@/lib/logActions';
 import { LogRow, deleteLog, fetchLogs } from '@/lib/logs';
 import { photoUrls, uploadPhoto } from '@/lib/photos';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 const SUGGESTIONS = [
   'First smile', 'Held head up', 'Rolled over', 'Laughed', 'Sat up', 'First solid food',
@@ -22,6 +23,8 @@ const SUGGESTIONS = [
 ];
 
 export default function MilestonesScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [babies, setBabies] = useState<Baby[]>([]);
@@ -163,7 +166,7 @@ export default function MilestonesScreen() {
                 <Text style={styles.action}>Edit</Text>
               </Pressable>
               <Pressable onPress={() => confirmDelete(r)} hitSlop={8}>
-                <Text style={[styles.action, { color: '#ff9db1' }]}>Delete</Text>
+                <Text style={[styles.action, { color: colors.danger }]}>Delete</Text>
               </Pressable>
             </View>
           );
@@ -179,24 +182,24 @@ export default function MilestonesScreen() {
               <View style={styles.sugRow}>
                 {SUGGESTIONS.map(sg => (
                   <Pressable key={sg} onPress={() => setText(sg)} style={[styles.sug, text === sg && styles.sugActive]}>
-                    <Text style={[styles.sugText, text === sg && { color: '#09282eff' }]}>{sg}</Text>
+                    <Text style={[styles.sugText, text === sg && { color: colors.onAccent }]}>{sg}</Text>
                   </Pressable>
                 ))}
               </View>
               <Text style={styles.label}>What happened?</Text>
-              <TextInput style={styles.input} value={text} onChangeText={setText} placeholder="e.g. Rolled over by herself" placeholderTextColor="#A4CDD3" />
+              <TextInput style={styles.input} value={text} onChangeText={setText} placeholder="e.g. Rolled over by herself" placeholderTextColor={colors.muted} />
               <Text style={styles.label}>Date</Text>
               <TextInput
                 style={styles.input}
                 value={date}
                 onChangeText={t => setDate(formatDateInput(t))}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#A4CDD3"
+                placeholderTextColor={colors.muted}
                 keyboardType="number-pad"
                 maxLength={10}
               />
               <Text style={styles.label}>Notes (optional)</Text>
-              <TextInput style={[styles.input, { minHeight: 56 }]} value={notes} onChangeText={setNotes} multiline placeholder="Anything you want to remember" placeholderTextColor="#A4CDD3" />
+              <TextInput style={[styles.input, { minHeight: 56 }]} value={notes} onChangeText={setNotes} multiline placeholder="Anything you want to remember" placeholderTextColor={colors.muted} />
               <Text style={styles.label}>Photo (optional)</Text>
               <PhotoField value={photo} onChange={setPhoto} />
               <View style={styles.actions}>
@@ -215,32 +218,32 @@ export default function MilestonesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 16, lineHeight: 20 },
-  addBtn: { backgroundColor: '#FED8FE', borderRadius: 10, padding: 14, marginBottom: 18 },
-  addText: { color: '#09282eff', fontWeight: '700', textAlign: 'center' },
-  empty: { color: '#A4CDD3', fontSize: 14, textAlign: 'center', marginTop: 20 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 10 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FDFECC' },
-  cardTitle: { color: '#E8FBFF', fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  cardMeta: { color: '#A4CDD3', fontSize: 12, marginTop: 2 },
-  cardNotes: { color: '#E8FBFF', fontSize: 13, marginTop: 4, lineHeight: 18 },
-  action: { color: '#A4CDD3', fontSize: 13, fontWeight: '600' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '92%', backgroundColor: '#0f3a41ff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: '#2F9BA8' },
-  sheetTitle: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 12 },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.muted, marginBottom: 16, lineHeight: 20 },
+  addBtn: { backgroundColor: colors.accent, borderRadius: 10, padding: 14, marginBottom: 18 },
+  addText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
+  empty: { color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 20 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.link },
+  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  cardMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  cardNotes: { color: colors.text, fontSize: 13, marginTop: 4, lineHeight: 18 },
+  action: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  sheet: { maxHeight: '92%', backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: colors.border },
+  sheetTitle: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 12 },
   sugRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
-  sug: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, borderColor: '#2F9BA8' },
-  sugActive: { backgroundColor: '#FED8FE', borderColor: '#FED8FE' },
-  sugText: { color: '#E8FBFF', fontSize: 12 },
-  label: { color: '#A4CDD3', fontSize: 13, marginTop: 14, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF' },
+  sug: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, borderColor: colors.border },
+  sugActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  sugText: { color: colors.text, fontSize: 12 },
+  label: { color: colors.muted, fontSize: 13, marginTop: 14, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 },
-  cancel: { color: '#A4CDD3', fontSize: 15 },
-  saveBtn: { backgroundColor: '#FED8FE', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
-  saveText: { color: '#09282eff', fontWeight: '700' },
+  cancel: { color: colors.muted, fontSize: 15 },
+  saveBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
+  saveText: { color: colors.onAccent, fontWeight: '700' },
 });

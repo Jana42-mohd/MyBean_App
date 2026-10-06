@@ -13,6 +13,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PostMedia } from '@/components/PostMedia';
 import { MAX_VIDEO_SECONDS, pickPostMedia } from '@/lib/postMedia';
 import { LocalMedia, MAX_FILES, PostFile, createPostWithMedia, deletePostWithMedia, fetchPostMedia, mediaUrls } from '@/lib/postMediaStore';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface Post {
   id: string;
@@ -30,6 +31,8 @@ interface Post {
 const topicTags = ['Sleep', 'Feeding', 'Breastfeeding', 'Milestones', 'Health', 'Development', 'Mental Health'];
 
 export default function CommunityScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -320,7 +323,7 @@ export default function CommunityScreen() {
         {loadError ? <LoadError message={loadError} onRetry={loadPosts} /> : null}
         {postsLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FED8FE" />
+            <ActivityIndicator size="large" color={colors.accentText} />
             <Text style={styles.loadingText}>Loading posts...</Text>
           </View>
         ) : (() => {
@@ -430,7 +433,7 @@ export default function CommunityScreen() {
               </Pressable>
             </View>
 
-            <Text style={{ color: '#A4CDD3', fontSize: 12, lineHeight: 18, marginBottom: 14 }}>
+            <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 14 }}>
               Be kind and respectful. No spam or harassment. Share experiences, not medical advice: for health concerns, talk to your doctor. Posts can be reported and removed.
             </Text>
 
@@ -439,7 +442,7 @@ export default function CommunityScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="What's on your mind?"
-                placeholderTextColor="#A4CDD3"
+                placeholderTextColor={colors.muted}
                 value={title}
                 onChangeText={setTitle}
                 maxLength={100}
@@ -452,7 +455,7 @@ export default function CommunityScreen() {
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Share your experience, ask for advice, or offer support..."
-                placeholderTextColor="#A4CDD3"
+                placeholderTextColor={colors.muted}
                 value={excerpt}
                 onChangeText={setExcerpt}
                 maxLength={500}
@@ -472,12 +475,12 @@ export default function CommunityScreen() {
                         <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
                       ) : (
                         <View style={styles.videoThumb}>
-                          <MaterialCommunityIcons name="play-circle-outline" size={30} color="#FED8FE" />
+                          <MaterialCommunityIcons name="play-circle-outline" size={30} color={colors.accentText} />
                           {m.duration ? <Text style={styles.videoLen}>{Math.round(m.duration)}s</Text> : null}
                         </View>
                       )}
                       <Pressable style={styles.thumbRemove} onPress={() => setMedia(prev => prev.filter((_, j) => j !== i))} hitSlop={6} accessibilityLabel="Remove this file">
-                        <MaterialCommunityIcons name="close" size={14} color="#09282eff" />
+                        <MaterialCommunityIcons name="close" size={14} color={colors.onAccent} />
                       </Pressable>
                     </View>
                   ))}
@@ -485,11 +488,11 @@ export default function CommunityScreen() {
               ) : null}
               <View style={styles.mediaButtons}>
                 <Pressable style={[styles.mediaBtn, media.length >= MAX_FILES && { opacity: 0.4 }]} onPress={() => addMedia('library')} disabled={media.length >= MAX_FILES}>
-                  <MaterialCommunityIcons name="image-multiple-outline" size={18} color="#FDFECC" />
+                  <MaterialCommunityIcons name="image-multiple-outline" size={18} color={colors.link} />
                   <Text style={styles.mediaBtnText}>Photos or video</Text>
                 </Pressable>
                 <Pressable style={[styles.mediaBtn, media.length >= MAX_FILES && { opacity: 0.4 }]} onPress={() => addMedia('camera')} disabled={media.length >= MAX_FILES}>
-                  <MaterialCommunityIcons name="camera-outline" size={18} color="#FDFECC" />
+                  <MaterialCommunityIcons name="camera-outline" size={18} color={colors.link} />
                   <Text style={styles.mediaBtnText}>Camera</Text>
                 </Pressable>
               </View>
@@ -528,27 +531,27 @@ export default function CommunityScreen() {
 
             {loading && (
               <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color="#FED8FE" />
+                <ActivityIndicator size="large" color={colors.accentText} />
               </View>
             )}
           </ScrollView>
         </ThemedView>
       </Modal>
       <Modal visible={!!reporting} transparent animationType="fade" onRequestClose={() => setReporting(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#2F9BA8' }}>
-            <Text style={{ color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 4 }}>Report this post</Text>
-            <Text style={{ color: '#A4CDD3', marginBottom: 12 }}>What&apos;s wrong with it?</Text>
+        <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ color: colors.heading, fontSize: 18, fontWeight: '700', marginBottom: 4 }}>Report this post</Text>
+            <Text style={{ color: colors.muted, marginBottom: 12 }}>What&apos;s wrong with it?</Text>
             {REPORT_REASONS.map(r => (
-              <Pressable key={r} onPress={() => submitReport(r)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#2F9BA8' }}>
-                <Text style={{ color: '#E8FBFF', fontSize: 15, textTransform: 'capitalize' }}>{r}</Text>
+              <Pressable key={r} onPress={() => submitReport(r)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
+                <Text style={{ color: colors.text, fontSize: 15, textTransform: 'capitalize' }}>{r}</Text>
               </Pressable>
             ))}
-            <Pressable onPress={() => reporting && blockAuthor(reporting)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#2F9BA8' }}>
-              <Text style={{ color: '#ff9db1', fontSize: 15 }}>Block {reporting?.author ?? 'this member'}</Text>
+            <Pressable onPress={() => reporting && blockAuthor(reporting)} style={{ paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <Text style={{ color: colors.danger, fontSize: 15 }}>Block {reporting?.author ?? 'this member'}</Text>
             </Pressable>
             <Pressable onPress={() => setReporting(null)} style={{ paddingTop: 12 }}>
-              <Text style={{ color: '#A4CDD3', textAlign: 'center' }}>Cancel</Text>
+              <Text style={{ color: colors.muted, textAlign: 'center' }}>Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -557,10 +560,10 @@ export default function CommunityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   content: {
     paddingTop: 16,
@@ -571,41 +574,41 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '700',
   },
   subtitle: {
     fontSize: 15,
-    color: '#A4CDD3',
+    color: colors.muted,
   },
   mediaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  thumb: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: '#09282eff', borderWidth: 1, borderColor: '#2F9BA8' },
+  thumb: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border },
   videoThumb: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  videoLen: { color: '#A4CDD3', fontSize: 11 },
-  thumbRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FED8FE', alignItems: 'center', justifyContent: 'center' },
+  videoLen: { color: colors.muted, fontSize: 11 },
+  thumbRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   mediaButtons: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  mediaBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
-  mediaBtnText: { color: '#E8FBFF', fontSize: 13 },
-  neighborsCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 12 },
-  neighborsTitle: { color: '#FED8FE', fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  neighborsText: { color: '#A4CDD3', fontSize: 12, lineHeight: 17, marginTop: 2 },
-  neighborsChevron: { color: '#A4CDD3', fontSize: 24 },
-  badge: { backgroundColor: '#FED8FE', borderRadius: 10, minWidth: 20, height: 20, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#09282eff', fontSize: 12, fontWeight: '700' },
+  mediaBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  mediaBtnText: { color: colors.text, fontSize: 13 },
+  neighborsCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 12 },
+  neighborsTitle: { color: colors.accentText, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  neighborsText: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  neighborsChevron: { color: colors.muted, fontSize: 24 },
+  badge: { backgroundColor: colors.accent, borderRadius: 10, minWidth: 20, height: 20, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: colors.onAccent, fontSize: 12, fontWeight: '700' },
   primaryButton: {
     marginTop: 6,
-    backgroundColor: '#FED8FE',
+    backgroundColor: colors.accent,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#FED8FE',
+    shadowColor: colors.accent,
     shadowOpacity: 0.35,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
   primaryButtonText: {
-    color: '#12454E',
+    color: colors.cardAlt,
     fontWeight: '700',
     fontSize: 16,
   },
@@ -619,29 +622,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   viewModeButtonActive: {
-    backgroundColor: '#FDFECC',
-    borderColor: '#FDFECC',
+    backgroundColor: colors.link,
+    borderColor: colors.link,
   },
   viewModeButtonText: {
     fontSize: 13,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '600',
   },
   viewModeButtonTextActive: {
-    color: '#09282eff',
+    color: colors.onAccent,
   },
   tagsContainer: {
     gap: 10,
   },
   tagsLabel: {
     fontSize: 14,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
   },
   tagsGrid: {
@@ -650,27 +653,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagButton: {
-    backgroundColor: 'rgba(253, 254, 204, 0.15)',
+    backgroundColor: colors.wash,
     borderWidth: 1,
-    borderColor: '#FDFECC',
+    borderColor: colors.link,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   tagText: {
     fontSize: 12,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
   },
   list: {
     gap: 12,
   },
   postCard: {
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     gap: 8,
   },
   postHeader: {
@@ -678,16 +681,16 @@ const styles = StyleSheet.create({
   },
   postTitle: {
     fontSize: 16,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '700',
   },
   postMeta: {
     fontSize: 12,
-    color: '#A4CDD3',
+    color: colors.muted,
   },
   postExcerpt: {
     fontSize: 14,
-    color: '#E8FBFF',
+    color: colors.text,
     lineHeight: 20,
   },
   postStats: {
@@ -697,7 +700,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
   },
   postTags: {
@@ -707,16 +710,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   postTag: {
-    backgroundColor: 'rgba(254, 216, 254, 0.15)',
+    backgroundColor: colors.accentWash,
     borderWidth: 0.5,
-    borderColor: '#FED8FE',
+    borderColor: colors.accent,
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   postTagText: {
     fontSize: 11,
-    color: '#FED8FE',
+    color: colors.accentText,
     fontWeight: '600',
   },
   postActions: {
@@ -729,24 +732,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(47, 155, 168, 0.1)',
+    backgroundColor: colors.wash,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
   actionButtonActive: {
-    backgroundColor: 'rgba(253, 254, 204, 0.2)',
-    borderColor: '#FDFECC',
+    backgroundColor: colors.wash,
+    borderColor: colors.link,
   },
   actionButtonText: {
     fontSize: 13,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '600',
   },
   actionButtonTextActive: {
-    color: '#FDFECC',
+    color: colors.link,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -755,7 +758,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 14,
   },
   emptyContainer: {
@@ -764,14 +767,14 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 15,
     textAlign: 'center',
   },
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   modalContent: {
     paddingHorizontal: 20,
@@ -788,17 +791,17 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   modalCloseButton: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 14,
     fontWeight: '600',
   },
   modalTitle: {
     fontSize: 20,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '700',
   },
   modalPublishButton: {
-    color: '#FDFECC',
+    color: colors.link,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -810,17 +813,17 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     fontSize: 14,
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
   },
   input: {
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 15,
   },
   textArea: {
@@ -829,7 +832,7 @@ const styles = StyleSheet.create({
   },
   characterCount: {
     fontSize: 12,
-    color: '#A4CDD3',
+    color: colors.muted,
     textAlign: 'right',
   },
   tagSelectionGrid: {
@@ -838,28 +841,28 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagSelectionButton: {
-    backgroundColor: 'rgba(47, 155, 168, 0.1)',
+    backgroundColor: colors.wash,
     borderWidth: 1.5,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   tagSelectionButtonActive: {
-    backgroundColor: '#FDFECC',
-    borderColor: '#FDFECC',
+    backgroundColor: colors.link,
+    borderColor: colors.link,
   },
   tagSelectionText: {
     fontSize: 13,
-    color: '#E8FBFF',
+    color: colors.text,
     fontWeight: '600',
   },
   tagSelectionTextActive: {
-    color: '#12454E',
+    color: colors.cardAlt,
   },
   selectedTagsInfo: {
     fontSize: 12,
-    color: '#A4CDD3',
+    color: colors.muted,
     marginTop: 8,
   },
   loadingOverlay: {
@@ -868,7 +871,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },

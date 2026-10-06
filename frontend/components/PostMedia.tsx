@@ -5,8 +5,10 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PostFile } from '@/lib/postMediaStore';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 function Placeholder({ label, height }: { label: string; height: number }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={[styles.placeholder, { height }]}>
       <Text style={styles.placeholderText}>{label}</Text>
@@ -15,12 +17,15 @@ function Placeholder({ label, height }: { label: string; height: number }) {
 }
 
 function Video({ url }: { url: string }) {
+  const styles = useStyles(makeStyles);
   const player = useVideoPlayer(url, p => { p.loop = false; });
   return <VideoView player={player} style={styles.video} nativeControls contentFit="contain" fullscreenOptions={{ enable: true }} accessibilityLabel="Video" />;
 }
 
 // The photos and videos of a post (or of a post being written). Tap a photo to see it full screen; videos play in place.
 export function PostMedia({ items, urls }: { items: PostFile[]; urls: Record<string, string> }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState<string | null>(null);
   if (!items.length) return null;
@@ -52,21 +57,21 @@ export function PostMedia({ items, urls }: { items: PostFile[]; urls: Record<str
       <Modal visible={!!open} transparent animationType="fade" onRequestClose={() => setOpen(null)}>
         <Pressable style={styles.viewer} onPress={() => setOpen(null)}>
           {open ? <Image source={{ uri: urls[open], cacheKey: open }} style={{ flex: 1 }} contentFit="contain" /> : null}
-          <View style={[styles.close, { top: insets.top + 12 }]}><MaterialCommunityIcons name="close" size={24} color="#E8FBFF" /></View>
+          <View style={[styles.close, { top: insets.top + 12 }]}><MaterialCommunityIcons name="close" size={24} color={colors.text} /></View>
         </Pressable>
       </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   wrap: { marginTop: 10, gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   cell: { width: '100%', borderRadius: 12, overflow: 'hidden' },
   cellHalf: { width: '49%' },
   video: { width: '100%', height: 220, borderRadius: 12, backgroundColor: '#000' },
-  placeholder: { width: '100%', backgroundColor: '#09282eff', alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  placeholderText: { color: '#A4CDD3', fontSize: 12, textAlign: 'center', paddingHorizontal: 8 },
+  placeholder: { width: '100%', backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
+  placeholderText: { color: colors.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: 8 },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
   close: { position: 'absolute', right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
 });

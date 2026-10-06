@@ -10,6 +10,7 @@ import { useUnits } from '@/lib/units';
 import { NO_PHOTO_CHANGE, PhotoChoice, PhotoField } from '@/components/PhotoField';
 import { uploadPhoto } from '@/lib/photos';
 import { removePhotoIfUnused } from '@/lib/photoCleanup';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export interface EditableEntry {
   id: string;
@@ -19,6 +20,7 @@ export interface EditableEntry {
 }
 
 function Choices({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.choices}>
       {options.map(o => (
@@ -30,12 +32,15 @@ function Choices({ options, value, onPick }: { options: string[]; value: string;
   );
 }
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <View style={{ marginTop: 14 }}>
-    <Text style={styles.label}>{label}</Text>
-    {children}
-  </View>
-);
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => {
+  const styles = useStyles(makeStyles);
+  return (
+    <View style={{ marginTop: 14 }}>
+      <Text style={styles.label}>{label}</Text>
+      {children}
+    </View>
+  );
+};
 
 // Edit everything about a logged entry: times, amounts, choices and notes.
 export function EditEntry({ entry, onClose, onSaved }: { entry: EditableEntry | null; onClose: () => void; onSaved: () => void }) {
@@ -45,6 +50,7 @@ export function EditEntry({ entry, onClose, onSaved }: { entry: EditableEntry | 
 }
 
 function GrowthEdit({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () => void; onSaved: () => void }) {
+  const styles = useStyles(makeStyles);
   const [units] = useUnits();
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -70,6 +76,8 @@ function GrowthEdit({ entry, onClose, onSaved }: { entry: EditableEntry; onClose
 }
 
 function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () => void; onSaved: () => void }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const d = entry.data ?? {};
   const [f, setF] = useState({
     time: d.time ? toLocalInput(d.time) : '',
@@ -98,7 +106,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
       value={f[key]}
       onChangeText={t => set(key)(formatDateTimeInput(t))}
       placeholder="YYYY-MM-DD HH:MM"
-      placeholderTextColor="#A4CDD3"
+      placeholderTextColor={colors.muted}
       keyboardType="number-pad"
       maxLength={16}
     />
@@ -191,8 +199,8 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
             {entry.type === 'feeding' ? (
               <>
                 <Field label="How"><Choices options={['breast', 'formula', 'mixed']} value={f.method} onPick={set('method')} /></Field>
-                <Field label="Amount"><TextInput style={styles.input} value={f.amount} onChangeText={set('amount')} placeholder="e.g. 4 oz" placeholderTextColor="#A4CDD3" /></Field>
-                <Field label="Next feeding in (hours)"><TextInput style={styles.input} value={f.nextInHours} onChangeText={set('nextInHours')} keyboardType="decimal-pad" placeholder="optional" placeholderTextColor="#A4CDD3" /></Field>
+                <Field label="Amount"><TextInput style={styles.input} value={f.amount} onChangeText={set('amount')} placeholder="e.g. 4 oz" placeholderTextColor={colors.muted} /></Field>
+                <Field label="Next feeding in (hours)"><TextInput style={styles.input} value={f.nextInHours} onChangeText={set('nextInHours')} keyboardType="decimal-pad" placeholder="optional" placeholderTextColor={colors.muted} /></Field>
               </>
             ) : null}
 
@@ -223,7 +231,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
                     value={f.date}
                     onChangeText={t => set('date')(formatDateInput(t))}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#A4CDD3"
+                    placeholderTextColor={colors.muted}
                     keyboardType="number-pad"
                     maxLength={10}
                   />
@@ -233,7 +241,7 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
             ) : null}
 
             <Field label="Notes">
-              <TextInput style={[styles.input, { minHeight: 70 }]} value={f.notes} onChangeText={set('notes')} multiline placeholder="Optional" placeholderTextColor="#A4CDD3" />
+              <TextInput style={[styles.input, { minHeight: 70 }]} value={f.notes} onChangeText={set('notes')} multiline placeholder="Optional" placeholderTextColor={colors.muted} />
             </Field>
           </ScrollView>
 
@@ -249,19 +257,19 @@ function Form({ entry, onClose, onSaved }: { entry: EditableEntry; onClose: () =
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '88%', backgroundColor: '#0f3a41ff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: '#2F9BA8' },
-  title: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26 },
-  label: { color: '#A4CDD3', fontSize: 13, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  sheet: { maxHeight: '88%', backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: colors.border },
+  title: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  label: { color: colors.muted, fontSize: 13, marginBottom: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
-  choiceActive: { backgroundColor: '#FED8FE', borderColor: '#FED8FE' },
-  choiceText: { color: '#E8FBFF', fontSize: 13, textTransform: 'capitalize' },
-  choiceTextActive: { color: '#09282eff', fontWeight: '700' },
+  choice: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  choiceActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  choiceText: { color: colors.text, fontSize: 13, textTransform: 'capitalize' },
+  choiceTextActive: { color: colors.onAccent, fontWeight: '700' },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 },
-  cancel: { color: '#A4CDD3', fontSize: 15 },
-  saveBtn: { backgroundColor: '#FED8FE', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
-  saveText: { color: '#09282eff', fontWeight: '700' },
+  cancel: { color: colors.muted, fontSize: 15 },
+  saveBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
+  saveText: { color: colors.onAccent, fontWeight: '700' },
 });

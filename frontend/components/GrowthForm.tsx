@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { GrowthData, LIMITS, Units, cmToIn, inToCm, kgToLbOz, lbOzToKg } from '@/lib/growth';
 import { formatDateInput, isValidDate, todayStr } from '@/lib/babies';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 const num = (s: string): number | undefined => {
   const n = parseFloat(s.replace(',', '.'));
@@ -26,6 +27,8 @@ export function GrowthForm({
   onSubmit: (data: GrowthData) => Promise<void> | void;
   onCancel: () => void;
 }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const imp = units === 'imperial';
   const w = initial?.weightKg !== undefined ? kgToLbOz(initial.weightKg) : undefined;
   const [f, setF] = useState({
@@ -77,7 +80,7 @@ export function GrowthForm({
     <View style={{ flex: 1 }}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputRow}>
-        <TextInput style={styles.input} value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder={placeholder} placeholderTextColor="#A4CDD3" />
+        <TextInput style={styles.input} value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder={placeholder} placeholderTextColor={colors.muted} />
         <Text style={styles.unit}>{unit}</Text>
       </View>
     </View>
@@ -91,7 +94,7 @@ export function GrowthForm({
         value={f.date}
         onChangeText={t => set('date')(formatDateInput(t))}
         placeholder="YYYY-MM-DD"
-        placeholderTextColor="#A4CDD3"
+        placeholderTextColor={colors.muted}
         keyboardType="number-pad"
         maxLength={10}
       />
@@ -113,7 +116,7 @@ export function GrowthForm({
       <Text style={styles.hint}>Fill in any of them. Lying-down length until age 2, standing height after.</Text>
 
       <Text style={[styles.label, { marginTop: 12 }]}>Notes (optional)</Text>
-      <TextInput style={[styles.input, styles.inputSolo, { minHeight: 56 }]} value={f.notes} onChangeText={set('notes')} multiline placeholder="e.g. at the 4-month check-up" placeholderTextColor="#A4CDD3" />
+      <TextInput style={[styles.input, styles.inputSolo, { minHeight: 56 }]} value={f.notes} onChangeText={set('notes')} multiline placeholder="e.g. at the 4-month check-up" placeholderTextColor={colors.muted} />
 
       <View style={styles.actions}>
         <Pressable onPress={onCancel}><Text style={styles.cancel}>Cancel</Text></Pressable>
@@ -125,16 +128,16 @@ export function GrowthForm({
   );
 }
 
-const styles = StyleSheet.create({
-  label: { color: '#A4CDD3', fontSize: 13, marginBottom: 6 },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  label: { color: colors.muted, fontSize: 13, marginBottom: 6 },
   row: { flexDirection: 'row', gap: 10 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  input: { flex: 1, borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF' },
+  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text },
   inputSolo: { flex: 0 },
-  unit: { color: '#A4CDD3', fontSize: 13, width: 24 },
-  hint: { color: '#A4CDD3', fontSize: 12, marginTop: 6 },
+  unit: { color: colors.muted, fontSize: 13, width: 24 },
+  hint: { color: colors.muted, fontSize: 12, marginTop: 6 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 },
-  cancel: { color: '#A4CDD3', fontSize: 15 },
-  saveBtn: { backgroundColor: '#FED8FE', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
-  saveText: { color: '#09282eff', fontWeight: '700' },
+  cancel: { color: colors.muted, fontSize: 15 },
+  saveBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
+  saveText: { color: colors.onAccent, fontWeight: '700' },
 });

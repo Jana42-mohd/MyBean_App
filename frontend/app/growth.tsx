@@ -15,8 +15,8 @@ import { GrowthData, GrowthMetric, formatLength, formatWeight, ordinal, percenti
 import { logEntry } from '@/lib/logActions';
 import { LogRow, deleteLog, fetchLogs } from '@/lib/logs';
 import { useUnits } from '@/lib/units';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
-const BLUE = '#3987e5'; // validated chart color on the card surface (see insights)
 
 const METRICS: { key: GrowthMetric; label: string; field: keyof GrowthData }[] = [
   { key: 'wfa', label: 'Weight', field: 'weightKg' },
@@ -25,6 +25,8 @@ const METRICS: { key: GrowthMetric; label: string; field: keyof GrowthData }[] =
 ];
 
 export default function GrowthScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [units, setUnits] = useUnits();
@@ -165,7 +167,7 @@ export default function GrowthScreen() {
                   toDisplay={toDisplay}
                   axisUnit={metric === 'wfa' ? (imperial ? 'lb' : 'kg') : imperial ? 'in' : 'cm'}
                   fmtValue={fmt}
-                  color={BLUE}
+                  color={colors.wet}
                 />
 
                 {!sex ? (
@@ -203,7 +205,7 @@ export default function GrowthScreen() {
                       <Text style={styles.action}>Edit</Text>
                     </Pressable>
                     <Pressable onPress={() => confirmDelete(r)} hitSlop={8}>
-                      <Text style={[styles.action, { color: '#ff9db1' }]}>Delete</Text>
+                      <Text style={[styles.action, { color: colors.danger }]}>Delete</Text>
                     </Pressable>
                   </View>
                 ))}
@@ -233,32 +235,32 @@ export default function GrowthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 16, lineHeight: 20 },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.muted, marginBottom: 16, lineHeight: 20 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   chips: { flexDirection: 'row', gap: 8 },
-  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
-  chipActive: { backgroundColor: '#2F9BA8', borderColor: '#FED8FE' },
-  chipText: { color: '#E8FBFF', fontSize: 13, fontWeight: '600' },
-  unitToggle: { color: '#A4CDD3', fontSize: 13, textDecorationLine: 'underline' },
+  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.tint, borderColor: colors.accent },
+  chipText: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  unitToggle: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
   summary: { marginBottom: 10 },
-  summaryValue: { color: '#E8FBFF', fontSize: 30, fontWeight: '700', lineHeight: 38 },
-  summaryMeta: { color: '#A4CDD3', fontSize: 13 },
-  note: { color: '#A4CDD3', fontSize: 12, lineHeight: 18, marginBottom: 12 },
-  addBtn: { backgroundColor: '#FED8FE', borderRadius: 10, padding: 14 },
-  addText: { color: '#09282eff', fontWeight: '700', textAlign: 'center' },
-  listTitle: { color: '#E8FBFF', fontSize: 16, fontWeight: '700', lineHeight: 22, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#0f3a41ff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 8 },
-  rowDate: { color: '#A4CDD3', fontSize: 12 },
-  rowVals: { color: '#E8FBFF', fontSize: 14, fontWeight: '600', marginTop: 2 },
-  rowNotes: { color: '#A4CDD3', fontSize: 12, marginTop: 2 },
-  action: { color: '#A4CDD3', fontSize: 13, fontWeight: '600' },
-  disclaimer: { color: '#A4CDD3', fontSize: 11, lineHeight: 16, marginTop: 20 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '90%', backgroundColor: '#0f3a41ff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: '#2F9BA8' },
-  sheetTitle: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 12 },
+  summaryValue: { color: colors.text, fontSize: 30, fontWeight: '700', lineHeight: 38 },
+  summaryMeta: { color: colors.muted, fontSize: 13 },
+  note: { color: colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 12 },
+  addBtn: { backgroundColor: colors.accent, borderRadius: 10, padding: 14 },
+  addText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
+  listTitle: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, marginBottom: 8 },
+  rowDate: { color: colors.muted, fontSize: 12 },
+  rowVals: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: 2 },
+  rowNotes: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  action: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  disclaimer: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 20 },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  sheet: { maxHeight: '90%', backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: colors.border },
+  sheetTitle: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 12 },
 });

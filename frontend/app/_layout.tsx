@@ -8,7 +8,7 @@ import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { loadThemePreference, useTheme } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { sessionFromUrl } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
@@ -27,20 +27,27 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const colors = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+
+  const navTheme = {
+    ...(colors.scheme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colors.scheme === 'dark' ? DarkTheme : DefaultTheme).colors,
+      background: colors.bg, card: colors.card, text: colors.text, border: colors.line, primary: colors.accentText,
+    },
+  };
 
   const redirecting = useRef(false);
   // while a password-reset link is being handled, the guard must not send the (now signed-in) person to Home
   const holdRedirectUntil = useRef(0);
 
   useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data }) => setSession(data.session))
+    // the saved light/dark choice is read before the first screen is shown, so there is no flash of the wrong colours
+    Promise.all([loadThemePreference(), supabase.auth.getSession().then(({ data }) => setSession(data.session))])
       .catch(() => {})
       .finally(() => {
         setReady(true);
@@ -141,7 +148,7 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navTheme}>
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -159,7 +166,7 @@ export default function RootLayout() {
         <Stack.Screen name="milestones" options={{ headerShown: false }} />
       </Stack>
       <OfflineBanner />
-      <StatusBar style="light" />
+      <StatusBar style={colors.scheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }

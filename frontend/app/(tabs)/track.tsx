@@ -11,6 +11,7 @@ import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface NapLog { start: string; end: string; notes?: string }
 interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: 'yellow' | 'green' | 'brown' | 'black'; consistency?: 'runny' | 'normal' | 'firm'; notes?: string }
@@ -21,6 +22,8 @@ interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying
 
 
 export default function TrackScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [babies, setBabies] = useState<Baby[]>([]);
   const [selected, setSelected] = useState(ALL_BABIES);
@@ -197,7 +200,7 @@ export default function TrackScreen() {
             <Text style={styles.dateButtonText}>{napEnd ? formatShort(napEnd) : 'Tap to select end time'}</Text>
           </Pressable>
           <Text style={styles.label}>Notes</Text>
-          <TextInput style={styles.input} value={napNotes} onChangeText={setNapNotes} placeholder="Optional" placeholderTextColor="#A4CDD3" />
+          <TextInput style={styles.input} value={napNotes} onChangeText={setNapNotes} placeholder="Optional" placeholderTextColor={colors.muted} />
           <Pressable style={styles.primaryButton} onPress={logNap}><Text style={styles.primaryButtonText}>Log Nap</Text></Pressable>
           <View style={styles.list}>{naps.slice(0,5).map((n,i)=>(<Text key={i} style={styles.listItem}>{formatShort(n.start)} → {formatShort(n.end)} {n.notes? `· ${n.notes}`:''}</Text>))}</View>
         </View>
@@ -234,7 +237,7 @@ export default function TrackScreen() {
             </>
           )}
           <Text style={styles.label}>Notes</Text>
-          <TextInput style={styles.input} value={diaperNotes} onChangeText={setDiaperNotes} placeholder="Optional" placeholderTextColor="#A4CDD3" />
+          <TextInput style={styles.input} value={diaperNotes} onChangeText={setDiaperNotes} placeholder="Optional" placeholderTextColor={colors.muted} />
           <Pressable style={styles.primaryButton} onPress={logDiaper}><Text style={styles.primaryButtonText}>Log Diaper</Text></Pressable>
           <View style={styles.list}>{diapers.slice(0,5).map((d,i)=>(<Text key={i} style={styles.listItem}>{d.time} · {d.type}{d.color? ` · ${d.color}`:''}{d.consistency? ` · ${d.consistency}`:''}</Text>))}</View>
         </View>
@@ -250,9 +253,9 @@ export default function TrackScreen() {
             ))}
           </View>
           <Text style={styles.label}>Amount (oz or minutes)</Text>
-          <TextInput style={styles.input} value={feedAmount} onChangeText={setFeedAmount} placeholder="e.g., 4 oz or 15 min" placeholderTextColor="#A4CDD3" />
+          <TextInput style={styles.input} value={feedAmount} onChangeText={setFeedAmount} placeholder="e.g., 4 oz or 15 min" placeholderTextColor={colors.muted} />
           <Text style={styles.label}>Next feeding reminder (hours)</Text>
-          <TextInput style={styles.input} value={nextInHours} onChangeText={setNextInHours} placeholder="e.g., 3" placeholderTextColor="#A4CDD3" keyboardType="numeric" />
+          <TextInput style={styles.input} value={nextInHours} onChangeText={setNextInHours} placeholder="e.g., 3" placeholderTextColor={colors.muted} keyboardType="numeric" />
           <Pressable style={styles.primaryButton} onPress={logFeeding}><Text style={styles.primaryButtonText}>Log Feeding</Text></Pressable>
           <View style={styles.list}>{feedings.slice(0,5).map((f,i)=>(<Text key={i} style={styles.listItem}>{f.time} · {f.method}{f.amount? ` · ${f.amount}`:''}{f.nextInHours? ` · next in ${f.nextInHours}h`:''}</Text>))}</View>
         </View>
@@ -268,7 +271,7 @@ export default function TrackScreen() {
             ))}
           </View>
           <Text style={styles.label}>Volume (oz)</Text>
-          <TextInput style={styles.input} value={pumpVolume} onChangeText={setPumpVolume} placeholder="e.g., 6" placeholderTextColor="#A4CDD3" keyboardType="numeric" />
+          <TextInput style={styles.input} value={pumpVolume} onChangeText={setPumpVolume} placeholder="e.g., 6" placeholderTextColor={colors.muted} keyboardType="numeric" />
           <Pressable style={styles.primaryButton} onPress={logPump}><Text style={styles.primaryButtonText}>Log Pumping</Text></Pressable>
           <View style={styles.list}>{pumps.slice(0,5).map((p,i)=>(<Text key={i} style={styles.listItem}>{p.time} · {p.volumeOz} oz · {p.side} · {p.ampm}</Text>))}</View>
         </View>
@@ -281,9 +284,9 @@ export default function TrackScreen() {
             <Text style={styles.dateButtonText}>{milestoneDate || 'Tap to select date'}</Text>
           </Pressable>
           <Text style={styles.label}>Milestone</Text>
-          <TextInput style={styles.input} value={milestoneText} onChangeText={setMilestoneText} placeholder="e.g., First smile, Started rolling" placeholderTextColor="#A4CDD3" />
+          <TextInput style={styles.input} value={milestoneText} onChangeText={setMilestoneText} placeholder="e.g., First smile, Started rolling" placeholderTextColor={colors.muted} />
           <Text style={styles.label}>Notes</Text>
-          <TextInput style={styles.input} value={milestoneNotes} onChangeText={setMilestoneNotes} placeholder="Optional details" placeholderTextColor="#A4CDD3" />
+          <TextInput style={styles.input} value={milestoneNotes} onChangeText={setMilestoneNotes} placeholder="Optional details" placeholderTextColor={colors.muted} />
           <Pressable style={styles.secondaryButton} onPress={logMilestone}><Text style={styles.secondaryButtonText}>Log Milestone</Text></Pressable>
           <View style={styles.list}>{milestones.slice(0,5).map((m,i)=>(<Text key={i} style={styles.listItem}>{m.date} · {m.milestone} {m.notes? `· ${m.notes}`:''}</Text>))}</View>
         </View>
@@ -299,7 +302,7 @@ export default function TrackScreen() {
             ))}
           </View>
           <Text style={styles.label}>Notes (teething, symptoms, etc.)</Text>
-          <TextInput style={styles.input} value={moodNotes} onChangeText={setMoodNotes} placeholder="Optional observations" placeholderTextColor="#A4CDD3" />
+          <TextInput style={styles.input} value={moodNotes} onChangeText={setMoodNotes} placeholder="Optional observations" placeholderTextColor={colors.muted} />
           <Pressable style={styles.secondaryButton} onPress={logMood}><Text style={styles.secondaryButtonText}>Log Mood</Text></Pressable>
           <View style={styles.list}>{moods.slice(0,5).map((m,i)=>(<Text key={i} style={styles.listItem}>{m.time} · {m.mood} {m.notes? `· ${m.notes}`:''}</Text>))}</View>
         </View>
@@ -420,39 +423,39 @@ export default function TrackScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingVertical: 24, paddingBottom: 40, gap: 16 },
-  title: { fontSize: 24, color: '#FED8FE', fontWeight: '700' },
-  subtitle: { fontSize: 15, color: '#A4CDD3' },
-  card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', gap: 10 },
-  cardTitle: { fontSize: 16, color: '#FDFECC', fontWeight: '700' },
-  label: { color: '#E8FBFF', marginTop: 6 },
-  input: { backgroundColor: '#11464e', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, fontSize: 15, color: '#E8FBFF', borderWidth: 1, borderColor: '#2F9BA8' },
+  title: { fontSize: 24, color: colors.heading, fontWeight: '700' },
+  subtitle: { fontSize: 15, color: colors.muted },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 10 },
+  cardTitle: { fontSize: 16, color: colors.link, fontWeight: '700' },
+  label: { color: colors.text, marginTop: 6 },
+  input: { backgroundColor: colors.cardAlt, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, fontSize: 15, color: colors.text, borderWidth: 1, borderColor: colors.border },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  choice: { borderWidth: 2, borderColor: '#2F9BA8', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(47, 155, 168, 0.1)' },
-  choiceActive: { backgroundColor: '#FDFECC', borderColor: '#FDFECC' },
-  choiceText: { color: '#E8FBFF', textTransform: 'capitalize' },
-  choiceTextActive: { color: '#12454E', fontWeight: '700' },
-  helper: { color: '#A4CDD3', fontSize: 12 },
-  primaryButton: { marginTop: 6, backgroundColor: '#FED8FE', paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
-  primaryButtonText: { color: '#12454E', fontWeight: '700', fontSize: 16 },
-  secondaryButton: { marginTop: 6, backgroundColor: '#FDFECC', paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
-  secondaryButtonText: { color: '#12454E', fontWeight: '700', fontSize: 16 },
+  choice: { borderWidth: 2, borderColor: colors.border, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.wash },
+  choiceActive: { backgroundColor: colors.link, borderColor: colors.link },
+  choiceText: { color: colors.text, textTransform: 'capitalize' },
+  choiceTextActive: { color: colors.cardAlt, fontWeight: '700' },
+  helper: { color: colors.muted, fontSize: 12 },
+  primaryButton: { marginTop: 6, backgroundColor: colors.accent, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+  primaryButtonText: { color: colors.cardAlt, fontWeight: '700', fontSize: 16 },
+  secondaryButton: { marginTop: 6, backgroundColor: colors.link, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+  secondaryButtonText: { color: colors.cardAlt, fontWeight: '700', fontSize: 16 },
   list: { gap: 6 },
-  listItem: { color: '#E8FBFF', fontSize: 13 },
+  listItem: { color: colors.text, fontSize: 13 },
   pickerContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   pickerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   pickerContent: {
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -464,10 +467,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2F9BA8',
+    borderBottomColor: colors.border,
   },
   pickerTitle: {
-    color: '#FED8FE',
+    color: colors.accentText,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -475,10 +478,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2F9BA8',
+    borderBottomColor: colors.border,
   },
   pickerLabel: {
-    color: '#FDFECC',
+    color: colors.link,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 12,
@@ -493,7 +496,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateInputLabel: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 12,
     marginBottom: 8,
   },
@@ -502,12 +505,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   numberButton: {
-    color: '#FDFECC',
+    color: colors.link,
     fontSize: 20,
     paddingHorizontal: 8,
   },
   numberDisplay: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '600',
     minWidth: 40,
@@ -523,24 +526,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeSeparator: {
-    color: '#FED8FE',
+    color: colors.heading,
     fontSize: 20,
     fontWeight: '700',
   },
   pickerButton: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 14,
     padding: 8,
   },
   pickerButtonConfirm: {
-    color: '#FDFECC',
+    color: colors.link,
     fontSize: 14,
     fontWeight: '700',
     padding: 8,
   },
   iosPickerContainer: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   iosPickerContent: {
     flexDirection: 'row',
@@ -556,7 +559,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#FDFECC',
+    color: colors.link,
   },
   iosPickerScroll: {
     height: 200,
@@ -570,7 +573,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   iosPickerItemSelected: {
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '700',
     fontSize: 20,
   },
@@ -580,23 +583,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   androidPickerButton: {
-    backgroundColor: '#11464e',
+    backgroundColor: colors.cardAlt,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: 'center',
   },
   androidPickerButtonText: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },
   dateButton: {
-    backgroundColor: '#11464e',
+    backgroundColor: colors.cardAlt,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -605,7 +608,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dateButtonText: {
-    color: '#FDFECC',
+    color: colors.link,
     fontSize: 14,
     fontWeight: '600',
   },

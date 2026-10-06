@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { supabase } from '@/lib/supabase';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface Entry {
   id: string;
@@ -17,19 +18,25 @@ interface Entry {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const MOODS: { value: number; icon: IconName; color: string; label: string }[] = [
-  { value: 1, icon: 'emoticon-cry-outline', color: '#ff9db1', label: 'Really low' },
-  { value: 2, icon: 'emoticon-sad-outline', color: '#f4b69a', label: 'Down' },
-  { value: 3, icon: 'emoticon-neutral-outline', color: '#FDFECC', label: 'Okay' },
-  { value: 4, icon: 'emoticon-happy-outline', color: '#a8e6cf', label: 'Good' },
-  { value: 5, icon: 'emoticon-excited-outline', color: '#7fe3b4', label: 'Great' },
-];
+// Mood faces: red to green, with a tone that stays readable on both the light and the dark cards
+const moodsFor = (colors: Palette): { value: number; icon: IconName; color: string; label: string }[] => {
+  const dark = colors.scheme === 'dark';
+  return [
+    { value: 1, icon: 'emoticon-cry-outline', color: colors.danger, label: 'Really low' },
+    { value: 2, icon: 'emoticon-sad-outline', color: dark ? '#f4b69a' : '#C0652B', label: 'Down' },
+    { value: 3, icon: 'emoticon-neutral-outline', color: dark ? colors.link : '#5F7E85', label: 'Okay' },
+    { value: 4, icon: 'emoticon-happy-outline', color: dark ? '#a8e6cf' : '#2F8F68', label: 'Good' },
+    { value: 5, icon: 'emoticon-excited-outline', color: dark ? '#7fe3b4' : '#1F8A5A', label: 'Great' },
+  ];
+};
 
 // Small icon shown before each card title
 function CardTitle({ icon, children }: { icon: IconName; children: string }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.titleRow}>
-      <MaterialCommunityIcons name={icon} size={22} color="#FED8FE" />
+      <MaterialCommunityIcons name={icon} size={22} color={colors.accentText} />
       <Text style={[styles.cardTitle, { marginBottom: 0, flex: 1, flexShrink: 1 }]}>{children}</Text>
     </View>
   );
@@ -55,6 +62,7 @@ const EPDS: { q: string; a: [string, number][] }[] = [
 const call = (num: string) => Linking.openURL(`tel:${num}`);
 
 function CrisisCard() {
+  const styles = useStyles(makeStyles);
   return (
     <View style={[styles.card, styles.crisis]}>
       <Text style={styles.crisisTitle}>You deserve support right now</Text>
@@ -72,6 +80,8 @@ function CrisisCard() {
 }
 
 export default function WellbeingScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [now, setNow] = useState(() => Date.now()); // refreshed each time the screen loads
@@ -154,7 +164,7 @@ export default function WellbeingScreen() {
             <CardTitle icon="calendar-heart">Daily check-in</CardTitle>
             <Text style={styles.label}>How are you feeling today?</Text>
             <View style={styles.row}>
-              {MOODS.map(m => (
+              {moodsFor(colors).map(m => (
                 <Pressable
                   key={m.value}
                   onPress={() => setMood(m.value)}
@@ -177,7 +187,7 @@ export default function WellbeingScreen() {
             <TextInput
               style={styles.input}
               placeholder="Anything on your mind? (optional)"
-              placeholderTextColor="#A4CDD3"
+              placeholderTextColor={colors.muted}
               value={note}
               onChangeText={setNote}
               multiline
@@ -279,40 +289,40 @@ export default function WellbeingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  title: { fontSize: 26, color: '#FED8FE', fontWeight: '700', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 18, lineHeight: 20 },
-  card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 16 },
-  crisis: { borderColor: '#FED8FE', borderWidth: 2 },
-  crisisTitle: { color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  crisisBtn: { backgroundColor: '#FED8FE', borderRadius: 10, padding: 12, marginTop: 10 },
-  crisisBtnText: { color: '#09282eff', fontWeight: '700', textAlign: 'center' },
-  cardTitle: { color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  body: { color: '#E8FBFF', fontSize: 14, lineHeight: 21 },
-  muted: { color: '#A4CDD3', fontSize: 12, marginTop: 8, lineHeight: 18 },
-  label: { color: '#A4CDD3', fontSize: 13, marginTop: 12, marginBottom: 8 },
+  title: { fontSize: 26, color: colors.heading, fontWeight: '700', marginBottom: 6 },
+  subtitle: { fontSize: 14, color: colors.muted, marginBottom: 18, lineHeight: 20 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 },
+  crisis: { borderColor: colors.accent, borderWidth: 2 },
+  crisisTitle: { color: colors.heading, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  crisisBtn: { backgroundColor: colors.accent, borderRadius: 10, padding: 12, marginTop: 10 },
+  crisisBtnText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
+  cardTitle: { color: colors.heading, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  muted: { color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 18 },
+  label: { color: colors.muted, fontSize: 13, marginTop: 12, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
   wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  moodBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#2F9BA8' },
+  moodBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  moodLabel: { color: '#E8FBFF', fontSize: 10, marginTop: 6, textAlign: 'center' },
-  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
-  chipText: { color: '#E8FBFF', fontSize: 13 },
-  active: { backgroundColor: '#2F9BA8', borderColor: '#FED8FE' },
-  input: { marginTop: 14, borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF', minHeight: 60 },
-  primary: { backgroundColor: '#FED8FE', borderRadius: 10, padding: 14, marginTop: 14 },
-  primaryText: { color: '#09282eff', fontWeight: '700', textAlign: 'center' },
+  moodLabel: { color: colors.text, fontSize: 10, marginTop: 6, textAlign: 'center' },
+  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  chipText: { color: colors.text, fontSize: 13 },
+  active: { backgroundColor: colors.tint, borderColor: colors.accent },
+  input: { marginTop: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, minHeight: 60 },
+  primary: { backgroundColor: colors.accent, borderRadius: 10, padding: 14, marginTop: 14 },
+  primaryText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
   secondary: { padding: 12, marginTop: 6 },
-  secondaryText: { color: '#A4CDD3', textAlign: 'center' },
+  secondaryText: { color: colors.muted, textAlign: 'center' },
   chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 110 },
   barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: '100%', backgroundColor: '#FED8FE', borderRadius: 4 },
-  barLabel: { color: '#A4CDD3', fontSize: 8, textAlign: 'center', marginTop: 4 },
-  question: { color: '#E8FBFF', fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  option: { padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#2F9BA8', marginTop: 6 },
-  optionText: { color: '#E8FBFF', fontSize: 13 },
+  bar: { width: '100%', backgroundColor: colors.accent, borderRadius: 4 },
+  barLabel: { color: colors.muted, fontSize: 8, textAlign: 'center', marginTop: 4 },
+  question: { color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 6 },
+  option: { padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border, marginTop: 6 },
+  optionText: { color: colors.text, fontSize: 13 },
   link: { paddingVertical: 10 },
-  linkText: { color: '#FDFECC', fontSize: 14, textDecorationLine: 'underline' },
+  linkText: { color: colors.link, fontSize: 14, textDecorationLine: 'underline' },
 });

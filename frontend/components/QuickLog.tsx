@@ -14,15 +14,18 @@ import { flush, getPendingCount } from '@/lib/outbox';
 import { LogType } from '@/lib/logs';
 import { ActiveSleep, claimSleep, discardSleep, formatElapsed, getActiveSleeps, queueSleepStop, restoreSleep, startSleeps, withPendingSleeps } from '@/lib/timer';
 import { formatDuration } from '@/lib/time';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 type Sheet = null | 'feeding' | 'diaper' | 'sleep';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 function Card({ icon, label, onPress, highlight }: { icon: IconName; label: string; onPress: () => void; highlight?: boolean }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   return (
     <Pressable style={[styles.card, highlight && styles.cardActive]} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
-      <MaterialCommunityIcons name={icon} size={26} color={highlight ? '#09282eff' : '#FDFECC'} />
-      <Text style={[styles.label, highlight && { color: '#09282eff' }]}>{label}</Text>
+      <MaterialCommunityIcons name={icon} size={26} color={highlight ? colors.onAccent : colors.link} />
+      <Text style={[styles.label, highlight && { color: colors.onAccent }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -38,6 +41,8 @@ export function QuickLog({
   onChanged: () => void; // reload Home after something was logged
   onToast: (message: string, undo?: () => Promise<void>) => void;
 }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const router = useRouter();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [target, setTarget] = useState(ALL_BABIES);
@@ -181,7 +186,7 @@ export function QuickLog({
     <View>
       {sleeps.map(sl => (
         <View key={sl.baby_id} style={styles.banner}>
-          <MaterialCommunityIcons name="weather-night" size={24} color="#09282eff" />
+          <MaterialCommunityIcons name="weather-night" size={24} color={colors.onAccent} />
           <View style={{ flex: 1 }}>
             <Text style={styles.bannerTitle}>
               {sl.baby_name} is sleeping{sl.started_by !== me ? ` (started by ${sl.started_by_name})` : ''}
@@ -220,7 +225,7 @@ export function QuickLog({
                 <TextInput
                   style={styles.input}
                   placeholder="Amount (optional), e.g. 4 oz"
-                  placeholderTextColor="#A4CDD3"
+                  placeholderTextColor={colors.muted}
                   value={amount}
                   onChangeText={setAmount}
                 />
@@ -264,37 +269,37 @@ export function QuickLog({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: {
     flexGrow: 1,
     flexBasis: '30%',
     minHeight: 92,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1.5,
-    borderColor: '#FDFECC',
+    borderColor: colors.link,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  cardActive: { backgroundColor: '#FDFECC' },
-  label: { fontSize: 11, color: '#E8FBFF', fontWeight: '600', textAlign: 'center' },
-  hint: { color: '#A4CDD3', fontSize: 12, marginTop: 8 },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDFECC', borderRadius: 14, padding: 12, marginBottom: 12 },
-  bannerTitle: { color: '#09282eff', fontWeight: '700', fontSize: 14 },
-  bannerTime: { color: '#09282eff', fontSize: 20, fontWeight: '700', lineHeight: 26 },
-  bannerBtn: { backgroundColor: '#09282eff', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14 },
-  bannerBtnText: { color: '#FDFECC', fontWeight: '700' },
-  bannerCancel: { color: '#09282eff', fontSize: 12, textDecorationLine: 'underline' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#0f3a41ff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 34, borderWidth: 1, borderColor: '#2F9BA8' },
-  sheetTitle: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 14 },
-  sheetHint: { color: '#A4CDD3', fontSize: 13, marginTop: 12, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF' },
+  cardActive: { backgroundColor: colors.link },
+  label: { fontSize: 11, color: colors.text, fontWeight: '600', textAlign: 'center' },
+  hint: { color: colors.muted, fontSize: 12, marginTop: 8 },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.link, borderRadius: 14, padding: 12, marginBottom: 12 },
+  bannerTitle: { color: colors.onAccent, fontWeight: '700', fontSize: 14 },
+  bannerTime: { color: colors.onAccent, fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  bannerBtn: { backgroundColor: colors.bg, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14 },
+  bannerBtnText: { color: colors.link, fontWeight: '700' },
+  bannerCancel: { color: colors.onAccent, fontSize: 12, textDecorationLine: 'underline' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 34, borderWidth: 1, borderColor: colors.border },
+  sheetTitle: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 14 },
+  sheetHint: { color: colors.muted, fontSize: 13, marginTop: 12, marginBottom: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text },
   optRow: { flexDirection: 'row', gap: 10 },
-  opt: { flex: 1, backgroundColor: '#FED8FE', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  optText: { color: '#09282eff', fontWeight: '700', fontSize: 15, textTransform: 'capitalize' },
-  cancel: { color: '#A4CDD3', textAlign: 'center' },
+  opt: { flex: 1, backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  optText: { color: colors.onAccent, fontWeight: '700', fontSize: 15, textTransform: 'capitalize' },
+  cancel: { color: colors.muted, textAlign: 'center' },
 });

@@ -12,15 +12,12 @@ import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { LogRow, fetchLogs } from '@/lib/logs';
 import { buildDays, computeStats, summaryText } from '@/lib/insights';
 import { formatDuration, timeAgo, toDate } from '@/lib/time';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
-// Chart colors validated (dataviz validator) on the card surface #0f3a41 in dark mode:
-// distinct for color-blind viewers and >= 3:1 contrast.
-const SLEEP = '#9085e9';
-const FEED = '#199e70';
-const WET = '#3987e5';
-const DIRTY = '#d95926';
 
 export default function InsightsScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [babies, setBabies] = useState<Baby[]>([]);
@@ -65,19 +62,19 @@ export default function InsightsScreen() {
   const sleepData = buckets.map((b, i) => ({
     key: b.key,
     label: labelFor(i, b.label, b.key),
-    segments: [{ value: b.sleepMin / 60, color: SLEEP, name: 'Sleep' }],
+    segments: [{ value: b.sleepMin / 60, color: colors.sleep, name: 'Sleep' }],
   }));
   const feedData = buckets.map((b, i) => ({
     key: b.key,
     label: labelFor(i, b.label, b.key),
-    segments: [{ value: b.feedings, color: FEED, name: 'Feedings' }],
+    segments: [{ value: b.feedings, color: colors.feed, name: 'Feedings' }],
   }));
   const diaperData = buckets.map((b, i) => ({
     key: b.key,
     label: labelFor(i, b.label, b.key),
     segments: [
-      { value: b.wet, color: WET, name: 'Wet' },
-      { value: b.dirty, color: DIRTY, name: 'Dirty' },
+      { value: b.wet, color: colors.wet, name: 'Wet' },
+      { value: b.dirty, color: colors.dirty, name: 'Dirty' },
     ],
   }));
 
@@ -149,24 +146,24 @@ export default function InsightsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 16 },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.muted, marginBottom: 16 },
   rangeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
-  chipActive: { backgroundColor: '#2F9BA8', borderColor: '#FED8FE' },
-  chipText: { color: '#E8FBFF', fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: '#E8FBFF' },
+  chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.tint, borderColor: colors.accent },
+  chipText: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  chipTextActive: { color: colors.text },
   tiles: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  tile: { flex: 1, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#2F9BA8' },
-  tileLabel: { color: '#A4CDD3', fontSize: 11, marginBottom: 4 },
-  tileValue: { color: '#E8FBFF', fontSize: 20, fontWeight: '700', lineHeight: 26 },
-  note: { color: '#A4CDD3', fontSize: 12, marginBottom: 16, lineHeight: 18 },
-  card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 16 },
-  body: { color: '#E8FBFF', fontSize: 14, lineHeight: 21 },
-  shareBtn: { backgroundColor: '#FED8FE', borderRadius: 10, padding: 14 },
-  shareText: { color: '#09282eff', fontWeight: '700', textAlign: 'center' },
+  tile: { flex: 1, backgroundColor: colors.card, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: colors.border },
+  tileLabel: { color: colors.muted, fontSize: 11, marginBottom: 4 },
+  tileValue: { color: colors.text, fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  note: { color: colors.muted, fontSize: 12, marginBottom: 16, lineHeight: 18 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  shareBtn: { backgroundColor: colors.accent, borderRadius: 10, padding: 14 },
+  shareText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
 });

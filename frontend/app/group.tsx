@@ -12,10 +12,12 @@ import {
 } from '@/lib/groups';
 import { ChatMessage, Connection, REPORT_REASONS, myConnections } from '@/lib/neighbors';
 import { supabase } from '@/lib/supabase';
+import { Palette, useStyles } from '@/lib/theme';
 
 const POLL_MS = 5000;
 
 export default function GroupScreen() {
+  const styles = useStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
@@ -214,16 +216,16 @@ export default function GroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  modal: { flex: 1, backgroundColor: '#09282eff', paddingHorizontal: 20 },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  modal: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  modalTitle: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26, flex: 1 },
-  close: { color: '#A4CDD3', fontSize: 15 },
-  heading: { color: '#A4CDD3', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 20, marginBottom: 8 },
+  modalTitle: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26, flex: 1 },
+  close: { color: colors.muted, fontSize: 15 },
+  heading: { color: colors.muted, fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 20, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  name: { color: '#E8FBFF', fontSize: 15, flex: 1, lineHeight: 21 },
-  remove: { color: '#ff9db1', fontSize: 13, fontWeight: '600' },
-  muted: { color: '#A4CDD3', fontSize: 13, lineHeight: 18 },
-  inviteBtn: { backgroundColor: '#FED8FE', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 14 },
-  inviteText: { color: '#09282eff', fontWeight: '700', fontSize: 13 },
+  name: { color: colors.text, fontSize: 15, flex: 1, lineHeight: 21 },
+  remove: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  muted: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  inviteBtn: { backgroundColor: colors.accent, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 14 },
+  inviteText: { color: colors.onAccent, fontWeight: '700', fontSize: 13 },
 });

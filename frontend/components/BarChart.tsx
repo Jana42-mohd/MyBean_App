@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export interface BarSegment {
   value: number;
@@ -12,10 +13,6 @@ export interface BarDatum {
   segments: BarSegment[]; // stacked bottom -> top
 }
 
-const SURFACE = '#0f3a41'; // card color: also used for the 2px gaps between stacked segments
-const GRID = 'rgba(164,205,211,0.18)';
-const INK = '#E8FBFF';
-const MUTED = '#A4CDD3';
 
 // 1, 2, 2.5, 5, 10 ... x power of ten, at or above v
 export function niceCeil(v: number): number {
@@ -40,6 +37,8 @@ export function BarChart({
   legend?: boolean; // show for 2+ series
   unit?: string; // axis unit, e.g. "hours"
 }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const [selected, setSelected] = useState<string | null>(null);
   const [asTable, setAsTable] = useState(false);
 
@@ -135,7 +134,7 @@ export function BarChart({
                                       borderTopWidth: 0,
                                       marginTop: i === topIdx ? 0 : 0,
                                       borderBottomWidth: i > 0 && d.segments.slice(0, i).some(x => x.value > 0) ? 2 : 0,
-                                      borderBottomColor: SURFACE,
+                                      borderBottomColor: colors.card,
                                     }}
                                   />
                                 );
@@ -163,27 +162,27 @@ export function BarChart({
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: SURFACE, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 16 },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 },
   headRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: INK, fontSize: 16, fontWeight: '700' },
-  toggle: { color: MUTED, fontSize: 13, textDecorationLine: 'underline' },
+  title: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  toggle: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
   legend: { flexDirection: 'row', gap: 16, marginTop: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatch: { width: 12, height: 12, borderRadius: 3 },
-  legendText: { color: MUTED, fontSize: 12 },
-  readout: { marginTop: 10, marginBottom: 8, minHeight: 20, color: MUTED, fontSize: 13 },
-  readoutValue: { color: INK, fontWeight: '700', fontSize: 15 },
-  readoutDay: { color: MUTED, fontSize: 12 },
+  legendText: { color: colors.muted, fontSize: 12 },
+  readout: { marginTop: 10, marginBottom: 8, minHeight: 20, color: colors.muted, fontSize: 13 },
+  readoutValue: { color: colors.text, fontWeight: '700', fontSize: 15 },
+  readoutDay: { color: colors.muted, fontSize: 12 },
   yAxis: { width: 30, justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 6 },
-  tick: { color: MUTED, fontSize: 10, lineHeight: 12 },
-  grid: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: GRID },
+  tick: { color: colors.muted, fontSize: 10, lineHeight: 12 },
+  grid: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.line },
   bars: { flexDirection: 'row', flex: 1, alignItems: 'flex-end' },
   col: { flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center' },
   xRow: { flexDirection: 'row', marginTop: 6 },
-  xLabel: { flex: 1, textAlign: 'center', color: MUTED, fontSize: 10 },
-  unit: { color: MUTED, fontSize: 10, marginTop: 4 },
-  tableRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: GRID },
-  tableDay: { color: MUTED, fontSize: 13 },
-  tableVal: { color: INK, fontSize: 13, fontWeight: '600' },
+  xLabel: { flex: 1, textAlign: 'center', color: colors.muted, fontSize: 10 },
+  unit: { color: colors.muted, fontSize: 10, marginTop: 4 },
+  tableRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line },
+  tableDay: { color: colors.muted, fontSize: 13 },
+  tableVal: { color: colors.text, fontSize: 13, fontWeight: '600' },
 });

@@ -13,6 +13,7 @@ import { useUnits } from '@/lib/units';
 import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { LoadError, friendlyError } from '@/components/LoadError';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 
 interface HistoryEntry {
@@ -27,6 +28,8 @@ interface HistoryEntry {
 }
 
 export default function HistoryScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [units] = useUnits();
@@ -159,17 +162,13 @@ export default function HistoryScreen() {
     return labels[type] || type;
   };
 
+  // One colour per kind of entry: soft on the dark cards, deeper on the light ones
   const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      diaper: '#FFB6C1',
-      feeding: '#FED8FE',
-      nap: '#87CEEB',
-      milestone: '#FDFECC',
-      mood: '#DDA0DD',
-      pumping: '#98FB98',
-      growth: '#9fd0ff',
-    };
-    return colors[type] || '#A4CDD3';
+    const byType: Record<string, string> =
+      colors.scheme === 'dark'
+        ? { diaper: '#FFB6C1', feeding: '#E4B1D6', nap: '#87CEEB', milestone: '#E8E2A0', mood: '#C9A3E0', pumping: '#98E8A8', growth: '#9fd0ff' }
+        : { diaper: '#C8527A', feeding: '#B0467F', nap: '#2F7FB0', milestone: '#9A7400', mood: '#8450B0', pumping: '#2F8F68', growth: '#2A78D6' };
+    return byType[type] || colors.muted;
   };
 
   const filteredHistory = history.filter(
@@ -264,17 +263,17 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   entryActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginTop: 10 },
-  actionText: { color: '#A4CDD3', fontSize: 13, fontWeight: '600' },
-  deleteText: { color: '#ff9db1' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
-  modalCard: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#2F9BA8' },
-  modalTitle: { color: '#FED8FE', fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  modalInput: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF', minHeight: 70 },
+  actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  deleteText: { color: colors.danger },
+  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: colors.card, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: colors.border },
+  modalTitle: { color: colors.heading, fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, minHeight: 70 },
   container: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   scrollContent: {
     paddingTop: 16,
@@ -284,13 +283,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '700',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#A4CDD3',
+    color: colors.muted,
     marginBottom: 20,
   },
   filterScroll: {
@@ -303,31 +302,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   filterButtonActive: {
-    backgroundColor: '#FED8FE',
-    borderColor: '#FED8FE',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   filterButtonText: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
   filterButtonTextActive: {
-    color: '#09282eff',
+    color: colors.onAccent,
   },
   historyList: {
     gap: 12,
   },
   entryCard: {
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   entryHeader: {
     flexDirection: 'row',
@@ -341,12 +340,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   typeTagText: {
-    color: '#09282eff',
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 12,
   },
   timestamp: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 12,
   },
   entryDetails: {
@@ -354,10 +353,10 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#E8FBFF',
+    color: colors.text,
   },
   detailValue: {
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
   },
   emptyState: {
@@ -366,7 +365,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 14,
   },
 });

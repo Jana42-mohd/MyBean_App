@@ -162,3 +162,11 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Report a post with photos 3 times from 3 accounts: it disappears for everyone but the author and moderators; a moderator sees its photos/video on the Moderation screen and can delete it (files removed too).
 - [ ] A photo taken with location on: the uploaded file has no GPS data (check with an EXIF viewer).
 - [ ] Delete account: your post files are removed from Storage.
+
+## Light and dark mode
+- [ ] Settings -> Appearance: Auto / Light / Dark. Light and Dark switch the whole app at once (every tab, the tab bar, the status bar icons); Auto follows the phone's setting, including when you change it while the app is open.
+- [ ] The choice is remembered after force-closing the app, and the app starts in the right colours (no flash of the other theme).
+- [ ] Walk every screen in BOTH themes: Home, Track (all sheets), History, Insights and Growth charts (the bars/lines are visible; the Insights table view is readable), Milestones, Wellbeing (mood faces), Community (posts, composer, report sheet), Parents near you, chats and groups, Settings, login/sign-up/reset password, legal pages, Moderation.
+- [ ] Nothing is unreadable: no pale text on white, no dark text on dark; error messages, the offline banner and the Delete/Remove actions are clearly red-ish in both themes.
+- [ ] The brand pink is used sparingly: main action buttons, the selected pill and small badges. Screen titles are plain dark/light text.
+- [ ] Take a photo of a screen outdoors in daylight in Light mode and at night in Dark mode: both are comfortable.

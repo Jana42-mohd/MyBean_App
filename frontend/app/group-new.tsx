@@ -8,8 +8,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MAX_GROUP_SIZE, createGroup } from '@/lib/groups';
 import { Connection, myConnections } from '@/lib/neighbors';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export default function NewGroupScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [people, setPeople] = useState<Connection[]>([]);
@@ -51,7 +54,7 @@ export default function NewGroupScreen() {
         <Text style={styles.subtitle}>Up to {MAX_GROUP_SIZE} parents, including you. You can only invite parents you are connected with, and each has to accept.</Text>
 
         <Text style={styles.label}>Group name</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. Annex playgroup" placeholderTextColor="#A4CDD3" maxLength={40} />
+        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. Annex playgroup" placeholderTextColor={colors.muted} maxLength={40} />
 
         <Text style={styles.label}>Invite ({picked.length} chosen)</Text>
         {error ? <LoadError message={error} /> : null}
@@ -80,21 +83,21 @@ export default function NewGroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 8, lineHeight: 20 },
-  label: { color: '#A4CDD3', fontSize: 13, marginTop: 16, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF' },
-  muted: { color: '#A4CDD3', fontSize: 12, lineHeight: 18 },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 8 },
-  personOn: { borderColor: '#FED8FE' },
-  name: { color: '#E8FBFF', fontSize: 15, fontWeight: '700', lineHeight: 21 },
-  check: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: '#2F9BA8', alignItems: 'center', justifyContent: 'center' },
-  checkOn: { backgroundColor: '#FED8FE', borderColor: '#FED8FE' },
-  tick: { color: '#09282eff', fontWeight: '700' },
-  primary: { backgroundColor: '#FED8FE', borderRadius: 12, padding: 14, marginTop: 20 },
-  primaryText: { color: '#09282eff', fontWeight: '700', textAlign: 'center' },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.muted, marginBottom: 8, lineHeight: 20 },
+  label: { color: colors.muted, fontSize: 13, marginTop: 16, marginBottom: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text },
+  muted: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  person: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: colors.border, marginBottom: 8 },
+  personOn: { borderColor: colors.accent },
+  name: { color: colors.text, fontSize: 15, fontWeight: '700', lineHeight: 21 },
+  check: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  checkOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  tick: { color: colors.onAccent, fontWeight: '700' },
+  primary: { backgroundColor: colors.accent, borderRadius: 12, padding: 14, marginTop: 20 },
+  primaryText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
 });

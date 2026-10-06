@@ -5,8 +5,10 @@ import { StyleSheet, Pressable, Text, View, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Palette, useStyles } from '@/lib/theme';
 
 export default function HomeScreen() {
+  const styles = useStyles(makeStyles);
   const router = useRouter();
   const goSignup = () => router.push('/(auth)/signup');
   const goLogin = () => router.push('/(auth)/login');
@@ -46,19 +48,19 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#09282eff', 
+    backgroundColor: colors.bg, 
   },
   card: {
     width: '90%',
     paddingVertical: 40,
     paddingHorizontal: 24,
-    backgroundColor: '#0f3a41ff', 
+    backgroundColor: colors.card, 
     borderRadius: 20,
     shadowColor: '#000',
     shadowOpacity: 0.3,
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2F9BA8', 
+    borderColor: colors.border, 
   },
   logo: {
     width: 250,
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     marginBottom: 12,
     textAlign: 'center',
-    color: '#E8FBFF', 
+    color: colors.text, 
   },
   smallText: {
     fontSize: 15,
@@ -86,7 +88,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     textAlign: 'center',
     lineHeight: 22,
-    color: '#E8FBFF', 
+    color: colors.text, 
   },
   buttonContainer: {
     width: '100%',
@@ -94,30 +96,30 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     borderWidth: 2,
-    borderColor: '#FDFECC', 
+    borderColor: colors.link, 
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
-    backgroundColor: 'rgba(253, 254, 204, 0.1)', 
+    backgroundColor: colors.wash, 
   },
   loginText: {
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '700',
     fontSize: 16,
   },
   signupButton: {
-    backgroundColor: '#FED8FE', 
+    backgroundColor: colors.accent, 
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#FED8FE',
+    shadowColor: colors.accent,
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
   signupText: {
-    color: '#12454E', 
+    color: colors.cardAlt, 
     fontWeight: '700',
     fontSize: 16,
   },

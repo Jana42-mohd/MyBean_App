@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { GrowthMetric, STANDARD_PERCENTILES, Sex, valueAtZ } from '@/lib/growth';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export interface GrowthPoint {
   key: string;
@@ -11,9 +12,6 @@ export interface GrowthPoint {
   percentile?: string; // "45th", when known
 }
 
-const SURFACE = '#0f3a41';
-const MUTED = '#A4CDD3';
-const INK = '#E8FBFF';
 const H = 230;
 const M = { l: 40, r: 30, t: 10, b: 26 };
 
@@ -46,6 +44,8 @@ export function GrowthChart({
   fmtValue: (v: number) => string;
   color: string;
 }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const [w, setW] = useState(320);
   const [sel, setSel] = useState<string | null>(null);
 
@@ -111,15 +111,15 @@ export function GrowthChart({
       <Pressable onPress={e => onPress(e.nativeEvent.locationX)} onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
         <Svg width={w} height={H}>
           {yTicks.map(t => (
-            <Line key={`g${t}`} x1={M.l} x2={w - M.r} y1={y(t)} y2={y(t)} stroke={MUTED} strokeOpacity={0.12} strokeWidth={1} />
+            <Line key={`g${t}`} x1={M.l} x2={w - M.r} y1={y(t)} y2={y(t)} stroke={colors.muted} strokeOpacity={0.12} strokeWidth={1} />
           ))}
           {yTicks.map(t => (
-            <SvgText key={`yl${t}`} x={M.l - 6} y={y(t) + 3} fontSize={10} fill={MUTED} textAnchor="end">
+            <SvgText key={`yl${t}`} x={M.l - 6} y={y(t) + 3} fontSize={10} fill={colors.muted} textAnchor="end">
               {Number.isInteger(t) ? t : t.toFixed(1)}
             </SvgText>
           ))}
           {xTicks.map(t => (
-            <SvgText key={`xl${t}`} x={x(t)} y={H - 8} fontSize={10} fill={MUTED} textAnchor="middle">
+            <SvgText key={`xl${t}`} x={x(t)} y={H - 8} fontSize={10} fill={colors.muted} textAnchor="middle">
               {t}
             </SvgText>
           ))}
@@ -129,7 +129,7 @@ export function GrowthChart({
             <Path
               key={`c${c.p}`}
               d={line(c.pts.map(q => ({ x: x(q.m), y: y(q.v) })))}
-              stroke={MUTED}
+              stroke={colors.muted}
               strokeOpacity={c.p === 50 ? 0.65 : 0.32}
               strokeWidth={c.p === 50 ? 1.5 : 1}
               fill="none"
@@ -138,7 +138,7 @@ export function GrowthChart({
           {curves.map(c => {
             const last = c.pts[c.pts.length - 1];
             return (
-              <SvgText key={`cl${c.p}`} x={x(last.m) + 4} y={y(last.v) + 3} fontSize={9} fill={MUTED}>
+              <SvgText key={`cl${c.p}`} x={x(last.m) + 4} y={y(last.v) + 3} fontSize={9} fill={colors.muted}>
                 {c.p}
               </SvgText>
             );
@@ -155,7 +155,7 @@ export function GrowthChart({
               cy={y(toDisplay(p.value))}
               r={p.key === sel ? 6 : 4}
               fill={color}
-              stroke={SURFACE}
+              stroke={colors.card}
               strokeWidth={2}
             />
           ))}
@@ -166,11 +166,11 @@ export function GrowthChart({
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: SURFACE, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 16 },
-  title: { color: INK, fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  readout: { marginTop: 6, marginBottom: 6, minHeight: 20, color: MUTED, fontSize: 13 },
-  readoutValue: { color: INK, fontWeight: '700', fontSize: 15 },
-  readoutMeta: { color: MUTED, fontSize: 12 },
-  axisNote: { color: MUTED, fontSize: 10, marginTop: 4, lineHeight: 14 },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 16 },
+  title: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  readout: { marginTop: 6, marginBottom: 6, minHeight: 20, color: colors.muted, fontSize: 13 },
+  readoutValue: { color: colors.text, fontWeight: '700', fontSize: 15 },
+  readoutMeta: { color: colors.muted, fontSize: 12 },
+  axisNote: { color: colors.muted, fontSize: 10, marginTop: 4, lineHeight: 14 },
 });

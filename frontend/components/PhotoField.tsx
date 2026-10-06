@@ -5,6 +5,7 @@ import { MilestonePhoto } from '@/components/MilestonePhoto';
 import { friendlyError } from '@/components/LoadError';
 import { isOnline } from '@/lib/online';
 import { PickedPhoto, photoUrls, pickPhoto } from '@/lib/photos';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export interface PhotoChoice {
   local: PickedPhoto | null; // a newly chosen photo, not uploaded yet
@@ -14,6 +15,8 @@ export const NO_PHOTO_CHANGE: PhotoChoice = { local: null, removed: false };
 
 // Add, replace or remove the photo of a milestone. Uploading happens when the entry is saved.
 export function PhotoField({ existing, value, onChange }: { existing?: string; value: PhotoChoice; onChange: (v: PhotoChoice) => void }) {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const [url, setUrl] = useState<string | undefined>();
   useEffect(() => {
     let live = true;
@@ -40,7 +43,7 @@ export function PhotoField({ existing, value, onChange }: { existing?: string; v
         <Pressable style={styles.btn} onPress={() => choose('library')}><Text style={styles.btnText}>{showing === 'none' ? 'Add a photo' : 'Choose another'}</Text></Pressable>
         <Pressable style={styles.btn} onPress={() => choose('camera')}><Text style={styles.btnText}>Take a photo</Text></Pressable>
         {showing !== 'none' ? (
-          <Pressable style={styles.btn} onPress={() => onChange({ local: null, removed: true })}><Text style={[styles.btnText, { color: '#ff9db1' }]}>Remove</Text></Pressable>
+          <Pressable style={styles.btn} onPress={() => onChange({ local: null, removed: true })}><Text style={[styles.btnText, { color: colors.danger }]}>Remove</Text></Pressable>
         ) : null}
       </View>
       <Text style={styles.hint}>Photos are private to you and your partner.</Text>
@@ -48,10 +51,10 @@ export function PhotoField({ existing, value, onChange }: { existing?: string; v
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   preview: { width: '100%', height: 180, borderRadius: 12, marginTop: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
-  btnText: { color: '#E8FBFF', fontSize: 13 },
-  hint: { color: '#A4CDD3', fontSize: 11, marginTop: 6 },
+  btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+  btnText: { color: colors.text, fontSize: 13 },
+  hint: { color: colors.muted, fontSize: 11, marginTop: 6 },
 });

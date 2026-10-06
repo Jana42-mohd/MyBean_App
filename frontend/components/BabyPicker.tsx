@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import type { Baby } from '@/lib/babies';
+import { Palette, useStyles } from '@/lib/theme';
 
 export const ALL_BABIES = 'all';
 
@@ -17,6 +18,7 @@ export function BabyPicker({
   allLabel?: string;
   showAll?: boolean; // false: only the individual babies
 }) {
+  const styles = useStyles(makeStyles);
   if (babies.length < 2) return null;
   const items = showAll ? [{ id: ALL_BABIES, name: allLabel }, ...babies] : babies;
   return (
@@ -30,11 +32,11 @@ export function BabyPicker({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   scroll: { marginBottom: 16, flexGrow: 0 },
   content: { gap: 8, paddingRight: 8 },
-  chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#0f3a41ff', borderWidth: 1, borderColor: '#2F9BA8' },
-  active: { backgroundColor: '#FED8FE', borderColor: '#FED8FE' },
-  text: { color: '#E8FBFF', fontWeight: '600', fontSize: 13 },
-  activeText: { color: '#09282eff' },
+  chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  active: { backgroundColor: colors.accent, borderColor: colors.accent },
+  text: { color: colors.text, fontWeight: '600', fontSize: 13 },
+  activeText: { color: colors.onAccent },
 });

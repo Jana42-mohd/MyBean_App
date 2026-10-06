@@ -5,28 +5,13 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+import { DARK, LIGHT } from '@/lib/theme';
 
+// Used by ThemedView / ThemedText. The real palette lives in lib/theme.ts.
 export const Colors = {
-  light: {
-    background: "#E8FBFF",     
-    text: "#1E2A38",
-    card: "#FFFFFF",
-    accentPink: "#FED8FE",
-    accentYellow: "#FDFECC",
-    bean: "#2F9BA8",
-  },
-  dark: {
-    background: "#12454E",      
-    text: "#FFFFFF",
-    card: "#1A1A1A",
-    accentPink: "#FED8FE",
-    accentYellow: "#FDFECC",
-    bean: "#2F9BA8",
-  },
+  light: { background: LIGHT.bg, text: LIGHT.text },
+  dark: { background: DARK.bg, text: DARK.text },
 };
-
 
 export const Fonts = Platform.select({
   ios: {

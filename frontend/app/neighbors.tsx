@@ -8,10 +8,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { countryName } from '@/lib/countries';
 import { EMPTY_PLACE, NearbyParent, Place, Scope, getMyPlace, nearbyParents, requestConnection } from '@/lib/neighbors';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 const PAGE = 30;
 
 export default function NeighborsScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [place, setPlace] = useState<Place>(EMPTY_PLACE);
@@ -116,12 +119,12 @@ export default function NeighborsScreen() {
             <View style={styles.scopes}>
               {scopes.map(s => (
                 <Pressable key={s.key} onPress={() => changeScope(s.key)} style={[styles.scope, scope === s.key && styles.scopeActive]}>
-                  <Text style={[styles.scopeText, scope === s.key && { color: '#09282eff', fontWeight: '700' }]} numberOfLines={1}>{s.label}</Text>
+                  <Text style={[styles.scopeText, scope === s.key && { color: colors.onAccent, fontWeight: '700' }]} numberOfLines={1}>{s.label}</Text>
                 </Pressable>
               ))}
             </View>
             {error ? <LoadError message={error} onRetry={() => load(scope, place)} /> : null}
-            {loading ? <ActivityIndicator color="#FED8FE" style={{ marginTop: 24 }} /> : null}
+            {loading ? <ActivityIndicator color={colors.accentText} style={{ marginTop: 24 }} /> : null}
             {!loading && !error && rows.length === 0 ? (
               <Text style={styles.empty}>No one here yet. Try a wider area, or check back soon as more parents join.</Text>
             ) : null}
@@ -148,7 +151,7 @@ export default function NeighborsScreen() {
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Connect with {asking?.name}</Text>
             <Text style={styles.muted}>Add a short hello (optional). They can accept or decline.</Text>
-            <TextInput style={[styles.input, { minHeight: 80 }]} value={intro} onChangeText={setIntro} multiline maxLength={200} placeholder="Hi! My baby is 3 months old too..." placeholderTextColor="#A4CDD3" />
+            <TextInput style={[styles.input, { minHeight: 80 }]} value={intro} onChangeText={setIntro} multiline maxLength={200} placeholder="Hi! My baby is 3 months old too..." placeholderTextColor={colors.muted} />
             <View style={styles.actions}>
               <Pressable onPress={() => setAsking(null)}><Text style={styles.cancel}>Cancel</Text></Pressable>
               <Pressable style={styles.primary} onPress={send} disabled={sending}><Text style={styles.primaryText}>{sending ? 'Sending...' : 'Send request'}</Text></Pressable>
@@ -160,36 +163,36 @@ export default function NeighborsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09282eff' },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 60 },
-  back: { color: '#A4CDD3', marginBottom: 12, fontSize: 14 },
-  title: { fontSize: 28, color: '#FED8FE', fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#A4CDD3', marginBottom: 12, lineHeight: 20 },
+  back: { color: colors.muted, marginBottom: 12, fontSize: 14 },
+  title: { fontSize: 28, color: colors.heading, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: colors.muted, marginBottom: 12, lineHeight: 20 },
   linkRow: { marginBottom: 16 },
-  link: { color: '#FDFECC', fontWeight: '600', fontSize: 14 },
-  card: { backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#2F9BA8', gap: 8 },
-  cardTitle: { color: '#E8FBFF', fontSize: 16, fontWeight: '700' },
-  muted: { color: '#A4CDD3', fontSize: 13, lineHeight: 18 },
-  primary: { backgroundColor: '#FED8FE', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 18, alignSelf: 'flex-start', marginTop: 6 },
-  primaryText: { color: '#09282eff', fontWeight: '700' },
+  link: { color: colors.link, fontWeight: '600', fontSize: 14 },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 8 },
+  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  muted: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  primary: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 18, alignSelf: 'flex-start', marginTop: 6 },
+  primaryText: { color: colors.onAccent, fontWeight: '700' },
   scopes: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  scope: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8', maxWidth: '100%' },
-  scopeActive: { backgroundColor: '#FED8FE', borderColor: '#FED8FE' },
-  scopeText: { color: '#E8FBFF', fontSize: 13 },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 10 },
-  name: { color: '#E8FBFF', fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  smallBtn: { backgroundColor: '#FED8FE', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14 },
-  smallBtnText: { color: '#09282eff', fontWeight: '700', fontSize: 13 },
-  status: { color: '#A4CDD3', fontSize: 12 },
-  empty: { color: '#A4CDD3', textAlign: 'center', marginTop: 24, lineHeight: 20 },
+  scope: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.border, maxWidth: '100%' },
+  scopeActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  scopeText: { color: colors.text, fontSize: 13 },
+  person: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
+  name: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  smallBtn: { backgroundColor: colors.accent, borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14 },
+  smallBtnText: { color: colors.onAccent, fontWeight: '700', fontSize: 13 },
+  status: { color: colors.muted, fontSize: 12 },
+  empty: { color: colors.muted, textAlign: 'center', marginTop: 24, lineHeight: 20 },
   moreBtn: { alignSelf: 'center', padding: 12 },
-  moreText: { color: '#FDFECC', fontWeight: '600' },
-  safety: { color: '#A4CDD3', fontSize: 12, lineHeight: 18, marginTop: 24 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#0f3a41ff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: '#2F9BA8', gap: 8 },
-  sheetTitle: { color: '#FED8FE', fontSize: 20, fontWeight: '700', lineHeight: 26 },
-  input: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 10, padding: 12, color: '#E8FBFF', marginTop: 8, textAlignVertical: 'top' },
+  moreText: { color: colors.link, fontWeight: '600' },
+  safety: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 24 },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderWidth: 1, borderColor: colors.border, gap: 8 },
+  sheetTitle: { color: colors.heading, fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, marginTop: 8, textAlignVertical: 'top' },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
-  cancel: { color: '#A4CDD3', fontSize: 15 },
+  cancel: { color: colors.muted, fontSize: 15 },
 });
