@@ -6,6 +6,8 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { supabase } from '@/lib/supabase';
+import { PostMedia } from '@/components/PostMedia';
+import { PostFile, deletePostWithMedia, fetchPostMedia, mediaUrls } from '@/lib/postMediaStore';
 
 interface ReportedPost {
   id: string;
@@ -22,6 +24,8 @@ export default function ModerationScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState<ReportedPost[]>([]);
   const [error, setError] = useState('');
+  const [mediaOf, setMediaOf] = useState<Record<string, PostFile[]>>({});
+  const [urls, setUrls] = useState<Record<string, string>>({});
   const [reports, setReports] = useState<{ id: string; reported: string; reason: string; details: string | null; message_excerpt: string | null; name: string }[]>([]);
   const [suspended, setSuspended] = useState<{ id: string; name: string }[]>([]);
 
@@ -32,7 +36,12 @@ export default function ModerationScreen() {
       .select('id,user_id,title,excerpt,hidden,post_reports!inner(reason,details)')
       .order('created_at', { ascending: false });
     if (err) setError(friendlyError(err));
-    else setPosts((data ?? []) as any);
+    else {
+      setPosts((data ?? []) as any);
+      fetchPostMedia(((data ?? []) as any[]).map(p => p.id))
+        .then(async m => { setMediaOf(m); setUrls(await mediaUrls(Object.values(m).flat().map(f => f.path))); })
+        .catch(() => {});
+    }
     const { data: ur } = await supabase
       .from('user_reports')
       .select('id,reported,reason,details,message_excerpt,created_at,who:profiles!user_reports_reported_fkey(name)')
@@ -86,8 +95,11 @@ export default function ModerationScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const { error: err } = await supabase.from('posts').delete().eq('id', id);
-          if (err) Alert.alert('Error', friendlyError(err));
+          try {
+            await deletePostWithMedia(id);
+          } catch (err) {
+            Alert.alert('Error', friendlyError(err));
+          }
           load();
         },
       },
@@ -105,6 +117,7 @@ export default function ModerationScreen() {
             <Text style={styles.status}>{p.hidden ? 'HIDDEN' : 'Visible'} · {p.post_reports.length} report(s)</Text>
             <Text style={styles.postTitle}>{p.title}</Text>
             <Text style={styles.body}>{p.excerpt}</Text>
+            <PostMedia items={mediaOf[p.id] ?? []} urls={urls} />
             <Text style={styles.muted}>Reasons: {p.post_reports.map(r => r.reason).join(', ')}</Text>
             <View style={styles.row}>
               <Pressable onPress={() => restore(p.id)}><Text style={styles.action}>Keep (clear reports)</Text></Pressable>

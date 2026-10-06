@@ -19,6 +19,7 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 11. `0011_push_and_photos.sql`: partner notifications (push tokens + a database trigger) and the private `milestone-photos` bucket
 12. `0012_neighbors.sql`: parents near you (private location table, connection requests, chat, reports, notifications)
 13. `0013_groups.sql`: small group chats (up to 8, only between connected parents)
+14. `0014_post_media.sql`: photos and videos in community posts (private `post-media` bucket)
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
@@ -58,6 +59,16 @@ with, and each invitee must accept. If the creator leaves, the longest-standing 
 left is deleted. Blocking someone removes you from every group you share with them. Reports of a group message go to the
 same moderator list as other reports (a copy of only that message). Notifications say who wrote and in which group, never
 the text, and each group can be muted.
+
+### Photos and videos in community posts (0014)
+Up to 4 files per post, at most one video (30 seconds, 25 MB in the app; the bucket allows 50 MB). Photos are resized to
+1600 px and re-encoded, which removes location data. Files are in a private bucket and shown through links that expire
+after an hour; they stop being readable by others when a post is hidden (3 reports) or deleted. Deleting a post (or an
+account) also deletes its files from storage; moderators can delete a post's files too.
+Supabase's free plan caps uploads at 50 MB per file (Storage -> Settings), which is also this bucket's limit. Plan storage
+and bandwidth costs: videos are the expensive part, so keep an eye on Storage usage after launch.
+Nothing scans uploads automatically: moderation relies on reports (and the 3-report auto-hide). Before launch, decide who
+reviews reports and how fast, since photos and videos make that more important.
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

@@ -8,6 +8,11 @@ import { incomingRequestCount } from '@/lib/neighbors';
 import { myGroups } from '@/lib/groups';
 import { supabase } from '@/lib/supabase';
 import { LoadError, friendlyError } from '@/components/LoadError';
+import { Image } from 'expo-image';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { PostMedia } from '@/components/PostMedia';
+import { MAX_VIDEO_SECONDS, pickPostMedia } from '@/lib/postMedia';
+import { LocalMedia, MAX_FILES, PostFile, createPostWithMedia, deletePostWithMedia, fetchPostMedia, mediaUrls } from '@/lib/postMediaStore';
 
 interface Post {
   id: string;
@@ -43,6 +48,10 @@ export default function CommunityScreen() {
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
   const router = useRouter();
   const [requests, setRequests] = useState(0);
+  const [media, setMedia] = useState<LocalMedia[]>([]);          // chosen for the post being written
+  const [mediaOf, setMediaOf] = useState<Record<string, PostFile[]>>({});
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [progress, setProgress] = useState('');
 
   const loadPosts = useCallback(async () => {
     try {
@@ -55,7 +64,15 @@ export default function CommunityScreen() {
         supabase.from('post_saves').select('post_id').eq('user_id', u.user?.id ?? ''),
       ]);
       if (feed.error) throw feed.error;
-      setPosts((feed.data ?? []) as Post[]);
+      const list = (feed.data ?? []) as Post[];
+      setPosts(list);
+      // photos and videos load after the text so the feed appears right away
+      fetchPostMedia(list.map(p => p.id))
+        .then(async m => {
+          setMediaOf(m);
+          setUrls(await mediaUrls(Object.values(m).flat().map(f => f.path)));
+        })
+        .catch(() => {});
       setUserLikes((likes.data ?? []).map((r: any) => r.post_id));
       setUserSaves((saves.data ?? []).map((r: any) => r.post_id));
     } catch (error) {
@@ -93,12 +110,13 @@ export default function CommunityScreen() {
     }
     try {
       setLoading(true);
-      const { error } = await supabase.from('posts').insert({
-        title: title.trim(),
-        excerpt: excerpt.trim(),
-        tags: selectedTags.map(t => t.toLowerCase()),
-      });
-      if (error) throw error;
+      setProgress('');
+      await createPostWithMedia(
+        { title: title.trim(), excerpt: excerpt.trim(), tags: selectedTags.map(t => t.toLowerCase()) },
+        media,
+        (done, total) => setProgress(done < total ? `Uploading ${done + 1} of ${total}...` : 'Publishing...'),
+      );
+      setMedia([]);
       setTitle('');
       setExcerpt('');
       setSelectedTags([]);
@@ -107,9 +125,19 @@ export default function CommunityScreen() {
       Alert.alert('Success', 'Your post has been published!');
     } catch (error) {
       console.error('Error creating post:', error);
-      Alert.alert('Error', 'Failed to create post. Please try again.');
+      Alert.alert('Could not publish', media.length ? `${friendlyError(error)}\n\nYour photos and videos were not posted. Check your connection and try again.` : 'Failed to create post. Please try again.');
     } finally {
       setLoading(false);
+      setProgress('');
+    }
+  };
+
+  const addMedia = async (source: 'library' | 'camera') => {
+    try {
+      const more = await pickPostMedia(source, media);
+      if (more.length) setMedia(prev => [...prev, ...more]);
+    } catch (e) {
+      Alert.alert('Could not add that', friendlyError(e));
     }
   };
 
@@ -206,9 +234,12 @@ export default function CommunityScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const { error } = await supabase.from('posts').delete().eq('id', post.id);
-          if (error) Alert.alert('Could not delete', friendlyError(error));
-          else setPosts(prev => prev.filter(p => p.id !== post.id));
+          try {
+            await deletePostWithMedia(post.id);
+            setPosts(prev => prev.filter(p => p.id !== post.id));
+          } catch (error) {
+            Alert.alert('Could not delete', friendlyError(error));
+          }
         },
       },
     ]);
@@ -310,6 +341,7 @@ export default function CommunityScreen() {
                   by {post.author} · {formatDate(post.created_at)}
                 </Text>
                 <Text style={styles.postExcerpt}>{post.excerpt}</Text>
+                <PostMedia items={mediaOf[post.id] ?? []} urls={urls} />
                 
                 <View style={styles.postTags}>
                   {post.tags && post.tags.map((tag: string) => (
@@ -393,7 +425,7 @@ export default function CommunityScreen() {
                 disabled={loading}
               >
                 <Text style={[styles.modalPublishButton, loading && styles.disabled]}>
-                  {loading ? 'Publishing...' : 'Publish'}
+                  {loading ? progress || 'Publishing...' : 'Publish'}
                 </Text>
               </Pressable>
             </View>
@@ -428,6 +460,42 @@ export default function CommunityScreen() {
                 textAlignVertical="top"
               />
               <Text style={styles.characterCount}>{excerpt.length}/500</Text>
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Photos and videos (optional)</Text>
+              {media.length > 0 ? (
+                <View style={styles.mediaRow}>
+                  {media.map((m, i) => (
+                    <View key={m.uri + i} style={styles.thumb}>
+                      {m.kind === 'image' ? (
+                        <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                      ) : (
+                        <View style={styles.videoThumb}>
+                          <MaterialCommunityIcons name="play-circle-outline" size={30} color="#FED8FE" />
+                          {m.duration ? <Text style={styles.videoLen}>{Math.round(m.duration)}s</Text> : null}
+                        </View>
+                      )}
+                      <Pressable style={styles.thumbRemove} onPress={() => setMedia(prev => prev.filter((_, j) => j !== i))} hitSlop={6} accessibilityLabel="Remove this file">
+                        <MaterialCommunityIcons name="close" size={14} color="#09282eff" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              <View style={styles.mediaButtons}>
+                <Pressable style={[styles.mediaBtn, media.length >= MAX_FILES && { opacity: 0.4 }]} onPress={() => addMedia('library')} disabled={media.length >= MAX_FILES}>
+                  <MaterialCommunityIcons name="image-multiple-outline" size={18} color="#FDFECC" />
+                  <Text style={styles.mediaBtnText}>Photos or video</Text>
+                </Pressable>
+                <Pressable style={[styles.mediaBtn, media.length >= MAX_FILES && { opacity: 0.4 }]} onPress={() => addMedia('camera')} disabled={media.length >= MAX_FILES}>
+                  <MaterialCommunityIcons name="camera-outline" size={18} color="#FDFECC" />
+                  <Text style={styles.mediaBtnText}>Camera</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.selectedTagsInfo}>
+                Up to {MAX_FILES} files ({media.length} added), one video of up to {MAX_VIDEO_SECONDS} seconds. Everyone in the community can see your post, so please leave out your address and other people's children.
+              </Text>
             </View>
 
             <View style={styles.formSection}>
@@ -510,6 +578,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#A4CDD3',
   },
+  mediaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  thumb: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: '#09282eff', borderWidth: 1, borderColor: '#2F9BA8' },
+  videoThumb: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  videoLen: { color: '#A4CDD3', fontSize: 11 },
+  thumbRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FED8FE', alignItems: 'center', justifyContent: 'center' },
+  mediaButtons: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  mediaBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#2F9BA8' },
+  mediaBtnText: { color: '#E8FBFF', fontSize: 13 },
   neighborsCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#2F9BA8', marginBottom: 12 },
   neighborsTitle: { color: '#FED8FE', fontSize: 16, fontWeight: '700', lineHeight: 22 },
   neighborsText: { color: '#A4CDD3', fontSize: 12, lineHeight: 17, marginTop: 2 },

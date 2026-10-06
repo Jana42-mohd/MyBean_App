@@ -34,6 +34,14 @@ export async function deleteAccount() {
     await supabase.storage.from('avatars').remove(files.map(f => `${u.user!.id}/${f.name}`));
   }
 
+  // Photos and videos from my community posts (the database cannot delete files from storage)
+  try {
+    const { data: media } = await supabase.storage.from('post-media').list(u.user.id, { limit: 1000 });
+    if (media?.length) await supabase.storage.from('post-media').remove(media.map(f => `${u.user!.id}/${f.name}`));
+  } catch (e) {
+    console.warn('Could not remove post media:', e);
+  }
+
   // Milestone photos belong to the household: they are only removed if nobody else is left to keep them
   try {
     const { data: me } = await supabase.from('profiles').select('household_id').eq('id', u.user.id).maybeSingle();

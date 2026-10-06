@@ -18,7 +18,7 @@ Questions or requests: [[SUPPORT_EMAIL]].
 
 - Wellbeing: daily mood and sleep check-ins, answers and scores from the Edinburgh Postnatal Depression Scale screening, and notes you choose to write.
 
-- Community: posts you write, and your likes, saves, reports, and the members you block.
+- Community: posts you write, including any photos and videos you attach (we remove location data from photos before uploading), and your likes, saves, reports, and the members you block.
 
 - Parents near you (optional): a country, city and neighbourhood that you type yourself (we never use GPS or your phone's location), and a switch saying whether nearby parents may find you. It is off until you turn it on. Connection requests, the messages you exchange with parents you have accepted, small group chats (up to 8 people, only with parents you are connected with) and their messages, and any reports you send about people.
 
@@ -50,7 +50,7 @@ We do not sell your information, use it for advertising, or use it to build mark
 
 - Household: if you link with a partner, you both see the shared babies, logs, and each other's names. Anyone who has your invite code can join your household, so keep it private. You can leave a household at any time.
 
-- Community: your posts show your name to other signed-in users.
+- Community: your posts, and the photos and videos in them, are shown with your name to every other signed-in user, so only post what you are happy for the whole community to see. Deleting a post deletes its photos and videos.
 
 - Wellbeing: your check-ins and screening results are private to you. They are never shown to your partner or other users.
 
@@ -68,7 +68,7 @@ Data is encrypted in transit (HTTPS) and encrypted at rest by our hosting provid
 
 We keep your information while your account is open. You can delete your account in the app at any time (Settings, then Delete my account).
 
-Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo, place, connections, messages and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.
+Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, likes, saves, profile photo, post photos and videos, place, connections, messages and notification address. If a partner is still in your household, the shared baby records stay for them, and the logs you entered are kept under your partner's account so their history is not lost. If you are the last member, the household, babies, all their logs and milestone photos are deleted as well.
 
 Deleted data may remain in encrypted backups for up to [[BACKUP_DAYS]] days before it is permanently erased.
 

@@ -151,3 +151,14 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Babies: tap a baby to edit, Remove asks for confirmation. Household: invite code row shares, join code works, Leave household appears only with a partner.
 - [ ] Notifications and Reminders: switches, the hour steppers appear only when the reminder is on. Change password expands in place. Delete my account is at the very bottom and needs typing DELETE.
 - [ ] Everything is readable at the largest phone font size and in landscape.
+
+## Photos and videos in posts
+- [ ] Community -> Start a new post: "Photos or video" opens the library (several photos at once), "Camera" takes a photo or records a video. Chosen files show as thumbnails with an X to remove them.
+- [ ] A 4th photo is allowed, a 5th is refused; a second video is refused; a video longer than 30 seconds, or over 25 MB, is refused with a clear message.
+- [ ] Publish: the button shows "Uploading 1 of 3..." then publishes. The post shows the photos in a grid (an odd last photo fills the row) and the video with play controls. Tap a photo to see it full screen.
+- [ ] Another account sees the media. A third account that blocked the author does not see the post at all.
+- [ ] Turn on airplane mode, publish with a photo: it fails with a clear message, nothing is posted and no stray file is left in Storage -> post-media.
+- [ ] Delete your own post: its files disappear from Storage -> post-media.
+- [ ] Report a post with photos 3 times from 3 accounts: it disappears for everyone but the author and moderators; a moderator sees its photos/video on the Moderation screen and can delete it (files removed too).
+- [ ] A photo taken with location on: the uploaded file has no GPS data (check with an EXIF viewer).
+- [ ] Delete account: your post files are removed from Storage.

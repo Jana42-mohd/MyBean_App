@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { signedUrls } from './signedUrls';
 import { supabase } from './supabase';
 
 // Private milestone photos. Files live in the 'milestone-photos' bucket under <household id>/<random>.jpg;
@@ -49,31 +50,5 @@ export async function uploadPhoto(photo: PickedPhoto): Promise<string> {
 }
 
 // Photos are private: each one is shown through a link that stops working after an hour
-const urlCache = new Map<string, { url: string; expires: number }>();
-const TTL_SECONDS = 3600;
-
-export async function photoUrls(paths: string[]): Promise<Record<string, string>> {
-  const now = Date.now();
-  const out: Record<string, string> = {};
-  const need: string[] = [];
-  for (const p of new Set(paths)) {
-    const hit = urlCache.get(p);
-    if (hit && hit.expires > now + 60_000) out[p] = hit.url;
-    else need.push(p);
-  }
-  if (need.length) {
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(need, TTL_SECONDS);
-    if (error) return out; // offline or refused: the screen shows the placeholder
-    for (const row of data ?? []) {
-      if (row.path && row.signedUrl) {
-        urlCache.set(row.path, { url: row.signedUrl, expires: now + TTL_SECONDS * 1000 });
-        out[row.path] = row.signedUrl;
-      }
-    }
-  }
-  return out;
-}
-
-export function forgetPhotoUrls() {
-  urlCache.clear();
-}
+export const photoUrls = (paths: string[]) => signedUrls(BUCKET, paths);
+export { forgetSignedUrls as forgetPhotoUrls } from './signedUrls';
