@@ -86,10 +86,14 @@ export async function savePlace(p: { country: string | null; city: string; regio
   const area = p.area.trim();
   if (p.discoverable && (!p.country || !city)) throw new Error('Choose your country and type your city before turning this on.');
   if (city.length > 60 || area.length > 60 || region.length > 60) throw new Error('City and neighbourhood can be at most 60 characters.');
-  const uid = await me();
-  const { error } = await supabase
-    .from('neighbor_profiles')
-    .upsert({ user_id: uid, country: p.country, city: city || null, region: city && region ? region : null, area: area || null, discoverable: p.discoverable }, { onConflict: 'user_id' });
+  await me(); // not signed in -> a clear error before asking the server
+  const { error } = await supabase.rpc('save_place', {
+    p_country: p.country,
+    p_city: city || null,
+    p_region: city && region ? region : null,
+    p_area: area || null,
+    p_discoverable: p.discoverable,
+  });
   if (error) throw error;
 }
 

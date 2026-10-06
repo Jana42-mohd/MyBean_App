@@ -52,6 +52,28 @@ select t.ok($$ update public.neighbor_profiles set region = 'Ontario, Canada' $$
 select t.owner();
 select t.eq((select city_key || '|' || region_key from public.neighbor_profiles where user_id = t.u(2)), 'toronto|ontario', 'the matching text is stored folded');
 
+-- ======== saving the place (migration 0016) ========
+select t.owner();
+select t.mkuser(t.v(20), 'Fay');
+select t.login(t.v(20));
+select t.fails($$ insert into public.neighbor_profiles (user_id, country, city) values (auth.uid(), 'CA', 'Toronto')
+                  on conflict (user_id) do update set user_id = excluded.user_id, country = excluded.country $$,
+               'an upsert from the app cannot work: user_id is not updatable (this is why saving now uses save_place)');
+select t.ok($$ select public.save_place('CA', ' Ottawa ', 'Ontario', '', false) $$, 'save_place creates the row');
+select t.eq((select city || '|' || region || '|' || coalesce(area, 'none') || '|' || discoverable::text from public.neighbor_profiles), 'Ottawa|Ontario|none|false', 'trimmed, empty area is none');
+select t.ok($$ select public.save_place('CA', 'Ottawa', 'Ontario', 'Centretown', true) $$, 'and updates it');
+select t.eq((select area || '|' || discoverable::text from public.neighbor_profiles), 'Centretown|true', 'updated');
+select t.ok($$ select public.save_place('CA', '', 'Ontario', '', false) $$, 'a place without a city can be saved while hidden');
+select t.eq((select (region is null)::text from public.neighbor_profiles), 'true', 'and then has no region either');
+select t.fails($$ select public.save_place('CA', '', null, null, true) $$, 'visible needs a city');
+select t.fails($$ select public.save_place('Canada', 'Ottawa', null, null, false) $$, 'the country must be a 2-letter code');
+select t.owner();
+select t.eq((select count(*) from public.neighbor_profiles where user_id = t.v(20))::text, '1', 'one row per person');
+select t.login(t.u(2));
+select t.eq((select city from public.neighbor_profiles), 'toronto', 'saving for Fay never touched anyone else''s place');
+select t.anon();
+select t.fails($$ select public.save_place('CA', 'Ottawa', null, null, false) $$, 'signed-out visitors cannot save');
+
 -- ======== unread: one-to-one chats ========
 select t.connect(t.u(1), t.u(2));
 select t.connect(t.u(3), t.u(1));
