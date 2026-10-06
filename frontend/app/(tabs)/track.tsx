@@ -1,1 +1,615 @@
-export { default } from '../track';
+import { useCallback, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
+import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Modal, Platform, Alert } from 'react-native';
+import { fetchLogs, LogRow, LogType } from '@/lib/logs';
+import { logEntry } from '@/lib/logActions';
+import { useLiveRefresh } from '@/hooks/use-live';
+import { formatShort, toLocalInput } from '@/lib/time';
+import { Baby, bornBabies, expectedBabies, fetchBabies } from '@/lib/babies';
+import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
+import { LoadError, friendlyError } from '@/components/LoadError';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
+
+interface NapLog { start: string; end: string; notes?: string }
+interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: 'yellow' | 'green' | 'brown' | 'black'; consistency?: 'runny' | 'normal' | 'firm'; notes?: string }
+interface FeedingLog { time: string; method: 'breast' | 'formula' | 'mixed'; amount?: string; nextInHours?: string }
+interface PumpLog { time: string; volumeOz: string; side: 'left' | 'right' | 'both'; ampm: 'AM' | 'PM' }
+interface MilestoneLog { date: string; milestone: string; notes?: string }
+interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying' | 'calm'; notes?: string }
+
+
+export default function TrackScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
+  const insets = useSafeAreaInsets();
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [selected, setSelected] = useState(ALL_BABIES);
+  const [rows, setRows] = useState<LogRow[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const born = bornBabies(babies);
+  // Entries for the chosen baby (pumping belongs to the parent, so it always shows)
+  const of = <T,>(t: LogType): T[] =>
+    rows.filter(r => r.type === t && (selected === ALL_BABIES || r.baby_id === selected || r.baby_id === null)).map(r => r.data as T);
+  const naps = of<NapLog>('nap');
+  const diapers = of<DiaperLog>('diaper');
+  const feedings = of<FeedingLog>('feeding');
+  const pumps = of<PumpLog>('pumping');
+  const milestones = of<MilestoneLog>('milestone');
+  const moods = of<MoodLog>('mood');
+
+  // Form state
+  const [napStart, setNapStart] = useState('');
+  const [napEnd, setNapEnd] = useState('');
+  const [napNotes, setNapNotes] = useState('');
+
+  const [diaperType, setDiaperType] = useState<'pee'|'poop'>('pee');
+  const [poopColor, setPoopColor] = useState<'yellow'|'green'|'brown'|'black'|''>('');
+  const [poopConsistency, setPoopConsistency] = useState<'runny'|'normal'|'firm'|''>('');
+  const [diaperNotes, setDiaperNotes] = useState('');
+
+  const [feedMethod, setFeedMethod] = useState<'breast'|'formula'|'mixed'>('breast');
+  const [feedAmount, setFeedAmount] = useState('');
+  const [nextInHours, setNextInHours] = useState('');
+
+  const [pumpVolume, setPumpVolume] = useState('');
+  const [pumpSide, setPumpSide] = useState<'left'|'right'|'both'>('both');
+
+  const [milestoneText, setMilestoneText] = useState('');
+  const [milestoneDate, setMilestoneDate] = useState('');
+  const [milestoneNotes, setMilestoneNotes] = useState('');
+
+  const [moodType, setMoodType] = useState<'happy'|'fussy'|'sleeping'|'crying'|'calm'>('calm');
+  const [moodNotes, setMoodNotes] = useState('');
+
+  // Date/Time picker state
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState<'napStart' | 'napEnd' | 'milestone'>('napStart');
+  const [pickerDate, setPickerDate] = useState(new Date());
+  const [pickerHour, setPickerHour] = useState(new Date().getHours());
+  const [pickerMinute, setPickerMinute] = useState(new Date().getMinutes());
+
+  const openDateTimePicker = (mode: 'napStart' | 'napEnd' | 'milestone') => {
+    setDatePickerMode(mode);
+    setPickerDate(new Date());
+    setPickerHour(new Date().getHours());
+    setPickerMinute(new Date().getMinutes());
+    setDatePickerVisible(true);
+  };
+
+  const handleDateTimeConfirm = () => {
+    const date = new Date(pickerDate);
+    date.setHours(pickerHour);
+    date.setMinutes(pickerMinute);
+
+    // nap times are stored as real instants and shown in local time
+    const formatted = date.toISOString();
+    const dateOnly = toLocalInput(date).slice(0, 10);
+
+    if (datePickerMode === 'napStart') {
+      setNapStart(formatted);
+    } else if (datePickerMode === 'napEnd') {
+      setNapEnd(formatted);
+    } else if (datePickerMode === 'milestone') {
+      setMilestoneDate(dateOnly);
+    }
+
+    setDatePickerVisible(false);
+  };
+  const load = useCallback(async () => {
+    try {
+      setLoadError('');
+      const [b, r] = await Promise.all([fetchBabies(), fetchLogs(undefined, 300)]);
+      setBabies(b);
+      setRows(r);
+    } catch (e) {
+      console.error('Error loading logs:', e);
+      setLoadError(friendlyError(e));
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useLiveRefresh(load);
+
+  // Logs for the selected baby, or one entry per baby when "All babies" is selected
+  const save = async (type: LogType, entry: any, loggedAt?: string) => {
+    try {
+      const who = selected === ALL_BABIES ? born : born.filter(b => b.id === selected);
+      await logEntry(type, entry, who, loggedAt);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Could not save', friendlyError(e));
+    }
+  };
+
+  const logNap = async () => {
+    if (!napStart || !napEnd) return;
+    if (new Date(napEnd) <= new Date(napStart)) {
+      Alert.alert('Check the times', 'The nap must end after it starts.');
+      return;
+    }
+    const entry: NapLog = { start: napStart, end: napEnd, notes: napNotes || undefined };
+    await save('nap', entry, napStart);
+    setNapStart(''); setNapEnd(''); setNapNotes('');
+  };
+
+  const logDiaper = async () => {
+    const time = new Date().toISOString();
+    const entry: DiaperLog = { time, type: diaperType, color: diaperType==='poop'? (poopColor||undefined) : undefined, consistency: diaperType==='poop'? (poopConsistency||undefined) : undefined, notes: diaperNotes || undefined };
+    await save('diaper', entry, time);
+    setDiaperNotes(''); setPoopColor(''); setPoopConsistency('');
+  };
+
+  const logFeeding = async () => {
+    const time = new Date().toISOString();
+    const entry: FeedingLog = { time, method: feedMethod, amount: feedAmount || undefined, nextInHours: nextInHours || undefined };
+    await save('feeding', entry, time);
+    setFeedAmount(''); setNextInHours('');
+  };
+
+  const logPump = async () => {
+    const now = new Date();
+    const ampm: 'AM'|'PM' = now.getHours() < 12 ? 'AM' : 'PM';
+    const entry: PumpLog = { time: now.toISOString(), volumeOz: pumpVolume || '0', side: pumpSide, ampm };
+    await save('pumping', entry, entry.time);
+    setPumpVolume('');
+  };
+
+  const logMilestone = async () => {
+    if (!milestoneText || !milestoneDate) return;
+    const entry: MilestoneLog = { date: milestoneDate, milestone: milestoneText, notes: milestoneNotes || undefined };
+    await save('milestone', entry, new Date(milestoneDate).toISOString());
+    setMilestoneText(''); setMilestoneDate(''); setMilestoneNotes('');
+  };
+
+  const logMood = async () => {
+    const time = new Date().toISOString();
+    const entry: MoodLog = { time, mood: moodType, notes: moodNotes || undefined };
+    await save('mood', entry, time);
+    setMoodNotes('');
+  };
+
+  return (
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ThemedText style={styles.title}>Track Baby Activity</ThemedText>
+        <Text style={styles.subtitle}>Log feeding, sleep, diapers, milestones & mood</Text>
+        {loadError ? <LoadError message={loadError} onRetry={load} /> : null}
+        {born.length === 0 && !loadError ? (
+          <LoadError
+            message={
+              expectedBabies(babies).length > 0
+                ? "Baby isn't here yet! Logging unlocks once baby is born: Settings → Babies → Edit, then switch to \"already born\"."
+                : 'Add your baby first: Settings → Babies → Add or edit babies.'
+            }
+          />
+        ) : null}
+        <BabyPicker babies={born} value={selected} onChange={setSelected} allLabel="All babies (log together)" />
+
+        {/* Naps */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Naps</Text>
+          <Text style={styles.label}>Start Time</Text>
+          <Pressable style={styles.dateButton} onPress={() => openDateTimePicker('napStart')}>
+            <Text style={styles.dateButtonText}>{napStart ? formatShort(napStart) : 'Tap to select start time'}</Text>
+          </Pressable>
+          <Text style={styles.label}>End Time</Text>
+          <Pressable style={styles.dateButton} onPress={() => openDateTimePicker('napEnd')}>
+            <Text style={styles.dateButtonText}>{napEnd ? formatShort(napEnd) : 'Tap to select end time'}</Text>
+          </Pressable>
+          <Text style={styles.label}>Notes</Text>
+          <TextInput style={styles.input} value={napNotes} onChangeText={setNapNotes} placeholder="Optional" placeholderTextColor={colors.muted} />
+          <Pressable style={styles.primaryButton} onPress={logNap}><Text style={styles.primaryButtonText}>Log Nap</Text></Pressable>
+          <View style={styles.list}>{naps.slice(0,5).map((n,i)=>(<Text key={i} style={styles.listItem}>{formatShort(n.start)} → {formatShort(n.end)} {n.notes? `· ${n.notes}`:''}</Text>))}</View>
+        </View>
+
+        {/* Diapers */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Diapers</Text>
+          <View style={styles.row}>
+            {(['pee','poop'] as const).map(opt => (
+              <Pressable key={opt} onPress={()=>setDiaperType(opt)} style={[styles.choice, diaperType===opt && styles.choiceActive]}>
+                <Text style={[styles.choiceText, diaperType===opt && styles.choiceTextActive]}>{opt}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {diaperType==='poop' && (
+            <>
+            <Text style={styles.label}>Poop color</Text>
+            <View style={styles.row}>
+              {(['yellow','green','brown','black'] as const).map(opt => (
+                <Pressable key={opt} onPress={()=>setPoopColor(opt)} style={[styles.choice, poopColor===opt && styles.choiceActive]}>
+                  <Text style={[styles.choiceText, poopColor===opt && styles.choiceTextActive]}>{opt}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.helper}>Black stool can indicate bleeding; contact a doctor. Green is often due to iron or foremilk; yellow is common. Monitor changes.</Text>
+            <Text style={styles.label}>Consistency</Text>
+            <View style={styles.row}>
+              {(['runny','normal','firm'] as const).map(opt => (
+                <Pressable key={opt} onPress={()=>setPoopConsistency(opt)} style={[styles.choice, poopConsistency===opt && styles.choiceActive]}>
+                  <Text style={[styles.choiceText, poopConsistency===opt && styles.choiceTextActive]}>{opt}</Text>
+                </Pressable>
+              ))}
+            </View>
+            </>
+          )}
+          <Text style={styles.label}>Notes</Text>
+          <TextInput style={styles.input} value={diaperNotes} onChangeText={setDiaperNotes} placeholder="Optional" placeholderTextColor={colors.muted} />
+          <Pressable style={styles.primaryButton} onPress={logDiaper}><Text style={styles.primaryButtonText}>Log Diaper</Text></Pressable>
+          <View style={styles.list}>{diapers.slice(0,5).map((d,i)=>(<Text key={i} style={styles.listItem}>{d.time} · {d.type}{d.color? ` · ${d.color}`:''}{d.consistency? ` · ${d.consistency}`:''}</Text>))}</View>
+        </View>
+
+        {/* Feeding */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Feeding</Text>
+          <View style={styles.row}>
+            {(['breast','formula','mixed'] as const).map(opt => (
+              <Pressable key={opt} onPress={()=>setFeedMethod(opt)} style={[styles.choice, feedMethod===opt && styles.choiceActive]}>
+                <Text style={[styles.choiceText, feedMethod===opt && styles.choiceTextActive]}>{opt}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.label}>Amount (oz or minutes)</Text>
+          <TextInput style={styles.input} value={feedAmount} onChangeText={setFeedAmount} placeholder="e.g., 4 oz or 15 min" placeholderTextColor={colors.muted} />
+          <Text style={styles.label}>Next feeding reminder (hours)</Text>
+          <TextInput style={styles.input} value={nextInHours} onChangeText={setNextInHours} placeholder="e.g., 3" placeholderTextColor={colors.muted} keyboardType="numeric" />
+          <Pressable style={styles.primaryButton} onPress={logFeeding}><Text style={styles.primaryButtonText}>Log Feeding</Text></Pressable>
+          <View style={styles.list}>{feedings.slice(0,5).map((f,i)=>(<Text key={i} style={styles.listItem}>{f.time} · {f.method}{f.amount? ` · ${f.amount}`:''}{f.nextInHours? ` · next in ${f.nextInHours}h`:''}</Text>))}</View>
+        </View>
+
+        {/* Pumping */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Pumping</Text>
+          <View style={styles.row}>
+            {(['left','right','both'] as const).map(opt => (
+              <Pressable key={opt} onPress={()=>setPumpSide(opt)} style={[styles.choice, pumpSide===opt && styles.choiceActive]}>
+                <Text style={[styles.choiceText, pumpSide===opt && styles.choiceTextActive]}>{opt}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.label}>Volume (oz)</Text>
+          <TextInput style={styles.input} value={pumpVolume} onChangeText={setPumpVolume} placeholder="e.g., 6" placeholderTextColor={colors.muted} keyboardType="numeric" />
+          <Pressable style={styles.primaryButton} onPress={logPump}><Text style={styles.primaryButtonText}>Log Pumping</Text></Pressable>
+          <View style={styles.list}>{pumps.slice(0,5).map((p,i)=>(<Text key={i} style={styles.listItem}>{p.time} · {p.volumeOz} oz · {p.side} · {p.ampm}</Text>))}</View>
+        </View>
+
+        {/* Milestones */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Milestones</Text>
+          <Text style={styles.label}>Date</Text>
+          <Pressable style={styles.dateButton} onPress={() => openDateTimePicker('milestone')}>
+            <Text style={styles.dateButtonText}>{milestoneDate || 'Tap to select date'}</Text>
+          </Pressable>
+          <Text style={styles.label}>Milestone</Text>
+          <TextInput style={styles.input} value={milestoneText} onChangeText={setMilestoneText} placeholder="e.g., First smile, Started rolling" placeholderTextColor={colors.muted} />
+          <Text style={styles.label}>Notes</Text>
+          <TextInput style={styles.input} value={milestoneNotes} onChangeText={setMilestoneNotes} placeholder="Optional details" placeholderTextColor={colors.muted} />
+          <Pressable style={styles.secondaryButton} onPress={logMilestone}><Text style={styles.secondaryButtonText}>Log Milestone</Text></Pressable>
+          <View style={styles.list}>{milestones.slice(0,5).map((m,i)=>(<Text key={i} style={styles.listItem}>{m.date} · {m.milestone} {m.notes? `· ${m.notes}`:''}</Text>))}</View>
+        </View>
+
+        {/* Mood & Behavior */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Mood & Behavior</Text>
+          <View style={styles.row}>
+            {(['happy','calm','fussy','crying','sleeping'] as const).map(opt => (
+              <Pressable key={opt} onPress={()=>setMoodType(opt)} style={[styles.choice, moodType===opt && styles.choiceActive]}>
+                <Text style={[styles.choiceText, moodType===opt && styles.choiceTextActive]}>{opt}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.label}>Notes (teething, symptoms, etc.)</Text>
+          <TextInput style={styles.input} value={moodNotes} onChangeText={setMoodNotes} placeholder="Optional observations" placeholderTextColor={colors.muted} />
+          <Pressable style={styles.secondaryButton} onPress={logMood}><Text style={styles.secondaryButtonText}>Log Mood</Text></Pressable>
+          <View style={styles.list}>{moods.slice(0,5).map((m,i)=>(<Text key={i} style={styles.listItem}>{m.time} · {m.mood} {m.notes? `· ${m.notes}`:''}</Text>))}</View>
+        </View>
+      </ScrollView>
+
+      {/* Date/Time Picker Modal */}
+      <Modal visible={datePickerVisible} transparent={true} animationType="slide">
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <Pressable onPress={() => setDatePickerVisible(false)}>
+                <Text style={styles.pickerButton}>Cancel</Text>
+              </Pressable>
+              <Text style={styles.pickerTitle}>
+                {datePickerMode === 'napStart' ? 'Nap Start' : datePickerMode === 'napEnd' ? 'Nap End' : 'Milestone Date'}
+              </Text>
+              <Pressable onPress={handleDateTimeConfirm}>
+                <Text style={styles.pickerButtonConfirm}>Done</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.pickerContent} showsVerticalScrollIndicator={false}>
+              {/* Date Picker */}
+              <View style={styles.pickerSection}>
+                <Text style={styles.pickerLabel}>Date</Text>
+                <View style={styles.dateInputRow}>
+                  <View style={styles.dateInputGroup}>
+                    <Text style={styles.dateInputLabel}>Month</Text>
+                    <View style={styles.numberInputContainer}>
+                      <Pressable onPress={() => setPickerDate(new Date(pickerDate.getTime() - 30 * 24 * 60 * 60 * 1000))}>
+                        <Text style={styles.numberButton}>−</Text>
+                      </Pressable>
+                      <Text style={styles.numberDisplay}>
+                        {String(pickerDate.getMonth() + 1).padStart(2, '0')}
+                      </Text>
+                      <Pressable onPress={() => setPickerDate(new Date(pickerDate.getTime() + 30 * 24 * 60 * 60 * 1000))}>
+                        <Text style={styles.numberButton}>+</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <View style={styles.dateInputGroup}>
+                    <Text style={styles.dateInputLabel}>Day</Text>
+                    <View style={styles.numberInputContainer}>
+                      <Pressable onPress={() => setPickerDate(new Date(pickerDate.getTime() - 24 * 60 * 60 * 1000))}>
+                        <Text style={styles.numberButton}>−</Text>
+                      </Pressable>
+                      <Text style={styles.numberDisplay}>
+                        {String(pickerDate.getDate()).padStart(2, '0')}
+                      </Text>
+                      <Pressable onPress={() => setPickerDate(new Date(pickerDate.getTime() + 24 * 60 * 60 * 1000))}>
+                        <Text style={styles.numberButton}>+</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <View style={styles.dateInputGroup}>
+                    <Text style={styles.dateInputLabel}>Year</Text>
+                    <View style={styles.numberInputContainer}>
+                      <Pressable onPress={() => setPickerDate(new Date(pickerDate.getFullYear() - 1, pickerDate.getMonth(), pickerDate.getDate()))}>
+                        <Text style={styles.numberButton}>−</Text>
+                      </Pressable>
+                      <Text style={styles.numberDisplay}>
+                        {pickerDate.getFullYear()}
+                      </Text>
+                      <Pressable onPress={() => setPickerDate(new Date(pickerDate.getFullYear() + 1, pickerDate.getMonth(), pickerDate.getDate()))}>
+                        <Text style={styles.numberButton}>+</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Time Picker (only for naps, not milestones) */}
+              {datePickerMode !== 'milestone' && (
+                <View style={styles.pickerSection}>
+                  <Text style={styles.pickerLabel}>Time</Text>
+                  <View style={styles.timeInputRow}>
+                    <View style={styles.timeInputGroup}>
+                      <Text style={styles.dateInputLabel}>Hour</Text>
+                      <View style={styles.numberInputContainer}>
+                        <Pressable onPress={() => setPickerHour((h) => (h - 1 + 24) % 24)}>
+                          <Text style={styles.numberButton}>−</Text>
+                        </Pressable>
+                        <Text style={styles.numberDisplay}>
+                          {String(pickerHour).padStart(2, '0')}
+                        </Text>
+                        <Pressable onPress={() => setPickerHour((h) => (h + 1) % 24)}>
+                          <Text style={styles.numberButton}>+</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <Text style={styles.timeSeparator}>:</Text>
+
+                    <View style={styles.timeInputGroup}>
+                      <Text style={styles.dateInputLabel}>Min</Text>
+                      <View style={styles.numberInputContainer}>
+                        <Pressable onPress={() => setPickerMinute((m) => (m - 5 + 60) % 60)}>
+                          <Text style={styles.numberButton}>−</Text>
+                        </Pressable>
+                        <Text style={styles.numberDisplay}>
+                          {String(pickerMinute).padStart(2, '0')}
+                        </Text>
+                        <Pressable onPress={() => setPickerMinute((m) => (m + 5) % 60)}>
+                          <Text style={styles.numberButton}>+</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </ThemedView>
+  );
+}
+
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingTop: 16, paddingHorizontal: 20, paddingVertical: 24, paddingBottom: 40, gap: 16 },
+  title: { fontSize: 24, color: colors.heading, fontWeight: '700' },
+  subtitle: { fontSize: 15, color: colors.muted },
+  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 10 },
+  cardTitle: { fontSize: 16, color: colors.link, fontWeight: '700' },
+  label: { color: colors.text, marginTop: 6 },
+  input: { backgroundColor: colors.cardAlt, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, fontSize: 15, color: colors.text, borderWidth: 1, borderColor: colors.border },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  choice: { borderWidth: 2, borderColor: colors.border, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.wash },
+  choiceActive: { backgroundColor: colors.highlight, borderColor: colors.link },
+  choiceText: { color: colors.text, textTransform: 'capitalize' },
+  choiceTextActive: { color: colors.onAccent, fontWeight: '700' },
+  helper: { color: colors.muted, fontSize: 12 },
+  primaryButton: { marginTop: 6, backgroundColor: colors.accent, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+  primaryButtonText: { color: colors.onAccent, fontWeight: '700', fontSize: 16 },
+  secondaryButton: { marginTop: 6, backgroundColor: colors.highlight, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+  secondaryButtonText: { color: colors.onAccent, fontWeight: '700', fontSize: 16 },
+  list: { gap: 6 },
+  listItem: { color: colors.text, fontSize: 13 },
+  pickerContainer: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  pickerContent: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerTitle: {
+    color: colors.accentText,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pickerSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerLabel: {
+    color: colors.link,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  dateInputRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 12,
+  },
+  dateInputGroup: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dateInputLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  numberInputContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  numberButton: {
+    color: colors.link,
+    fontSize: 20,
+    paddingHorizontal: 8,
+  },
+  numberDisplay: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '600',
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  timeInputRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  timeInputGroup: {
+    alignItems: 'center',
+  },
+  timeSeparator: {
+    color: colors.heading,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  pickerButton: {
+    color: colors.muted,
+    fontSize: 14,
+    padding: 8,
+  },
+  pickerButtonConfirm: {
+    color: colors.link,
+    fontSize: 14,
+    fontWeight: '700',
+    padding: 8,
+  },
+  iosPickerContainer: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  iosPickerContent: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  iosPickerColumn: {
+    width: 60,
+    alignItems: 'center',
+  },
+  iosPickerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: colors.link,
+  },
+  iosPickerScroll: {
+    height: 200,
+    width: 60,
+  },
+  iosPickerItem: {
+    height: 40,
+    fontSize: 18,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    paddingVertical: 8,
+  },
+  iosPickerItemSelected: {
+    color: colors.link,
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  androidPickerContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  androidPickerButton: {
+    backgroundColor: colors.cardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  androidPickerButtonText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dateButton: {
+    backgroundColor: colors.cardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dateButtonText: {
+    color: colors.link,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

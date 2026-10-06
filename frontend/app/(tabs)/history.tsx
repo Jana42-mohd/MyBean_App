@@ -1,142 +1,79 @@
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { deleteLog, fetchLogs } from '@/lib/logs';
+import { EditEntry } from '@/components/EditEntry';
+import { useLiveRefresh } from '@/hooks/use-live';
+import { toDate } from '@/lib/time';
+import { formatLength, formatWeight } from '@/lib/growth';
+import { useUnits } from '@/lib/units';
+import { Baby, bornBabies, fetchBabies } from '@/lib/babies';
+import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
+import { LoadError, friendlyError } from '@/components/LoadError';
+import { Palette, useStyles, useTheme } from '@/lib/theme';
 
-interface DiaperLog { time: string; type: 'pee' | 'poop'; color?: string; consistency?: string; notes?: string }
-interface FeedingLog { time: string; method: 'breast' | 'formula' | 'mixed'; amount?: string; nextInHours?: string }
-interface NapLog { start: string; end: string; notes?: string }
-interface MilestoneLog { date: string; milestone: string; notes?: string }
-interface MoodLog { time: string; mood: 'happy' | 'fussy' | 'sleeping' | 'crying' | 'calm'; notes?: string }
-interface PumpLog { time: string; volumeOz: string; side: 'left' | 'right' | 'both'; ampm: 'AM' | 'PM' }
 
 interface HistoryEntry {
   id: string;
-  type: 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping';
+  type: 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping' | 'growth';
   timestamp: string;
   data: any;
+  author?: string;
+  baby?: string;
+  baby_id?: string | null;
+  pending?: boolean;
 }
 
-const STORAGE_KEYS = {
-  naps: 'logs_naps',
-  diapers: 'logs_diapers',
-  feedings: 'logs_feedings',
-  pumping: 'logs_pumping',
-  milestones: 'logs_milestones',
-  mood: 'logs_mood',
-};
-
 export default function HistoryScreen() {
+  const colors = useTheme();
+  const styles = useStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping'>('all');
+  const [units] = useUnits();
+  const [babies, setBabies] = useState<Baby[]>([]);
+  const [babyFilter, setBabyFilter] = useState(ALL_BABIES);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState<HistoryEntry | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'diaper' | 'feeding' | 'nap' | 'milestone' | 'mood' | 'pumping' | 'growth'>('all');
 
-  useEffect(() => {
-    const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
       try {
-        const entries: HistoryEntry[] = [];
-
-        // Load diapers
-        const diaperLogs = await AsyncStorage.getItem(STORAGE_KEYS.diapers);
-        if (diaperLogs) {
-          const parsed = JSON.parse(diaperLogs);
-          parsed.forEach((log: DiaperLog, idx: number) => {
-            entries.push({
-              id: `diaper_${idx}`,
-              type: 'diaper',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
-
-        // Load feedings
-        const feedingLogs = await AsyncStorage.getItem(STORAGE_KEYS.feedings);
-        if (feedingLogs) {
-          const parsed = JSON.parse(feedingLogs);
-          parsed.forEach((log: FeedingLog, idx: number) => {
-            entries.push({
-              id: `feeding_${idx}`,
-              type: 'feeding',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
-
-        // Load naps
-        const napLogs = await AsyncStorage.getItem(STORAGE_KEYS.naps);
-        if (napLogs) {
-          const parsed = JSON.parse(napLogs);
-          parsed.forEach((log: NapLog, idx: number) => {
-            entries.push({
-              id: `nap_${idx}`,
-              type: 'nap',
-              timestamp: log.start,
-              data: log,
-            });
-          });
-        }
-
-        // Load milestones
-        const milestoneLogs = await AsyncStorage.getItem(STORAGE_KEYS.milestones);
-        if (milestoneLogs) {
-          const parsed = JSON.parse(milestoneLogs);
-          parsed.forEach((log: MilestoneLog, idx: number) => {
-            entries.push({
-              id: `milestone_${idx}`,
-              type: 'milestone',
-              timestamp: log.date,
-              data: log,
-            });
-          });
-        }
-
-        // Load moods
-        const moodLogs = await AsyncStorage.getItem(STORAGE_KEYS.mood);
-        if (moodLogs) {
-          const parsed = JSON.parse(moodLogs);
-          parsed.forEach((log: MoodLog, idx: number) => {
-            entries.push({
-              id: `mood_${idx}`,
-              type: 'mood',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
-
-        // Load pumping
-        const pumpLogs = await AsyncStorage.getItem(STORAGE_KEYS.pumping);
-        if (pumpLogs) {
-          const parsed = JSON.parse(pumpLogs);
-          parsed.forEach((log: PumpLog, idx: number) => {
-            entries.push({
-              id: `pump_${idx}`,
-              type: 'pumping',
-              timestamp: log.time,
-              data: log,
-            });
-          });
-        }
+        setError('');
+        const [rows, babyList] = await Promise.all([fetchLogs(), fetchBabies()]);
+        setBabies(babyList);
+        const entries: HistoryEntry[] = rows.map(r => ({
+          id: r.id,
+          type: r.type,
+          timestamp: r.type === 'nap' ? r.data.start : r.type === 'milestone' ? r.data.date : r.data.time ?? r.logged_at,
+          data: r.data,
+          author: r.author,
+          baby: r.baby,
+          baby_id: r.baby_id,
+          pending: r.pending,
+        }));
 
         // Sort by timestamp (newest first)
-        entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        entries.sort((a, b) => toDate(b.timestamp).getTime() - toDate(a.timestamp).getTime());
         setHistory(entries);
       } catch (e) {
         console.error('Error loading history:', e);
+        setError(friendlyError(e));
       }
-    };
-
-    loadHistory();
-    // Refresh every 5 seconds
-    const interval = setInterval(loadHistory, 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [loadHistory])
+  );
+  useLiveRefresh(loadHistory);
 
   const formatDate = (dateStr: string) => {
     try {
-      const date = new Date(dateStr);
+      const date = toDate(dateStr);
       return date.toLocaleString('en-US', { 
         month: 'short', 
         day: 'numeric', 
@@ -198,6 +135,15 @@ export default function HistoryScreen() {
             <Text style={styles.detailText}>Time: <Text style={styles.detailValue}>{entry.data.ampm}</Text></Text>
           </View>
         );
+      case 'growth':
+        return (
+          <View style={styles.entryDetails}>
+            {entry.data.weightKg !== undefined && <Text style={styles.detailText}>Weight: <Text style={styles.detailValue}>{formatWeight(entry.data.weightKg, units)}</Text></Text>}
+            {entry.data.lengthCm !== undefined && <Text style={styles.detailText}>Length: <Text style={styles.detailValue}>{formatLength(entry.data.lengthCm, units)}</Text></Text>}
+            {entry.data.headCm !== undefined && <Text style={styles.detailText}>Head: <Text style={styles.detailValue}>{formatLength(entry.data.headCm, units)}</Text></Text>}
+            {entry.data.notes && <Text style={styles.detailText}>Notes: <Text style={styles.detailValue}>{entry.data.notes}</Text></Text>}
+          </View>
+        );
       default:
         return null;
     }
@@ -211,33 +157,54 @@ export default function HistoryScreen() {
       milestone: 'Milestone',
       mood: 'Mood',
       pumping: 'Pumping',
+      growth: 'Growth',
     };
     return labels[type] || type;
   };
 
+  // One colour per kind of entry: soft on the dark cards, deeper on the light ones
   const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      diaper: '#FFB6C1',
-      feeding: '#FED8FE',
-      nap: '#87CEEB',
-      milestone: '#FDFECC',
-      mood: '#DDA0DD',
-      pumping: '#98FB98',
-    };
-    return colors[type] || '#A4CDD3';
+    const byType: Record<string, string> =
+      colors.scheme === 'dark'
+        ? { diaper: '#FFB6C1', feeding: '#E4B1D6', nap: '#87CEEB', milestone: '#E8E2A0', mood: '#C9A3E0', pumping: '#98E8A8', growth: '#9fd0ff' }
+        : { diaper: '#C25E8E', feeding: '#9A57A6', nap: '#2F7FB0', milestone: '#9A7400', mood: '#8450B0', pumping: '#2F8F68', growth: '#2A78D6' };
+    return byType[type] || colors.muted;
   };
 
-  const filteredHistory = selectedFilter === 'all' 
-    ? history 
-    : history.filter(entry => entry.type === selectedFilter);
+  const filteredHistory = history.filter(
+    entry =>
+      (selectedFilter === 'all' || entry.type === selectedFilter) &&
+      (babyFilter === ALL_BABIES || entry.baby_id === babyFilter || entry.baby_id === null)
+  );
+
+  const confirmDelete = (entry: HistoryEntry) => {
+    Alert.alert('Delete this entry?', 'This removes it for everyone in your household and cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteLog(entry.id, entry.data?.photo);
+            setHistory(prev => prev.filter(h => h.id !== entry.id));
+          } catch (e) {
+            Alert.alert('Could not delete', friendlyError(e));
+          }
+        },
+      },
+    ]);
+  };
+
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Activity History</ThemedText>
         <Text style={styles.subtitle}>Complete log of all tracked activities</Text>
 
         {/* Filter Buttons */}
+        {error ? <LoadError message={error} onRetry={loadHistory} /> : null}
+        <BabyPicker babies={bornBabies(babies)} value={babyFilter} onChange={setBabyFilter} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <Pressable 
             style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
@@ -245,7 +212,7 @@ export default function HistoryScreen() {
           >
             <Text style={[styles.filterButtonText, selectedFilter === 'all' && styles.filterButtonTextActive]}>All</Text>
           </Pressable>
-          {['diaper', 'feeding', 'nap', 'milestone', 'mood', 'pumping'].map(type => (
+          {['diaper', 'feeding', 'nap', 'milestone', 'mood', 'pumping', 'growth'].map(type => (
             <Pressable
               key={type}
               style={[styles.filterButton, selectedFilter === type && styles.filterButtonActive]}
@@ -271,38 +238,58 @@ export default function HistoryScreen() {
                   <View style={[styles.typeTag, { backgroundColor: getTypeColor(entry.type) }]}>
                     <Text style={styles.typeTagText}>{getTypeLabel(entry.type)}</Text>
                   </View>
-                  <Text style={styles.timestamp}>{formatDate(entry.timestamp)}</Text>
+                  <Text style={styles.timestamp}>
+                    {entry.baby ? `${entry.baby} · ` : ''}{entry.author ? `${entry.author} · ` : ''}{formatDate(entry.timestamp)}
+                  </Text>
                 </View>
                 {renderEntryDetails(entry)}
+                {entry.pending ? (
+                  <View style={styles.entryActions}>
+                    <Text style={styles.actionText}>⏳ Saved on this phone, waiting to sync</Text>
+                  </View>
+                ) : (
+                  <View style={styles.entryActions}>
+                    <Pressable onPress={() => setEditing(entry)}><Text style={styles.actionText}>Edit</Text></Pressable>
+                    <Pressable onPress={() => confirmDelete(entry)}><Text style={[styles.actionText, styles.deleteText]}>Delete</Text></Pressable>
+                  </View>
+                )}
               </View>
             ))}
           </View>
         )}
       </ScrollView>
+      <EditEntry entry={editing as any} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); loadHistory(); }} />
     </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  entryActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginTop: 10 },
+  actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  deleteText: { color: colors.danger },
+  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: colors.card, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: colors.border },
+  modalTitle: { color: colors.heading, fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, minHeight: 70 },
   container: {
     flex: 1,
-    backgroundColor: '#09282eff',
+    backgroundColor: colors.bg,
   },
   scrollContent: {
-    paddingTop: 80,
+    paddingTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 24,
     paddingBottom: 40,
   },
   title: {
     fontSize: 24,
-    color: '#FED8FE',
+    color: colors.heading,
     fontWeight: '700',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#A4CDD3',
+    color: colors.muted,
     marginBottom: 20,
   },
   filterScroll: {
@@ -315,31 +302,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   filterButtonActive: {
-    backgroundColor: '#FED8FE',
-    borderColor: '#FED8FE',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   filterButtonText: {
-    color: '#E8FBFF',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
   filterButtonTextActive: {
-    color: '#09282eff',
+    color: colors.onAccent,
   },
   historyList: {
     gap: 12,
   },
   entryCard: {
-    backgroundColor: '#0f3a41ff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2F9BA8',
+    borderColor: colors.border,
   },
   entryHeader: {
     flexDirection: 'row',
@@ -353,12 +340,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   typeTagText: {
-    color: '#09282eff',
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 12,
   },
   timestamp: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 12,
   },
   entryDetails: {
@@ -366,10 +353,10 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#E8FBFF',
+    color: colors.text,
   },
   detailValue: {
-    color: '#FDFECC',
+    color: colors.link,
     fontWeight: '600',
   },
   emptyState: {
@@ -378,7 +365,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: '#A4CDD3',
+    color: colors.muted,
     fontSize: 14,
   },
 });

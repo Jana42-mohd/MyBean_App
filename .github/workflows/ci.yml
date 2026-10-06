@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+
+# a newer push to the same branch cancels the older run
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (types, lint, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # builds need the variables to exist, they are never used to reach a real backend
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm ci --legacy-peer-deps
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npx expo lint
+      - name: Unit tests
+        run: npm test
+      - name: Build the app (Android bundle)
+        run: npx expo export --platform android --output-dir ${{ runner.temp }}/android-bundle
+      - name: Build the app (web bundle)
+        run: npx expo export --platform web --output-dir ${{ runner.temp }}/web-bundle
+
+  database:
+    name: Database (migrations and security tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run every migration on an empty database, then the security tests
+        run: bash supabase/tests/run.sh

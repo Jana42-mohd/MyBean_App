@@ -3,19 +3,22 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/lib/theme';
+import { useUnreadTotal } from '@/lib/unread';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const colors = useTheme();
+  const unread = useUnreadTotal();
 
   return (
     <Tabs
       initialRouteName="home"
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].accentYellow,
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].bean,
-        tabBarStyle: { backgroundColor: '#0f3a41ff', borderTopColor: '#2F9BA8' },
+        tabBarActiveTintColor: colors.link,
+        tabBarInactiveTintColor: colors.tint,
+        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.line },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginHorizontal: -4 },
+        tabBarItemStyle: { paddingHorizontal: 0 },
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
@@ -29,15 +32,23 @@ export default function TabLayout() {
       <Tabs.Screen
         name="info"
         options={{
-          title: 'Info',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="book.fill" color={color} />,
+          href: null, // reached from the cards on Home; keeps the tab bar to 5 tabs
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
           title: 'Community',
+          tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accent, color: colors.onAccent, fontSize: 10 },
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="wellbeing"
+        options={{
+          title: 'Wellbeing',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="heart.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -56,30 +67,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="track"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="signup"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="login"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="pulse"
         options={{
           href: null,
         }}
