@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { incomingRequestCount } from '@/lib/neighbors';
+import { myGroups } from '@/lib/groups';
 import { supabase } from '@/lib/supabase';
 import { LoadError, friendlyError } from '@/components/LoadError';
 
@@ -68,7 +69,7 @@ export default function CommunityScreen() {
   // Load (and refresh) whenever the Community tab is opened
   useFocusEffect(
     useCallback(() => {
-      incomingRequestCount().then(setRequests).catch(() => setRequests(0));
+      Promise.all([incomingRequestCount(), myGroups()]).then(([n, g]) => setRequests(n + g.filter(x => x.status === 'invited').length)).catch(() => setRequests(0));
       (async () => {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {

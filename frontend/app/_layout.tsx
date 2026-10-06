@@ -86,7 +86,9 @@ export default function RootLayout() {
       const data = resp.notification.request.content.data as Record<string, any> | undefined;
       if (data?.type === 'message' || data?.type === 'connection_accepted') {
         router.push(data.connection ? { pathname: '/chat', params: { id: String(data.connection) } } : '/connections');
-      } else if (data?.type === 'connection_request') {
+      } else if (data?.type === 'group_message' && data.group) {
+        router.push({ pathname: '/group', params: { id: String(data.group) } });
+      } else if (data?.type === 'group_invite' || data?.type === 'connection_request') {
         router.push('/connections');
       } else {
         router.push(data?.screen === 'wellbeing' ? '/(tabs)/wellbeing' : '/(tabs)/home');
@@ -152,6 +154,8 @@ export default function RootLayout() {
         <Stack.Screen name="neighbors" options={{ headerShown: false }} />
         <Stack.Screen name="connections" options={{ headerShown: false }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
+        <Stack.Screen name="group" options={{ headerShown: false }} />
+        <Stack.Screen name="group-new" options={{ headerShown: false }} />
         <Stack.Screen name="milestones" options={{ headerShown: false }} />
       </Stack>
       <OfflineBanner />

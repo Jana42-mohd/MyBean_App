@@ -1,7 +1,12 @@
-import { StyleSheet, ScrollView, Text, View, Pressable, Image, ActivityIndicator, Alert, TextInput, Share, Switch, Modal, Linking } from 'react-native';
+import { StyleSheet, ScrollView, Text, View, Pressable, ActivityIndicator, Alert, TextInput, Share, Modal, Linking } from 'react-native';
+import Constants from 'expo-constants';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ActionSheet } from '@/components/ActionSheet';
+import { Avatar } from '@/components/Avatar';
+import { Button, C, Field, Hint, Pad, Row, Section, StepperRow, ToggleRow } from '@/components/settings-ui';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -34,6 +39,8 @@ export default function SettingsScreen() {
   const [loadError, setLoadError] = useState('');
   const [rem, setRem] = useState<ReminderSettings>(DEFAULT_REMINDERS);
   const [notifyPartner, setNotifyPartner] = useState(true);
+  const [notifyMessages, setNotifyMessages] = useState(true);
+  const [photoSheet, setPhotoSheet] = useState(false);
   const [blocked, setBlocked] = useState<{ id: string; name: string }[]>([]);
   const [exporting, setExporting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,8 +55,9 @@ export default function SettingsScreen() {
       setLoading(true);
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      const { data: prof } = await supabase.from('profiles').select('name,avatar_url,is_moderator').eq('id', u.user.id).maybeSingle();
+      const { data: prof } = await supabase.from('profiles').select('name,avatar_url,is_moderator,notify_messages').eq('id', u.user.id).maybeSingle();
       setIsModerator(!!prof?.is_moderator);
+      setNotifyMessages(prof?.notify_messages !== false);
       setBabies(await fetchBabies());
       const { data: blocks } = await supabase.from('user_blocks').select('blocked_id');
       const ids = (blocks ?? []).map((b: any) => b.blocked_id);
@@ -256,6 +264,15 @@ export default function SettingsScreen() {
     }
   };
 
+  const toggleMessages = async (on: boolean) => {
+    setNotifyMessages(on);
+    const { error } = await supabase.from('profiles').update({ notify_messages: on }).eq('id', user?.id);
+    if (error) {
+      setNotifyMessages(!on);
+      Alert.alert('Could not change this', friendlyError(error));
+    }
+  };
+
   const step = (key: 'feedingHours' | 'napHours', delta: number) =>
     updateReminders({ [key]: Math.min(6, Math.max(1, Math.round((rem[key] + delta) * 2) / 2)) } as Partial<ReminderSettings>);
 
@@ -309,304 +326,159 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#6B9BA8" />
+      <ThemedView style={[styles.container, { paddingTop: insets.top, justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={C.pink} />
       </ThemedView>
     );
   }
+
+  const babyLine = (b: Baby) => (b.status === 'expected' ? `Due ${b.due_date ?? '?'}` : b.birth_date ? `Born ${b.birth_date}` : 'Born');
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>Settings</ThemedText>
 
-        {/* Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.photoContainer}>
-            {profilePhoto ? (
-              <Image
-                source={{ uri: profilePhoto }}
-                style={styles.profilePhoto}
-              />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <ThemedText style={styles.placeholderText}>No Photo</ThemedText>
-              </View>
-            )}
-          </View>
-
-          <ThemedText style={styles.userName}>{user?.name || 'User'}</ThemedText>
-          <Text style={styles.userEmail}>{user?.email || ''}</Text>
-
-          <View style={styles.photoButtonsContainer}>
-            <Pressable
-              style={[styles.photoButton, { marginRight: 10 }]}
-              onPress={pickImage}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.photoButtonText}> Choose Photo</Text>
-              )}
-            </Pressable>
-
-            <Pressable
-              style={styles.photoButton}
-              onPress={takePhoto}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.photoButtonText}> Take Photo</Text>
-              )}
-            </Pressable>
+        {/* Profile */}
+        <View style={styles.profile}>
+          <Pressable onPress={() => setPhotoSheet(true)} disabled={uploading} accessibilityRole="button" accessibilityLabel="Change profile photo">
+            <Avatar name={user?.name || 'You'} url={profilePhoto} size={96} />
+            <View style={styles.cameraBadge}>
+              {uploading ? <ActivityIndicator size="small" color={C.ink} /> : <MaterialCommunityIcons name="camera" size={16} color={C.ink} />}
+            </View>
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.userName} numberOfLines={1}>{user?.name || 'Your name'}</ThemedText>
+            <Text style={styles.userEmail} numberOfLines={1}>{user?.email || ''}</Text>
+            <Pressable onPress={() => router.push('/survey')} hitSlop={8}><Text style={styles.editLink}>Edit my info</Text></Pressable>
           </View>
         </View>
-
-        {/* Account Settings Section */}
-        <View style={styles.settingsSection}>
-          <ThemedText style={styles.sectionTitle}>Account</ThemedText>
-          
-          <Pressable style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Email</Text>
-            <Text style={styles.settingValue}>{user?.email || ''}</Text>
-          </Pressable>
-
-          <Pressable style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Name</Text>
-            <Text style={styles.settingValue}>{user?.name || ''}</Text>
-          </Pressable>
-
-        </View>
-
         {loadError ? <LoadError message={loadError} onRetry={loadUserData} /> : null}
 
-        {/* Babies Section */}
-        <View style={styles.settingsSection}>
-          <ThemedText style={styles.sectionTitle}>Babies</ThemedText>
+        {/* Family */}
+        <Section title="Babies">
           {babies.map(b => (
-            <View key={b.id} style={styles.settingItem}>
-              <Text style={styles.settingLabel}>{b.name}{b.status === 'expected' ? `  ·  due ${b.due_date ?? '?'}` : b.birth_date ? `  ·  born ${b.birth_date}` : ''}</Text>
-              <View style={{ flexDirection: 'row', gap: 16 }}>
-                <Pressable onPress={() => router.push('/survey')}>
-                  <Text style={styles.settingValue}>Edit</Text>
+            <Row
+              key={b.id}
+              icon="baby-face-outline"
+              label={b.name}
+              sub={babyLine(b)}
+              onPress={() => router.push('/survey')}
+              right={
+                <Pressable onPress={() => confirmDeleteBaby(b)} hitSlop={10} accessibilityLabel={`Remove ${b.name}`}>
+                  <Text style={styles.removeText}>Remove</Text>
                 </Pressable>
-                <Pressable onPress={() => confirmDeleteBaby(b)}>
-                  <Text style={[styles.settingValue, { color: '#ff9db1' }]}>Remove</Text>
-                </Pressable>
-              </View>
-            </View>
+              }
+            />
           ))}
-          <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={() => router.push('/survey')}>
-            <Text style={styles.settingLabel}>Add or edit babies (expecting, twins, triplets & more)</Text>
-            <Text style={styles.settingValue}>→</Text>
-          </Pressable>
-        </View>
+          <Row icon="plus-circle-outline" label="Add or edit babies" sub="Expecting, twins, triplets and more" onPress={() => router.push('/survey')} />
+        </Section>
 
-        {/* Household Section */}
-        <View style={styles.settingsSection}>
-          <ThemedText style={styles.sectionTitle}>Household</ThemedText>
-          <Text style={styles.settingValue}>
-            Link with your partner so you both see and add the same logs.
-          </Text>
-
+        <Section title="Household" hint="Link with your partner so you both see and add the same logs.">
           {household?.members.map(m => (
-            <View key={m.id} style={styles.settingItem}>
-              <Text style={styles.settingLabel}>{m.name}{m.id === user?.id ? ' (you)' : ''}</Text>
-            </View>
+            <Row key={m.id} icon="account-outline" label={m.name} value={m.id === user?.id ? 'You' : ''} />
           ))}
+          {household ? <Row icon="share-variant-outline" label="Invite your partner" sub={`Code ${household.invite_code}`} onPress={shareInvite} /> : null}
+          <Pad>
+            <Field label="Have a code from your partner?" value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" autoCorrect={false} placeholder="Enter the invite code" />
+            <Button title="Join household" kind="outline" onPress={handleJoin} busy={joining} disabled={!joinCode.trim()} />
+          </Pad>
+          {household && household.members.length > 1 ? <Row icon="exit-run" label="Leave household" danger onPress={handleLeave} /> : null}
+        </Section>
 
-          {household ? (
-            <>
-              <Pressable style={styles.settingItem} onPress={shareInvite}>
-                <Text style={styles.settingLabel}>Invite code</Text>
-                <Text style={styles.settingValue}>{household.invite_code}  ·  Share →</Text>
-              </Pressable>
-              <TextInput
-                style={styles.codeInput}
-                placeholder="Have a code? Enter it here"
-                placeholderTextColor="#A4CDD3"
-                autoCapitalize="characters"
-                value={joinCode}
-                onChangeText={setJoinCode}
-              />
-              <Pressable style={styles.photoButton} onPress={handleJoin} disabled={joining}>
-                <Text style={styles.photoButtonText}>{joining ? 'Joining...' : 'Join household'}</Text>
-              </Pressable>
-              {household.members.length > 1 && (
-                <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={handleLeave}>
-                  <Text style={styles.settingLabel}>Leave household</Text>
-                </Pressable>
-              )}
-            </>
-          ) : null}
-
-          <Pressable style={[styles.settingItem, { marginTop: 8 }]} onPress={() => router.push('/survey')}>
-            <Text style={styles.settingLabel}>Update my info</Text>
-            <Text style={styles.settingValue}>→</Text>
-          </Pressable>
-        </View>
-
-        {isModerator ? (
-          <View style={styles.settingsSection}>
-            <ThemedText style={styles.sectionTitle}>Moderation</ThemedText>
-            <Pressable style={styles.settingItem} onPress={() => router.push('/moderation')}>
-              <Text style={styles.settingLabel}>Review reported posts</Text>
-              <Text style={styles.settingValue}>→</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
+        {/* Community */}
         <PlaceSettings />
 
-        {/* Partner notifications */}
-        <View style={styles.settingsSection}>
-          <ThemedText style={styles.sectionTitle}>Partner notifications</ThemedText>
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Tell me when my partner logs something</Text>
-            <Switch value={notifyPartner} onValueChange={togglePartnerNotifications} trackColor={{ true: '#2F9BA8' }} />
-          </View>
-          <Text style={styles.settingValue}>
-            For example "Blake logged a feeding for Mia". It only sends what was logged, never wellbeing check-ins, and only to people in your household.
-          </Text>
-        </View>
-
-        {/* Reminders */}
-        <View style={styles.settingsSection}>
-          <ThemedText style={styles.sectionTitle}>Reminders</ThemedText>
-          <Text style={styles.settingValue}>Saved on this phone. They arrive even when the app is closed.</Text>
-
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Next feeding</Text>
-            <Switch value={rem.feeding} onValueChange={v => updateReminders({ feeding: v })} trackColor={{ true: '#2F9BA8' }} />
-          </View>
-          {rem.feeding ? (
-            <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Remind me after</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <Pressable onPress={() => step('feedingHours', -0.5)} hitSlop={10}><Text style={styles.stepper}>−</Text></Pressable>
-                <Text style={styles.settingValue}>{rem.feedingHours} h</Text>
-                <Pressable onPress={() => step('feedingHours', 0.5)} hitSlop={10}><Text style={styles.stepper}>+</Text></Pressable>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Awake too long (nap)</Text>
-            <Switch value={rem.nap} onValueChange={v => updateReminders({ nap: v })} trackColor={{ true: '#2F9BA8' }} />
-          </View>
-          {rem.nap ? (
-            <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Remind me after a nap ends</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <Pressable onPress={() => step('napHours', -0.5)} hitSlop={10}><Text style={styles.stepper}>−</Text></Pressable>
-                <Text style={styles.settingValue}>{rem.napHours} h</Text>
-                <Pressable onPress={() => step('napHours', 0.5)} hitSlop={10}><Text style={styles.stepper}>+</Text></Pressable>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Weekly wellbeing check-in (Sun 7pm)</Text>
-            <Switch value={rem.wellbeing} onValueChange={v => updateReminders({ wellbeing: v })} trackColor={{ true: '#2F9BA8' }} />
-          </View>
-        </View>
-
-        {/* Change password */}
-        <View style={styles.settingsSection}>
-          <Pressable style={styles.settingItem} onPress={() => setShowPw(v => !v)}>
-            <Text style={styles.settingLabel}>Change password</Text>
-            <Text style={styles.settingValue}>{showPw ? '▲' : '→'}</Text>
-          </Pressable>
-          {showPw ? (
-            <>
-              <TextInput style={styles.codeInput} placeholder="New password" placeholderTextColor="#A4CDD3" secureTextEntry value={newPw} onChangeText={setNewPw} />
-              {pwMsg ? <Text style={styles.settingValue}>{pwMsg}</Text> : null}
-              <Pressable style={styles.photoButton} onPress={submitPassword}>
-                <Text style={styles.photoButtonText}>Update password</Text>
-              </Pressable>
-            </>
-          ) : null}
-        </View>
-
-        {blocked.length > 0 ? (
-          <View style={styles.settingsSection}>
-            <ThemedText style={styles.sectionTitle}>Blocked members</ThemedText>
-            {blocked.map(b => (
-              <View key={b.id} style={styles.settingItem}>
-                <Text style={styles.settingLabel}>{b.name}</Text>
-                <Pressable onPress={() => unblock(b.id)}>
-                  <Text style={styles.settingValue}>Unblock</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
+        {isModerator ? (
+          <Section title="Moderation">
+            <Row icon="shield-check-outline" label="Review reported posts and parents" onPress={() => router.push('/moderation')} />
+          </Section>
         ) : null}
 
-        {/* Your data & legal */}
-        <View style={styles.settingsSection}>
-          <ThemedText style={styles.sectionTitle}>Your data</ThemedText>
-          <Pressable style={styles.settingItem} onPress={handleExport} disabled={exporting}>
-            <Text style={styles.settingLabel}>{exporting ? 'Preparing your file...' : 'Download my data'}</Text>
-            <Text style={styles.settingValue}>→</Text>
-          </Pressable>
-          <Pressable style={styles.settingItem} onPress={() => router.push('/legal?doc=privacy')}>
-            <Text style={styles.settingLabel}>Privacy policy</Text>
-            <Text style={styles.settingValue}>→</Text>
-          </Pressable>
-          <Pressable style={styles.settingItem} onPress={() => router.push('/legal?doc=terms')}>
-            <Text style={styles.settingLabel}>Terms of service</Text>
-            <Text style={styles.settingValue}>→</Text>
-          </Pressable>
-          <Pressable style={styles.settingItem} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
-            <Text style={styles.settingLabel}>Contact support</Text>
-            <Text style={styles.settingValue}>→</Text>
-          </Pressable>
-          <Pressable style={styles.settingItem} onPress={() => { setDeleteText(''); setDeleteOpen(true); }}>
-            <Text style={[styles.settingLabel, { color: '#ff9db1' }]}>Delete my account</Text>
-            <Text style={[styles.settingValue, { color: '#ff9db1' }]}>→</Text>
-          </Pressable>
-        </View>
+        {blocked.length > 0 ? (
+          <Section title="Blocked members">
+            {blocked.map(b => (
+              <Row key={b.id} icon="account-cancel-outline" label={b.name} right={<Pressable onPress={() => unblock(b.id)} hitSlop={10}><Text style={styles.linkText}>Unblock</Text></Pressable>} />
+            ))}
+          </Section>
+        ) : null}
 
-        {/* Logout Button */}
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+        {/* Notifications */}
+        <Section title="Notifications" hint="Sent from our servers, so they reach you even when the app is closed.">
+          <ToggleRow icon="bell-outline" label="When my partner logs something" sub='For example "Blake logged a feeding for Mia"' value={notifyPartner} onValueChange={togglePartnerNotifications} />
+          <ToggleRow icon="message-outline" label="Requests and messages from parents" sub="Says who wrote, never what" value={notifyMessages} onValueChange={toggleMessages} />
+        </Section>
+
+        <Section title="Reminders" hint="Saved on this phone. They arrive even when the app is closed.">
+          <ToggleRow icon="baby-bottle-outline" label="Next feeding" value={rem.feeding} onValueChange={v => updateReminders({ feeding: v })} />
+          {rem.feeding ? <StepperRow label="Remind me after" value={rem.feedingHours} unit="h" onMinus={() => step('feedingHours', -0.5)} onPlus={() => step('feedingHours', 0.5)} /> : null}
+          <ToggleRow icon="sleep" label="Awake too long" value={rem.nap} onValueChange={v => updateReminders({ nap: v })} />
+          {rem.nap ? <StepperRow label="Remind me after a nap ends" value={rem.napHours} unit="h" onMinus={() => step('napHours', -0.5)} onPlus={() => step('napHours', 0.5)} /> : null}
+          <ToggleRow icon="heart-outline" label="Weekly wellbeing check-in" sub="Sundays at 7pm" value={rem.wellbeing} onValueChange={v => updateReminders({ wellbeing: v })} />
+        </Section>
+
+        {/* Account */}
+        <Section title="Account">
+          <Row icon="email-outline" label="Email" value={user?.email || ''} />
+          <Row icon="lock-outline" label="Change password" onPress={() => setShowPw(v => !v)} right={<MaterialCommunityIcons name={showPw ? 'chevron-up' : 'chevron-down'} size={22} color={C.muted} />} />
+          {showPw ? (
+            <Pad>
+              <Field label="New password" value={newPw} onChangeText={setNewPw} secureTextEntry placeholder="At least 8 characters" />
+              {pwMsg ? <Hint danger>{pwMsg}</Hint> : null}
+              <Button title="Update password" onPress={submitPassword} />
+            </Pad>
+          ) : null}
+          <Row icon="download-outline" label="Download my data" sub="A file with everything we hold about you" onPress={handleExport} busy={exporting} />
+        </Section>
+
+        <Section title="About and privacy">
+          <Row icon="shield-lock-outline" label="Privacy policy" onPress={() => router.push('/legal?doc=privacy')} />
+          <Row icon="file-document-outline" label="Terms of service" onPress={() => router.push('/legal?doc=terms')} />
+          <Row icon="lifebuoy" label="Contact support" onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} />
+          <Row icon="information-outline" label="Version" value={Constants.expoConfig?.version ?? ''} />
+        </Section>
+
+        <Button title="Log out" kind="outline" onPress={handleLogout} style={{ marginTop: 4 }} />
+        <Pressable style={styles.deleteLink} onPress={() => { setDeleteText(''); setDeleteOpen(true); }} accessibilityRole="button">
+          <Text style={styles.deleteText}>Delete my account</Text>
         </Pressable>
       </ScrollView>
+
+      <ActionSheet
+        visible={photoSheet}
+        onClose={() => setPhotoSheet(false)}
+        title="Profile photo"
+        items={[
+          { label: 'Choose from library', onPress: pickImage },
+          { label: 'Take a photo', onPress: takePhoto },
+        ]}
+      />
+
       <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={() => setDeleteOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: '#0f3a41ff', borderRadius: 14, padding: 20, borderWidth: 1, borderColor: '#ff9db1' }}>
-            <Text style={{ color: '#ff9db1', fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 10 }}>Delete your account?</Text>
-            <Text style={{ color: '#E8FBFF', fontSize: 14, lineHeight: 21 }}>
-              This permanently deletes your profile, survey answers, wellbeing check-ins, pumping logs, community posts and photo. It cannot be undone.
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Delete your account?</Text>
+            <Text style={styles.modalText}>
+              This permanently deletes your profile, survey answers, wellbeing check-ins, pumping logs, community posts, connections, messages and photo. It cannot be undone.
             </Text>
-            <Text style={{ color: '#E8FBFF', fontSize: 14, lineHeight: 21, marginTop: 10 }}>
+            <Text style={[styles.modalText, { marginTop: 10 }]}>
               {household && household.members.length > 1
                 ? 'Your partner stays in the household and keeps the baby records, including the logs you entered.'
                 : 'You are the only member, so your babies and all their logs are deleted too.'}
             </Text>
-            <Text style={{ color: '#A4CDD3', fontSize: 13, marginTop: 14, marginBottom: 6 }}>Type DELETE to confirm</Text>
+            <Text style={styles.modalLabel}>Type DELETE to confirm</Text>
             <TextInput
-              style={styles.codeInput}
+              style={styles.modalInput}
               value={deleteText}
               onChangeText={setDeleteText}
               autoCapitalize="characters"
               autoCorrect={false}
               placeholder="DELETE"
-              placeholderTextColor="#A4CDD3"
+              placeholderTextColor={C.muted}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-              <Pressable onPress={() => setDeleteOpen(false)} disabled={deleting}>
-                <Text style={{ color: '#A4CDD3', fontSize: 15 }}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={confirmDeleteAccount}
-                disabled={deleteText.trim() !== 'DELETE' || deleting}
-                style={{ backgroundColor: deleteText.trim() === 'DELETE' ? '#ff9db1' : 'rgba(255,157,177,0.3)', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 18 }}>
-                <Text style={{ color: '#09282eff', fontWeight: '700' }}>{deleting ? 'Deleting...' : 'Delete forever'}</Text>
-              </Pressable>
+            <View style={styles.modalActions}>
+              <Pressable onPress={() => setDeleteOpen(false)} disabled={deleting}><Text style={styles.cancelText}>Cancel</Text></Pressable>
+              <Button title="Delete forever" kind="danger" onPress={confirmDeleteAccount} busy={deleting} disabled={deleteText.trim() !== 'DELETE'} />
             </View>
           </View>
         </View>
@@ -616,141 +488,24 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  stepper: { color: '#FED8FE', fontSize: 24, fontWeight: '700', lineHeight: 28, paddingHorizontal: 6 },
-  codeInput: {
-    backgroundColor: '#0f3a41ff',
-    borderWidth: 1,
-    borderColor: '#2F9BA8',
-    borderRadius: 10,
-    color: '#E8FBFF',
-    padding: 12,
-    marginTop: 12,
-    marginBottom: 10,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#09282eff',
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 30,
-    color: '#E8FBFF',
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-    backgroundColor: 'rgba(107, 155, 168, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(107, 155, 168, 0.2)',
-  },
-  photoContainer: {
-    marginBottom: 16,
-  },
-  profilePhoto: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#6B9BA8',
-  },
-  photoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(107, 155, 168, 0.2)',
-    borderWidth: 2,
-    borderColor: '#6B9BA8',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: '#6B9BA8',
-    fontSize: 12,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#E8FBFF',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#A4CDD3',
-    marginBottom: 20,
-  },
-  photoButtonsContainer: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'center',
-  },
-  photoButton: {
-    backgroundColor: '#6B9BA8',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  photoButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  settingsSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E8FBFF',
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(107, 155, 168, 0.08)',
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(107, 155, 168, 0.15)',
-  },
-  settingLabel: {
-    flex: 1,
-    marginRight: 12,
-    fontSize: 14,
-    color: '#A4CDD3',
-    fontWeight: '600',
-  },
-  settingValue: {
-    fontSize: 14,
-    color: '#E8FBFF',
-    fontWeight: '500',
-  },
-  logoutButton: {
-    backgroundColor: '#E74C3C',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  logoutButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: C.bg },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 },
+  title: { fontSize: 30, fontWeight: '700', lineHeight: 38, color: C.pink, marginBottom: 18 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: C.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.line, marginBottom: 26 },
+  cameraBadge: { position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: C.pink, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.card },
+  userName: { fontSize: 20, fontWeight: '700', lineHeight: 27, color: C.text },
+  userEmail: { fontSize: 13, color: C.muted, marginTop: 2 },
+  editLink: { color: C.yellow, fontSize: 14, fontWeight: '600', marginTop: 10 },
+  removeText: { color: C.danger, fontSize: 13, fontWeight: '600' },
+  linkText: { color: C.yellow, fontSize: 14, fontWeight: '600' },
+  deleteLink: { alignSelf: 'center', padding: 16, marginTop: 8 },
+  deleteText: { color: C.danger, fontSize: 14 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: C.card, borderRadius: 18, padding: 20, borderWidth: 1, borderColor: C.danger },
+  modalTitle: { color: C.danger, fontSize: 20, fontWeight: '700', lineHeight: 26, marginBottom: 10 },
+  modalText: { color: C.text, fontSize: 14, lineHeight: 21 },
+  modalLabel: { color: C.muted, fontSize: 13, marginTop: 14, marginBottom: 6 },
+  modalInput: { borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, color: C.text, backgroundColor: C.bg },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
+  cancelText: { color: C.muted, fontSize: 15 },
 });

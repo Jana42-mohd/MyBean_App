@@ -146,6 +146,7 @@ export async function blockParent(target: string) {
   if (error) throw error;
 }
 
+// Things waiting for my answer: connection requests (and group invitations, counted by the caller)
 export async function incomingRequestCount(): Promise<number> {
   const rows = await myConnections();
   return rows.filter(r => r.status === 'pending' && r.direction === 'incoming').length;

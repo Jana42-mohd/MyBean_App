@@ -69,7 +69,7 @@ export async function exportMyData(): Promise<void> {
   if (!u.user) throw new Error('Not signed in');
   const me = u.user;
 
-  const [profile, survey, wellbeing, posts, likes, saves, household, babies, logs, place, connections, messages] = await Promise.all([
+  const [profile, survey, wellbeing, posts, likes, saves, household, babies, logs, place, connections, messages, groupMessages] = await Promise.all([
     all('profiles', q => q.eq('id', me.id)),
     all('surveys', q => q.eq('user_id', me.id)),
     all('wellbeing_entries', q => q.order('created_at')),
@@ -82,6 +82,7 @@ export async function exportMyData(): Promise<void> {
     all('neighbor_profiles', q => q.eq('user_id', me.id)),
     all('connections', q => q.order('created_at')),
     all('messages', q => q.order('created_at')),
+    all('group_messages', q => q.order('created_at')),
   ]);
 
   const payload = {
@@ -95,7 +96,7 @@ export async function exportMyData(): Promise<void> {
     household: household[0] ? { invite_code: household[0].invite_code, created_at: household[0].created_at } : null,
     babies,
     logs,
-    parents_near_you: { my_place: place[0] ?? null, connections, messages },
+    parents_near_you: { my_place: place[0] ?? null, connections, messages, group_messages: groupMessages },
   };
   const text = JSON.stringify(payload, null, 2);
 

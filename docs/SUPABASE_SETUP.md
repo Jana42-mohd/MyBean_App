@@ -18,6 +18,7 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 10. `0010_security_hardening.sql`: invite-code throttle, size limits, post rate limit, tighter profile visibility
 11. `0011_push_and_photos.sql`: partner notifications (push tokens + a database trigger) and the private `milestone-photos` bucket
 12. `0012_neighbors.sql`: parents near you (private location table, connection requests, chat, reports, notifications)
+13. `0013_groups.sql`: small group chats (up to 8, only between connected parents)
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
@@ -50,6 +51,13 @@ Matching is on the text typed, ignoring capitals, punctuation and extra spaces (
 spelling or accents. If you want people to pick from a list of cities instead, that is a next step.
 Before launch: the Terms ask users to be 18+, and App Store / Google Play review will look at the report/block tools and
 moderation process for this feature. Make sure someone is assigned to review reports (see `docs/RELEASE.md`).
+
+### Group chats (0013)
+Up to 8 people (members plus pending invitations); each person may start 5. You can only invite parents you are connected
+with, and each invitee must accept. If the creator leaves, the longest-standing member takes over; a group with one person
+left is deleted. Blocking someone removes you from every group you share with them. Reports of a group message go to the
+same moderator list as other reports (a copy of only that message). Notifications say who wrote and in which group, never
+the text, and each group can be muted.
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

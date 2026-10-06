@@ -6,6 +6,7 @@ import { Avatar } from '@/components/Avatar';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Group, myGroups, respondGroupInvite } from '@/lib/groups';
 import { Connection, myConnections, removeConnection, respondToRequest } from '@/lib/neighbors';
 import { timeAgo } from '@/lib/time';
 
@@ -13,13 +14,16 @@ export default function ConnectionsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [rows, setRows] = useState<Connection[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
       setError('');
-      setRows(await myConnections());
+      const [c, g] = await Promise.all([myConnections(), myGroups()]);
+      setRows(c);
+      setGroups(g);
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -37,6 +41,8 @@ export default function ConnectionsScreen() {
     load();
   };
 
+  const groupInvites = groups.filter(g => g.status === 'invited');
+  const myGroupList = groups.filter(g => g.status === 'member');
   const incoming = rows.filter(r => r.status === 'pending' && r.direction === 'incoming');
   const outgoing = rows.filter(r => r.status === 'pending' && r.direction === 'outgoing');
   const connected = rows.filter(r => r.status === 'accepted');
@@ -49,8 +55,20 @@ export default function ConnectionsScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10}><Text style={styles.back}>← Back</Text></Pressable>
         <ThemedText style={styles.title}>My connections</ThemedText>
         {error ? <LoadError message={error} onRetry={load} /> : null}
-        {!loading && !error && rows.length === 0 ? <Text style={styles.empty}>No connections yet. Find parents near you and say hello.</Text> : null}
+        {!loading && !error && rows.length === 0 && groups.length === 0 ? <Text style={styles.empty}>No connections yet. Find parents near you and say hello.</Text> : null}
         <Pressable style={styles.findBtn} onPress={() => router.push('/neighbors')}><Text style={styles.findText}>Find parents near me</Text></Pressable>
+
+        {groupInvites.length > 0 ? <Text style={styles.heading}>Group invitations</Text> : null}
+        {groupInvites.map(g => (
+          <View key={g.id} style={styles.card}>
+            <Text style={styles.name}>{g.name}</Text>
+            <Text style={styles.muted}>{g.invited_by_name ?? 'A parent'} invited you · {g.member_count} {g.member_count === 1 ? 'person' : 'people'} so far</Text>
+            <View style={styles.row}>
+              <Pressable style={styles.accept} onPress={() => run(() => respondGroupInvite(g.id, true))}><Text style={styles.acceptText}>Join</Text></Pressable>
+              <Pressable style={styles.decline} onPress={() => run(() => respondGroupInvite(g.id, false))}><Text style={styles.declineText}>Decline</Text></Pressable>
+            </View>
+          </View>
+        ))}
 
         {incoming.length > 0 ? <Text style={styles.heading}>Requests for you</Text> : null}
         {incoming.map(r => (
@@ -81,6 +99,20 @@ export default function ConnectionsScreen() {
             <Text style={styles.chev}>›</Text>
           </Pressable>
         ))}
+
+        <Text style={styles.heading}>Groups</Text>
+        {myGroupList.map(g => (
+          <Pressable key={g.id} style={[styles.card, styles.row]} onPress={() => router.push({ pathname: '/group', params: { id: g.id, name: g.name } })}>
+            <View style={styles.groupIcon}><Text style={styles.groupIconText}>{g.name.trim()[0]?.toUpperCase() ?? 'G'}</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name} numberOfLines={1}>{g.name}</Text>
+              <Text style={styles.muted} numberOfLines={1}>{g.member_count} {g.member_count === 1 ? 'person' : 'people'}{g.last_message_at ? ` · ${timeAgo(g.last_message_at)}` : ''}{g.muted ? ' · muted' : ''}</Text>
+            </View>
+            <Text style={styles.chev}>›</Text>
+          </Pressable>
+        ))}
+        {myGroupList.length === 0 ? <Text style={styles.muted}>Chat with several parents at once, like a playgroup. Everyone in a group is someone you are connected with.</Text> : null}
+        <Pressable style={[styles.findBtn, { marginTop: 10 }]} onPress={() => router.push('/group-new')}><Text style={styles.findText}>+ New group</Text></Pressable>
 
         {outgoing.length > 0 ? <Text style={styles.heading}>Waiting for an answer</Text> : null}
         {outgoing.map(r => (
@@ -117,5 +149,7 @@ const styles = StyleSheet.create({
   decline: { borderWidth: 1, borderColor: '#2F9BA8', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 18 },
   declineText: { color: '#E8FBFF' },
   cancel: { color: '#ff9db1', fontSize: 13, fontWeight: '600' },
+  groupIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#FED8FE', alignItems: 'center', justifyContent: 'center' },
+  groupIconText: { color: '#09282eff', fontWeight: '700', fontSize: 18 },
   chev: { color: '#A4CDD3', fontSize: 24 },
 });

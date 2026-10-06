@@ -135,3 +135,19 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Block someone from the chat menu: the chat disappears for both, neither sees the other in lists, and a new request is refused.
 - [ ] Switch visibility off: you disappear from the lists immediately; existing connections keep working. Turn off "Notify me about requests and messages": no pushes.
 - [ ] Download my data includes your place, connections and messages. Delete account: your connections and messages are gone for the other person too.
+
+## Group chats (four accounts: A connected to B, C and D)
+- [ ] Connections -> + New group: name it, pick B and C, create. B and C get a push ("A invited you to a group") and a Group invitations card with Join/Decline.
+- [ ] Before they join, B and C cannot read the group. After joining, everyone sees messages with the sender's name on other people's bubbles; a message appears on the others' phones within ~5 seconds with a push that says who wrote and where, not what.
+- [ ] You cannot pick someone you are not connected with. A group needs a name and at least one invitee. The 9th person is refused.
+- [ ] Group menu -> Members and invitations: the creator can remove people and cancel invitations; others cannot. Anyone can invite one of their own connections (it is refused if someone in the group has blocked them).
+- [ ] Mute: no pushes for that group, messages still arrive. Long-press someone's message -> Report; a moderator sees only that message. Long-press your own -> Delete.
+- [ ] Block a member (from your one-to-one chat with them): you disappear from every group you share with them.
+- [ ] The creator leaves: the longest-standing member becomes the creator. When only one person is left the group disappears. Delete group (creator only) removes it for everyone. Deleting the creator's account keeps the group for the rest.
+
+## Settings screen
+- [ ] The page uses the same dark-teal cards as the other tabs: titled sections, one rounded card per group of settings, pink headings, no leftover grey-blue buttons or red Log Out button.
+- [ ] Tap the avatar (camera badge): Choose from library / Take a photo. The spinner shows while it uploads.
+- [ ] Babies: tap a baby to edit, Remove asks for confirmation. Household: invite code row shares, join code works, Leave household appears only with a partner.
+- [ ] Notifications and Reminders: switches, the hour steppers appear only when the reminder is on. Change password expands in place. Delete my account is at the very bottom and needs typing DELETE.
+- [ ] Everything is readable at the largest phone font size and in landscape.

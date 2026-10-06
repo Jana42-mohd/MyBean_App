@@ -20,7 +20,7 @@ Questions or requests: [[SUPPORT_EMAIL]].
 
 - Community: posts you write, and your likes, saves, reports, and the members you block.
 
-- Parents near you (optional): a country, city and neighbourhood that you type yourself (we never use GPS or your phone's location), and a switch saying whether nearby parents may find you. It is off until you turn it on. Connection requests, the messages you exchange with parents you have accepted, and any reports you send about people.
+- Parents near you (optional): a country, city and neighbourhood that you type yourself (we never use GPS or your phone's location), and a switch saying whether nearby parents may find you. It is off until you turn it on. Connection requests, the messages you exchange with parents you have accepted, small group chats (up to 8 people, only with parents you are connected with) and their messages, and any reports you send about people.
 
 - Reminders: your reminder settings are stored on your phone only.
 
@@ -38,9 +38,9 @@ We do not currently use advertising, analytics or cross-app tracking tools, and 
 
 - To keep the community safe, including reviewing posts and people that are reported.
 
-- Parents near you: if you switch it on, other parents who also switched it on can see your name, profile photo, city and neighbourhood, and can send you a request. They never see your babies, logs, wellbeing check-ins, email address or household members. Nobody can message you until you accept their request. Blocking someone ends the connection and deletes the chat for both of you.
+- Parents near you: if you switch it on, other parents who also switched it on can see your name, profile photo, city and neighbourhood, and can send you a request. They never see your babies, logs, wellbeing check-ins, email address or household members. Nobody can message you until you accept their request. Blocking someone ends the connection, deletes the chat for both of you, and removes you from any group you share with them.
 
-- Messages between parents are stored on our servers so they can be delivered. Moderators cannot read your chats; they only see the one message (and your note) that you or someone else chooses to report. Notifications about requests and messages say who wrote, never what they wrote.
+- Messages between parents, in chats and in groups, are stored on our servers so they can be delivered. Everyone in a group can read it, so share only what you are comfortable with. Moderators cannot read your chats or groups; they only see the one message (and your note) that you or someone else chooses to report. Notifications about requests and messages say who wrote, never what they wrote.
 
 - To secure and fix the service.
 
