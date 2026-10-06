@@ -14,7 +14,7 @@ The owner is not a developer: explain in plain language, give exact commands (th
 
 ## Checks to run before every push (all must pass)
 ```
-cd frontend && npx tsc --noEmit && npm test && npx expo lint        # 103 unit tests, 0 lint errors (10 old warnings)
+cd frontend && npx tsc --noEmit && npm test && npx expo lint        # unit tests, 0 lint errors (10 old warnings)
 EXPO_PUBLIC_SUPABASE_URL=https://x.supabase.co EXPO_PUBLIC_SUPABASE_ANON_KEY=x npx expo export --platform android --output-dir /tmp/android-out
 # database (needs a local PostgreSQL: pg_ctlcluster 16 main start; it may need restarting between commands)
 PGHOST=localhost PGUSER=postgres PGPASSWORD=postgres bash supabase/tests/run.sh
@@ -30,7 +30,7 @@ CI (`.github/workflows/ci.yml`) runs the same on GitHub; the last result seen wa
 - Commit messages end with the Co-Authored-By / Claude-Session lines from the system reminder. Never put a model name in code or commits.
 
 ## What exists (all built, pushed)
-Auth (email/password, PKCE reset links, `mybean://`), survey, multiple babies (twins/expecting), households with partner linking and live sync (Realtime), shared sleep timers, quick log, History edit/delete, Insights charts, Growth tracker (WHO percentiles), Milestones with private photos, offline outbox (log, edit, delete, sleep), local reminders, partner push notifications (pg_net -> Expo), wellbeing + EPDS (private), community posts with photos/videos, topics drop-down filter, threaded comments with likes/reports, moderation screen, account deletion/data export, legal drafts, light/dark theme (Settings > Appearance), **Parents near you** (opt-in, typed place, city picker from a list), connection requests, 1:1 chat, small group chats (max 8), unread badge on the Community tab, Home **Right now** card with one-tap logging and "same as last time".
+Auth (email/password, PKCE reset links, `mybean://`), survey, multiple babies (twins/expecting), households with partner linking and live sync (Realtime), shared sleep timers, quick log, History edit/delete, Insights charts, Growth tracker (WHO percentiles), Milestones with private photos, offline outbox (log, edit, delete, sleep), local reminders, partner push notifications (pg_net -> Expo), wellbeing + EPDS (private), community posts with photos/videos, topics drop-down filter, threaded comments with likes/reports, moderation screen, account deletion/data export, legal drafts, light/dark theme (Settings > Appearance), **Parents near you** (opt-in, typed place, city picker from a list), connection requests, 1:1 chat, small group chats (max 8), unread badge on the Community tab, Quick Log with a "When was it?" picker and "Same as last time". (A Home "Right now" card was built and then removed at the owner's request: it felt repetitive.)
 
 ## What the owner must still do (remind them)
 1. Run migrations **0016** (fixes saving the place), **0017** (push title "My Bean"), **0018** (comments) in Supabase if not done yet; then `git pull` (if `frontend/lib/appInfo.ts` has their own details, they use `git stash`, `git pull`, `git stash pop` and keep their values; `git checkout -- package-lock.json` before pulls).

@@ -41,7 +41,7 @@ test('asleep: from the shared timer, and then there is no awake time', () => {
 
 test('twins are kept apart, and a baby with no entries has nothing to show', () => {
   const rows = [feed('b1', 30), diaper('b2', 10)];
-  const [a, b] = r.computeStatuses([mia, leo], rows, [], NOW);
+  const [a, b] = [mia, leo].map(x => r.computeStatus(x, rows, [], NOW));
   assert(a.lastFeeding && !a.lastDiaper);
   assert(!b.lastFeeding && b.lastDiaper);
   const none = r.computeStatus({ id: 'b9', name: 'Zed' }, rows, [], NOW);
@@ -60,15 +60,4 @@ test('"next feeding in X hours" typed by the parent beats the pattern', () => {
   assert.strictEqual(s.nextFeedAt.getTime() - s.lastFeeding.at.getTime(), 2 * 3600_000);
   const wild = r.computeStatus(mia, [feed('b1', 10, { nextInHours: '99' })], [], NOW);
   assert.strictEqual(wild.nextFeedAt, null, 'an absurd value is ignored');
-});
-
-test('wording: round gaps, and a calm way to say the estimate is passed', () => {
-  assert.strictEqual(r.gapText(178), '3 h');
-  assert.strictEqual(r.gapText(95), '1 h 35 min');
-  assert.strictEqual(r.gapText(42), '40 min');
-  const next = m => new Date(NOW.getTime() + m * 60000);
-  assert.match(r.nextFeedText(next(90), NOW), /^around /);
-  assert.strictEqual(r.nextFeedText(next(5), NOW), 'around now');
-  assert.strictEqual(r.nextFeedText(next(-20), NOW), 'around now');
-  assert.strictEqual(r.nextFeedText(next(-90), NOW), 'a little past the usual time');
 });

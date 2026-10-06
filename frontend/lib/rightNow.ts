@@ -1,7 +1,7 @@
 import type { LogRow } from './logs';
 import { toDate } from './time';
 
-// "Right now" for each baby, worked out from the last week of entries: asleep or awake and for how long, when they last
+// What each baby had last (feeding, diaper) and about when the next feeding might be, worked out from the last week of entries: asleep or awake and for how long, when they last
 // ate and had a diaper, how often they usually feed, and about when the next feeding might be.
 // This is information from the parents' own logs, not advice: the app never says a baby *should* eat or sleep.
 
@@ -81,24 +81,4 @@ export function computeStatus(baby: { id: string; name: string }, rows: LogRow[]
     feedGapMinutes: gap,
     nextFeedAt,
   };
-}
-
-export function computeStatuses(babies: { id: string; name: string }[], rows: LogRow[], sleeps: SleepRef[], now = new Date()): BabyStatus[] {
-  return babies.map(b => computeStatus(b, rows, sleeps, now));
-}
-
-// "3 h", "1 h 30 min", "45 min"
-export function gapText(minutes: number): string {
-  const m = Math.round(minutes / 5) * 5; // 175 min reads better as "3 h"
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
-}
-
-// How a next-feeding estimate is shown: "around 4:30 pm", "any time now", or "a little past the usual time"
-export function nextFeedText(next: Date, now = new Date()): string {
-  const diff = (next.getTime() - now.getTime()) / 60000;
-  if (diff > 10) return `around ${next.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-  if (diff >= -30) return 'around now';
-  return 'a little past the usual time';
 }

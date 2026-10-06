@@ -134,13 +134,8 @@ Authentication -> Users -> delete the old test users, then sign up through the a
 - [ ] The post author gets a notification "<name> commented on your post"; the person you replied to gets "<name> replied to your comment". Tapping it opens the post. Neither says what was written. Your own comments never notify you.
 - [ ] Delete account: your comments are gone (or "[deleted]" where others replied).
 
-## Right now (top of Home) and faster logging
-- [ ] Home shows a card per baby (one card when a single baby is picked): "Awake 1h 10m" or "Asleep 35m", "Fed 1 h 40 min ago · breast · 4 oz", "Usually every 3 h · next around 6:30 PM" (only once there are at least 4 feedings in the last week), and "Diaper 55 min ago · pee". Twins get a card each.
-- [ ] Wording stays fresh by itself ("40 min ago" becomes "41 min ago" within about 30 seconds).
-- [ ] **Fed again** logs a feeding right now with the same method and amount, shows "Logged feeding for <baby>" with Undo, and the card updates. **Pee** and **Poop** log a diaper at once. **Sleep** starts the shared timer; on the partner's phone the card turns into "Asleep".
-- [ ] While asleep the card turns yellow with **Woke up** and **Discard**. Woke up logs the nap once, even if both parents press it together. The sleep banner further down Home is hidden for babies shown in the top cards.
-- [ ] In airplane mode all of these still work ("saved offline, will sync") and the card reflects them straight away.
+## Faster logging (Quick Log on Home)
 - [ ] Quick Log -> Feeding / Diaper: a "When was it?" row (Now, 10 min, 20 min, 30 min, 1 h, 2 h ago). Choosing "20 min ago" logs the entry 20 minutes back (check in History).
 - [ ] Quick Log -> Feeding with one baby picked shows **Same as last time: breast · 4 oz**, which logs it at once. The amount box says what the last amount was; the last method is underlined.
-- [ ] A new baby with no entries shows "No feedings logged yet" and no Fed again button. An entry typed with "Next feeding in (hours)" makes the estimate use that.
+- [ ] A new baby with no entries shows no "Same as last time" button. Home has no "Right now" card.
 

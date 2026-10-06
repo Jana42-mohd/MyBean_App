@@ -8,7 +8,6 @@ import { LogRow, fetchLogs } from '@/lib/logs';
 import { Baby, babyNames, bornBabies, daysUntil, expectedBabies, fetchBabies } from '@/lib/babies';
 import { ALL_BABIES, BabyPicker } from '@/components/BabyPicker';
 import { QuickLog } from '@/components/QuickLog';
-import { RightNow } from '@/components/RightNow';
 import { toDate } from '@/lib/time';
 import { useLiveEvents, useLiveRefresh, useLiveStatus } from '@/hooks/use-live';
 import { LiveEvent, getMyId } from '@/lib/liveSync';
@@ -44,12 +43,7 @@ export default function HomeScreen() {
   const liveStatus = useLiveStatus();
   const [babies, setBabies] = useState<Baby[]>([]);
   const [selected, setSelected] = useState(ALL_BABIES);
-  const [weekRows, setWeekRows] = useState<LogRow[]>([]);   // the last 7 days: today's totals, "right now" and "same as last time" all come from these
-  const [rightNowIds, setRightNowIds] = useState<string[]>([]);
-  // only update when the list really changed, so the card reporting back can never cause an endless re-render
-  const onRightNowShown = useCallback((ids: string[]) => {
-    setRightNowIds(prev => (prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids));
-  }, []);
+  const [weekRows, setWeekRows] = useState<LogRow[]>([]);   // the last 7 days: today's totals and "same as last time" all come from these
   const born = useMemo(() => bornBabies(babies), [babies]);
 
   const [toast, setToast] = useState<{ message: string; undo?: () => Promise<void> } | null>(null);
@@ -192,8 +186,6 @@ export default function HomeScreen() {
         })}
         <BabyPicker babies={born} value={selected} onChange={setSelected} />
 
-        <RightNow babies={born} selected={selected} rows={weekRows} onChanged={loadData} onToast={showToast} onShown={onRightNowShown} />
-
         {/* Core Stats */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today&apos;s Overview</Text>
@@ -216,7 +208,7 @@ export default function HomeScreen() {
         {/* Quick Log Section */}
         <View style={[styles.section, styles.quickLogSection]}>
           <Text style={styles.sectionTitle}>Quick Log</Text>
-          <QuickLog babies={born} selected={selected} onChanged={loadData} onToast={showToast} rows={weekRows} skipBanners={rightNowIds} />
+          <QuickLog babies={born} selected={selected} onChanged={loadData} onToast={showToast} rows={weekRows} />
         </View>
 
         {/* Growth & Development */}

@@ -43,14 +43,12 @@ export function QuickLog({
   onChanged,
   onToast,
   rows = [],
-  skipBanners = [],
 }: {
   babies: Baby[]; // born babies only
   selected: string; // baby picker value on Home
   onChanged: () => void; // reload Home after something was logged
   onToast: (message: string, undo?: () => Promise<void>) => void;
   rows?: LogRow[]; // the last week of entries: used to offer "same as last time"
-  skipBanners?: string[]; // babies whose sleep timer is already shown on the Right now card
 }) {
   const colors = useTheme();
   const styles = useStyles(makeStyles);
@@ -155,7 +153,7 @@ export function QuickLog({
 
   return (
     <View>
-      {sleeps.filter(sl => !skipBanners.includes(sl.baby_id)).map(sl => (
+      {sleeps.map(sl => (
         <View key={sl.baby_id} style={styles.banner}>
           <MaterialCommunityIcons name="weather-night" size={24} color={colors.onAccent} />
           <View style={{ flex: 1 }}>
