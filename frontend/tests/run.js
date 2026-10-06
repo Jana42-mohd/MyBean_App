@@ -9,7 +9,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const out = fs.mkdtempSync(path.join(os.tmpdir(), 'bean-tests-'));
 const files = [
-  'growth', 'whoGrowthData', 'insights', 'time', 'babies', 'liveSync', 'outbox', 'netError', 'online', 'photoCleanup', 'push', 'neighbors', 'groups', 'countries', 'signedUrls', 'postMediaStore', 'theme', 'cities', 'unread', 'comments', 'rightNow', 'logs', 'logActions',
+  'growth', 'whoGrowthData', 'insights', 'time', 'babies', 'liveSync', 'outbox', 'netError', 'online', 'photoCleanup', 'push', 'neighbors', 'groups', 'countries', 'signedUrls', 'postMediaStore', 'theme', 'cities', 'unread', 'comments', 'rightNow', 'helplines', 'wellbeingTrend', 'logs', 'logActions',
   'timer', 'legal', 'appInfo', 'reminders',
 ].map(f => `lib/${f}.ts`);
 

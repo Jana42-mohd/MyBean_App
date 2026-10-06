@@ -6,6 +6,11 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { supabase } from '@/lib/supabase';
+import { CountryPicker } from '@/components/CountryPicker';
+import { countryName } from '@/lib/countries';
+import { FIND_A_HELPLINE, HELPLINES_CHECKED, getHelpCountryChoice, helpFor, pickHelpCountry, setHelpCountryChoice } from '@/lib/helplines';
+import { getMyPlace } from '@/lib/neighbors';
+import { weeklyMood, nudgeFor } from '@/lib/wellbeingTrend';
 import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 interface Entry {
@@ -61,7 +66,46 @@ const EPDS: { q: string; a: [string, number][] }[] = [
 
 const call = (num: string) => Linking.openURL(`tel:${num}`);
 
-function CrisisCard() {
+// The numbers for the parent's country (from their place under Parents near you, or a country chosen here for this phone only).
+// With no country known, the Canada and US lines are shown and labelled as such, as before.
+function HelpBtn({ label, onPress, crisis }: { label: string; onPress: () => void; crisis?: boolean }) {
+  const styles = useStyles(makeStyles);
+  return crisis ? (
+    <Pressable style={styles.crisisBtn} onPress={onPress} accessibilityRole="button"><Text style={styles.crisisBtnText}>{label}</Text></Pressable>
+  ) : (
+    <Pressable style={styles.link} onPress={onPress} accessibilityRole="link"><Text style={styles.linkText}>{label}</Text></Pressable>
+  );
+}
+
+function HelpList({ country, crisis, onChoose }: { country: string | null; crisis?: boolean; onChoose: () => void }) {
+  const styles = useStyles(makeStyles);
+  const help = helpFor(country);
+  return (
+    <View>
+      {help ? (
+        <>
+          {help.lines.map(l => <HelpBtn crisis={crisis} key={l.phone} label={`${l.name}: ${l.display}${l.note ? ` (${l.note})` : ''}`} onPress={() => call(l.phone)} />)}
+          <HelpBtn crisis={crisis} label={`Emergency: call ${help.emergency.display}`} onPress={() => call(help.emergency.phone)} />
+        </>
+      ) : country ? (
+        <Text style={styles.body}>
+          We don't have a checked list for {countryName(country) || 'your country'} yet. If you are in danger, call your local emergency number. The directory below lists helplines in your country.
+        </Text>
+      ) : (
+        <>
+          <HelpBtn crisis={crisis} label="Call or text 9-8-8 (Canada & US crisis line)" onPress={() => call('988')} />
+          <HelpBtn crisis={crisis} label="Emergency in Canada & US: call 911" onPress={() => call('911')} />
+          <Pressable style={styles.link} onPress={onChoose}><Text style={styles.linkText}>Somewhere else? Choose your country</Text></Pressable>
+        </>
+      )}
+      <Pressable style={styles.link} onPress={() => Linking.openURL(FIND_A_HELPLINE)} accessibilityRole="link">
+        <Text style={styles.linkText}>More helplines in your country: findahelpline.com</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function CrisisCard({ country, onChoose }: { country: string | null; onChoose: () => void }) {
   const styles = useStyles(makeStyles);
   return (
     <View style={[styles.card, styles.crisis]}>
@@ -69,12 +113,7 @@ function CrisisCard() {
       <Text style={styles.body}>
         If you have thoughts of harming yourself or your baby, or you feel unsafe, please reach out immediately. You are not alone and this can get better.
       </Text>
-      <Pressable style={styles.crisisBtn} onPress={() => call('988')}>
-        <Text style={styles.crisisBtnText}>Call or text 9-8-8 (Canada & US crisis line)</Text>
-      </Pressable>
-      <Pressable style={styles.crisisBtn} onPress={() => call('911')}>
-        <Text style={styles.crisisBtnText}>Emergency: call 911</Text>
-      </Pressable>
+      <HelpList country={country} crisis onChoose={onChoose} />
     </View>
   );
 }
@@ -91,6 +130,10 @@ export default function WellbeingScreen() {
   const [saving, setSaving] = useState(false);
   const [quiz, setQuiz] = useState<number[] | null>(null); // answer scores, -1 = unanswered
   const [result, setResult] = useState<{ score: number; selfHarm: boolean } | null>(null);
+  const [choice, setChoice] = useState<string | null>(null);   // a country picked here, kept on this phone only
+  const [placeCountry, setPlaceCountry] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const helpCountry = pickHelpCountry(choice, placeCountry);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -105,11 +148,22 @@ export default function WellbeingScreen() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  const loadCountry = useCallback(async () => {
+    setChoice(await getHelpCountryChoice());
+    try {
+      setPlaceCountry((await getMyPlace()).country);
+    } catch {
+      setPlaceCountry(null); // offline or not set: the choice made here, or the Canada and US lines, are used
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); loadCountry(); }, [load, loadCountry]));
 
   const checkins = entries.filter(e => e.kind === 'checkin');
   const lastEpds = entries.find(e => e.kind === 'epds');
-  const recentLow = checkins.length >= 3 && checkins.slice(0, 3).every(c => (c.score ?? 3) <= 2);
+  const nudge = nudgeFor(entries, now);
+  const weeks = weeklyMood(entries, now);
+  const epdsList = entries.filter(e => e.kind === 'epds').slice(0, 4).reverse();
   const daysSinceEpds = lastEpds ? Math.floor((now - new Date(lastEpds.created_at).getTime()) / 86400000) : null;
 
   const saveCheckin = async () => {
@@ -147,14 +201,17 @@ export default function WellbeingScreen() {
           Taking care of you matters too. This section is private: only you can see it, and it is never shared with your partner.
         </Text>
 
-        {(result?.selfHarm || (lastEpds?.data?.selfHarm && (daysSinceEpds ?? 99) < 14)) && <CrisisCard />}
+        {(result?.selfHarm || (lastEpds?.data?.selfHarm && (daysSinceEpds ?? 99) < 14)) && <CrisisCard country={helpCountry} onChoose={() => setPicking(true)} />}
 
-        {recentLow && !quiz && (
+        {nudge && !quiz && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>It's been a heavy few days</Text>
+            <Text style={styles.cardTitle}>{nudge === 'low-mood' ? 'The last couple of weeks have been heavy' : 'Your last two screenings were in a range worth talking about'}</Text>
             <Text style={styles.body}>
-              Your last few check-ins were low. That's really common during pregnancy and after having a baby, and it's okay to ask for help. Consider taking the screening below and sharing the result with your doctor, midwife or a friend.
+              {nudge === 'low-mood'
+                ? "Your check-ins have been low for two weeks in a row. That's really common during pregnancy and after having a baby, and it doesn't mean you're doing anything wrong. It could help to talk to someone: your doctor, midwife or public health nurse, a friend, or one of the lines under \"Support, any time\"."
+                : "Both of your most recent screenings were at 10 or above. That isn't a diagnosis, but it's a good reason to talk to your doctor, midwife or public health nurse, or one of the lines under \"Support, any time\"."}
             </Text>
+            <Text style={styles.muted}>Only you can see this. It is worked out on your phone from your own check-ins and is never shared.</Text>
           </View>
         )}
 
@@ -208,6 +265,25 @@ export default function WellbeingScreen() {
                   ))}
                 </View>
               </>
+            )}
+          </View>
+        )}
+
+        {/* Weeks at a glance */}
+        {!quiz && weeks.some(w => w.count > 0) && (
+          <View style={styles.card}>
+            <CardTitle icon="chart-line">Your weeks</CardTitle>
+            <Text style={styles.body}>Your average mood for each week, from your check-ins. Taller is better. A week with no check-ins is left empty.</Text>
+            <View style={[styles.chart, { marginTop: 14 }]}>
+              {weeks.map((w, i) => (
+                <View key={i} style={styles.barWrap} accessible accessibilityLabel={w.average === null ? `Week of ${fmt(w.start.toISOString())}: no check-ins` : `Week of ${fmt(w.start.toISOString())}: average ${w.average.toFixed(1)} out of 5`}>
+                  <View style={[styles.bar, styles.weekBar, w.average === null ? styles.barEmpty : { height: 10 + w.average * 14, opacity: 0.5 + w.average * 0.1 }]} />
+                  <Text style={styles.barLabel}>{fmt(w.start.toISOString()).replace(' ', '\n')}</Text>
+                </View>
+              ))}
+            </View>
+            {epdsList.length > 0 && (
+              <Text style={styles.muted}>Screenings: {epdsList.map(e => `${fmt(e.created_at)} · ${e.score}/30`).join('   ')}</Text>
             )}
           </View>
         )}
@@ -274,17 +350,32 @@ export default function WellbeingScreen() {
         {/* Resources */}
         <View style={styles.card}>
           <CardTitle icon="phone-in-talk">Support, any time</CardTitle>
-          <Pressable style={styles.link} onPress={() => call('988')}>
-            <Text style={styles.linkText}>9-8-8 Suicide Crisis Helpline (Canada & US): call or text</Text>
+          <Text style={styles.muted}>
+            {helpCountry ? `Showing help for ${countryName(helpCountry) || helpCountry}. ` : ''}
+            Numbers last checked {HELPLINES_CHECKED}; they can change.
+          </Text>
+          <HelpList country={helpCountry} onChoose={() => setPicking(true)} />
+          <Pressable style={styles.link} onPress={() => setPicking(true)} accessibilityRole="button">
+            <Text style={styles.linkText}>{helpCountry ? 'Not your country? Change it' : 'Choose your country'}</Text>
           </Pressable>
-          <Pressable style={styles.link} onPress={() => call('18009444773')}>
-            <Text style={styles.linkText}>Postpartum Support International (US): 1-800-944-4773</Text>
-          </Pressable>
+          {choice ? (
+            <Pressable style={styles.link} onPress={async () => { await setHelpCountryChoice(null); setChoice(null); }}>
+              <Text style={styles.linkText}>Go back to the country in my place settings</Text>
+            </Pressable>
+          ) : null}
+          <Text style={styles.muted}>
+            Your country comes from "Parents near you" in Settings, if you set it. A country chosen here stays on this phone only.
+          </Text>
           <Text style={styles.body}>
-            Outside Canada/US, or for local services, ask your doctor, midwife or public health nurse. Rest, asking a partner or friend to take a night shift, and talking about it all help.
+            Your doctor, midwife or public health nurse can also point you to local services. Rest, asking a partner or friend to take a night shift, and talking about it all help.
           </Text>
         </View>
       </ScrollView>
+      <CountryPicker
+        visible={picking}
+        onClose={() => setPicking(false)}
+        onPick={async code => { await setHelpCountryChoice(code); setChoice(code); setPicking(false); }}
+      />
     </ThemedView>
   );
 }
@@ -319,6 +410,8 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 110 },
   barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
   bar: { width: '100%', backgroundColor: colors.accent, borderRadius: 4 },
+  weekBar: { backgroundColor: colors.link },
+  barEmpty: { height: 3, opacity: 0.35 },
   barLabel: { color: colors.muted, fontSize: 8, textAlign: 'center', marginTop: 4 },
   question: { color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 6 },
   option: { padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border, marginTop: 6 },

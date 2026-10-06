@@ -13,7 +13,7 @@ export async function clearLocalData() {
   try {
     if (Platform.OS !== 'web') await Notifications.cancelAllScheduledNotificationsAsync();
   } catch {}
-  await AsyncStorage.multiRemove(['reminderSettings', 'reminderIds', 'activeSleep']).catch(() => {});
+  await AsyncStorage.multiRemove(['reminderSettings', 'reminderIds', 'activeSleep', 'helpCountry']).catch(() => {});
 }
 
 export async function signOutEverywhereOnDevice() {

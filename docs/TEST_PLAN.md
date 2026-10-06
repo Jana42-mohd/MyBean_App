@@ -139,3 +139,16 @@ Authentication -> Users -> delete the old test users, then sign up through the a
 - [ ] Quick Log -> Feeding with one baby picked shows **Same as last time: breast · 4 oz**, which logs it at once. The amount box says what the last amount was; the last method is underlined.
 - [ ] A new baby with no entries shows no "Same as last time" button. Home has no "Right now" card.
 
+## Wellbeing: local help and weekly trend
+Needs a real phone and a real account. Use a test account; the app only reads your own entries.
+- [ ] Settings > Parents near you: set the country to Canada. Wellbeing > Support, any time says "Showing help for Canada" and lists 9-8-8 and Postpartum Support International, then Emergency 911. Tapping a line opens the phone's dialler with that number (do not press call).
+- [ ] Change the place country to United Kingdom (or Ireland, Australia, New Zealand, United States): the list changes to that country's lines and emergency number, and 9-8-8 is not shown for the UK.
+- [ ] A country with no list (for example Japan): a plain message, the findahelpline.com link, and "call your local emergency number". Germany or France shows 112.
+- [ ] "Not your country? Change it" picks a country for this phone only. It wins over the place setting; "Go back to the country in my place settings" removes it. Check in Supabase (neighbor_profiles) that nothing changed there.
+- [ ] No country at all (new account, no place): the Canada & US lines are shown, labelled as such, with "Choose your country".
+- [ ] Take the screening answering "Sometimes" or worse to question 10: the "You deserve support right now" card shows the lines for the same country.
+- [ ] Your weeks: after check-ins on different days, the chart shows an average per week (8 weeks, oldest on the left; a week with no check-ins is a short grey bar). Screening scores are listed under it.
+- [ ] A gentle card appears only when the last two weeks each have at least 2 check-ins and each averages 2.5 or lower (or the last two screenings in 10 weeks both scored 10+). One bad week does nothing.
+- [ ] Nothing on this screen is visible to your partner: sign in as the partner and check Wellbeing shows only their own entries.
+- [ ] Delete account: the phone-only country choice is cleared too.
+Numbers were checked against official pages in October 2026 (see lib/helplines.ts). Re-check them before each store release.
