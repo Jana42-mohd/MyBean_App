@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ActionSheet } from '@/components/ActionSheet';
 import { PostMedia } from '@/components/PostMedia';
 import { MAX_VIDEO_SECONDS, pickPostMedia } from '@/lib/postMedia';
 import { LocalMedia, MAX_FILES, PostFile, createPostWithMedia, deletePostWithMedia, fetchPostMedia, mediaUrls } from '@/lib/postMediaStore';
@@ -51,7 +52,8 @@ export default function CommunityScreen() {
   const [interactionLoading, setInteractionLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
   const router = useRouter();
-  const [topicFilter, setTopicFilter] = useState<string | null>(null); // tap a topic above the feed to show only those posts
+  const [topicFilter, setTopicFilter] = useState<string | null>(null); // show only posts with this topic
+  const [topicMenu, setTopicMenu] = useState(false);
   const requests = useUnreadTotal();
   const [media, setMedia] = useState<LocalMedia[]>([]);          // chosen for the post being written
   const [mediaOf, setMediaOf] = useState<Record<string, PostFile[]>>({});
@@ -308,22 +310,16 @@ export default function CommunityScreen() {
           </Pressable>
         </View>
 
-        {/* Topic Tags */}
-        <View style={styles.tagsContainer}>
-          <Text style={styles.tagsLabel}>{topicFilter ? `Showing: ${topicFilter} (tap it again to see everything)` : 'Topics (tap one to filter)'}</Text>
-          <View style={styles.tagsGrid}>
-            {topicTags.map(tag => (
-              <Pressable
-                key={tag}
-                style={[styles.tagButton, topicFilter === tag && styles.tagButtonActive]}
-                onPress={() => setTopicFilter(topicFilter === tag ? null : tag)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: topicFilter === tag }}>
-                <Text style={[styles.tagText, topicFilter === tag && styles.tagTextActive]}>{tag}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        {/* Topic filter: one compact dropdown instead of a wall of chips */}
+        <Pressable
+          style={[styles.topicDropdown, topicFilter && styles.topicDropdownActive]}
+          onPress={() => setTopicMenu(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Topic filter: ${topicFilter ?? 'all topics'}`}>
+          <MaterialCommunityIcons name="filter-variant" size={18} color={topicFilter ? colors.onAccent : colors.link} />
+          <Text style={[styles.topicDropdownText, topicFilter && { color: colors.onAccent }]} numberOfLines={1}>{topicFilter ?? 'All topics'}</Text>
+          <MaterialCommunityIcons name="chevron-down" size={20} color={topicFilter ? colors.onAccent : colors.muted} />
+        </Pressable>
 
         {/* Posts List */}
         {loadError ? <LoadError message={loadError} onRetry={loadPosts} /> : null}
@@ -366,7 +362,7 @@ export default function CommunityScreen() {
                 <View style={styles.postActions}>
                   <Pressable style={[styles.actionButton, { flex: 0, minWidth: 64, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }]} onPress={() => router.push({ pathname: '/post', params: { id: post.id } })} accessibilityLabel={`Comments, ${post.comments_count ?? 0}`}>
                     <MaterialCommunityIcons name="comment-outline" size={16} color={colors.text} />
-                    <Text style={styles.actionButtonText}>{post.comments_count ?? 0}</Text>
+                    <Text style={styles.actionButtonText} numberOfLines={1}>{post.comments_count ?? 0}</Text>
                   </Pressable>
 
                   <Pressable
@@ -551,6 +547,15 @@ export default function CommunityScreen() {
           </ScrollView>
         </ThemedView>
       </Modal>
+      <ActionSheet
+        visible={topicMenu}
+        onClose={() => setTopicMenu(false)}
+        title="Show posts about"
+        items={[
+          { label: 'All topics', selected: !topicFilter, onPress: () => setTopicFilter(null) },
+          ...topicTags.map(tag => ({ label: tag, selected: topicFilter === tag, onPress: () => setTopicFilter(tag) })),
+        ]}
+      />
       <Modal visible={!!reporting} transparent animationType="fade" onRequestClose={() => setReporting(null)}>
         <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: colors.border }}>
@@ -653,38 +658,9 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   viewModeButtonTextActive: {
     color: colors.onAccent,
   },
-  tagsContainer: {
-    gap: 10,
-  },
-  tagsLabel: {
-    fontSize: 14,
-    color: colors.link,
-    fontWeight: '600',
-  },
-  tagsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tagButton: {
-    backgroundColor: colors.wash,
-    borderWidth: 1,
-    borderColor: colors.link,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  tagButtonActive: {
-    backgroundColor: colors.highlight,
-  },
-  tagText: {
-    fontSize: 12,
-    color: colors.link,
-    fontWeight: '600',
-  },
-  tagTextActive: {
-    color: colors.onAccent,
-  },
+  topicDropdown: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingVertical: 8, paddingLeft: 12, paddingRight: 10, marginBottom: 16, maxWidth: '100%' },
+  topicDropdownActive: { backgroundColor: colors.highlight, borderColor: colors.highlight },
+  topicDropdownText: { color: colors.text, fontSize: 14, fontWeight: '600', flexShrink: 1 },
   list: {
     gap: 12,
   },
@@ -744,7 +720,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   },
   postActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     marginTop: 12,
   },
   actionButton: {
@@ -757,7 +733,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 10,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
   },
   actionButtonActive: {
     backgroundColor: colors.wash,

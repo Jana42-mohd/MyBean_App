@@ -124,7 +124,7 @@ automatically until a moderator keeps or deletes it.
 Authentication -> Users -> delete the old test users, then sign up through the app (see `TEST_PLAN.md`).
 
 ## Topics and comments
-- [ ] New Post offers Questions, Advice, Stories, Sleep, Feeding, Breastfeeding, Milestones, Health, Development, Mental Health, Pregnancy, Recommendations and Other. In the feed, tapping a topic shows only those posts; tapping it again shows everything.
+- [ ] New Post offers Questions, Advice, Stories, Sleep, Feeding, Breastfeeding, Milestones, Health, Development, Mental Health, Pregnancy, Recommendations and Other. In the feed, the "All topics" drop-down (under All Posts / Liked / Saved) opens a list; choosing a topic shows only those posts (the drop-down turns yellow), and choosing "All topics" shows everything.
 - [ ] Each post shows "Comments (n)". Tapping the title or that button opens the post with its comments.
 - [ ] Add a comment: it appears at once and the count goes up. Reply to a comment: the reply sits indented under it (up to 4 levels of indent; a 7th level is refused).
 - [ ] Like a comment (heart, count); like it again to undo. Sort by Top / Newest / Oldest. Tap a comment's name line to collapse its replies ("3 hidden").
