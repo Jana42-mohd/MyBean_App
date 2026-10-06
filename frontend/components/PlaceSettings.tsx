@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { CityPicker } from '@/components/CityPicker';
 import { CountryPicker } from '@/components/CountryPicker';
 import { friendlyError } from '@/components/LoadError';
 import { Button, Field, Hint, Pad, Row, Section, ToggleRow } from '@/components/settings-ui';
+import { cityLabel } from '@/lib/cities';
 import { countryName } from '@/lib/countries';
 import { EMPTY_PLACE, Place, getMyPlace, savePlace } from '@/lib/neighbors';
 
@@ -13,6 +15,7 @@ export function PlaceSettings() {
   const [place, setPlace] = useState<Place>(EMPTY_PLACE);
   const [saved, setSaved] = useState<Place>(EMPTY_PLACE);
   const [pickCountry, setPickCountry] = useState(false);
+  const [pickCity, setPickCity] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,7 +25,7 @@ export function PlaceSettings() {
     }, []),
   );
 
-  const dirty = place.country !== saved.country || place.city !== saved.city || place.area !== saved.area;
+  const dirty = place.country !== saved.country || place.city !== saved.city || place.region !== saved.region || place.area !== saved.area;
 
   const save = async (next: Place = place) => {
     setSaving(true);
@@ -59,17 +62,23 @@ export function PlaceSettings() {
           {place.blocked ? <Hint danger>Your profile is hidden while a moderator reviews reports about it.</Hint> : null}
         </Pad>
         <Row icon="earth" label="Country" value={countryName(place.country) || 'Choose'} onPress={() => setPickCountry(true)} />
+        <Row
+          icon="city-variant-outline"
+          label="City or town"
+          value={place.city ? cityLabel({ name: place.city, region: place.region }) : 'Choose'}
+          onPress={() => (place.country ? setPickCity(true) : Alert.alert('Choose your country first', 'The list of cities depends on the country.'))}
+        />
         <Pad>
-          <Field label="City or town" value={place.city} onChangeText={t => setPlace(p => ({ ...p, city: t }))} placeholder="e.g. Toronto" maxLength={60} />
           <Field label="Neighbourhood (optional)" value={place.area} onChangeText={t => setPlace(p => ({ ...p, area: t }))} placeholder="e.g. The Annex" maxLength={60} />
-          <Hint>Spell it the way your neighbours would. Parents match when city and neighbourhood read the same (capitals and punctuation do not matter).</Hint>
+          <Hint>Type your neighbourhood the way your neighbours would. Parents match when it reads the same (capitals, accents and punctuation do not matter).</Hint>
           {dirty ? <Button title="Save place" onPress={() => save()} busy={saving} /> : null}
         </Pad>
         <ToggleRow icon="eye-outline" label="Let nearby parents find me" sub="Off until you turn it on" value={saved.discoverable} onValueChange={toggleDiscoverable} disabled={saving || place.blocked} />
         <Row icon="map-marker-radius-outline" label="Find parents near me" onPress={() => router.push('/neighbors')} />
         <Row icon="account-multiple-outline" label="Connections, requests and groups" onPress={() => router.push('/connections')} />
       </Section>
-      <CountryPicker visible={pickCountry} onClose={() => setPickCountry(false)} onPick={code => { setPlace(p => ({ ...p, country: code })); setPickCountry(false); }} />
+      <CountryPicker visible={pickCountry} onClose={() => setPickCountry(false)} onPick={code => { setPlace(p => (p.country === code ? p : { ...p, country: code, city: '', region: '' })); setPickCountry(false); }} />
+      <CityPicker visible={pickCity} country={place.country} onClose={() => setPickCity(false)} onPick={c => { setPlace(p => ({ ...p, city: c.name, region: c.region })); setPickCity(false); }} />
     </>
   );
 }

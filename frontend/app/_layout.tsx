@@ -14,6 +14,7 @@ import { sessionFromUrl } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { setupNotifications } from '@/lib/reminders';
 import { syncPushToken } from '@/lib/push';
+import { clearUnread, refreshUnread } from '@/lib/unread';
 import { hasCompletedSurvey } from '@/lib/household';
 import { startLiveSync, stopLiveSync } from '@/lib/liveSync';
 import { initOutbox, onOutboxFailure } from '@/lib/outbox';
@@ -83,6 +84,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready && session) syncPushToken();
   }, [ready, session?.user.id]);
+
+  // The Community badge: reload when a notification arrives, and empty it when someone logs out
+  useEffect(() => {
+    if (!session) { clearUnread(); return; }
+    refreshUnread();
+    const sub = Notifications.addNotificationReceivedListener(() => { refreshUnread(); });
+    return () => sub.remove();
+  }, [session?.user.id]);
 
   useEffect(() => onOutboxFailure(message => Alert.alert('Could not send an entry', message)), []);
 

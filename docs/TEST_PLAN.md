@@ -170,3 +170,19 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Nothing is unreadable: no pale text on white, no dark text on dark; error messages, the offline banner and the Delete/Remove actions are clearly red-ish in both themes.
 - [ ] The brand pink is used sparingly: main action buttons, the selected pill and small badges. Screen titles are plain dark/light text.
 - [ ] Take a photo of a screen outdoors in daylight in Light mode and at night in Dark mode: both are comfortable.
+
+## Unread counts
+- [ ] Phone B sends Phone A two messages while A is on Home. A's Community tab shows a badge (2 plus anything else waiting) within about 30 seconds, or at once if the push arrives.
+- [ ] Community -> Connections: the chat shows a pink number and a bold name. Open it: the number disappears, and the tab badge goes down.
+- [ ] A new message while the chat is open does not leave a badge behind once it is on screen.
+- [ ] Group chats work the same way; a muted group still shows its number, dimmed. Messages from before you joined a group are never unread.
+- [ ] A connection request and a group invitation each add 1 to the badge until answered.
+- [ ] Log out and in as someone else: the badge shows their number, not the previous person's.
+- [ ] Your own messages never count as unread for you.
+
+## City list
+- [ ] Settings -> Parents near you -> City or town opens a search. Typing "tor" lists Toronto first; "montreal" finds Montréal; "springfield" in the US lists several, each with its state.
+- [ ] Picking a city shows "City, Region". Changing the country clears the city. "Use '<what I typed>'" appears for a town that is not listed.
+- [ ] Two parents who both pick Toronto, Ontario see each other under the city tab; a parent who picked Springfield, Illinois does not see one in Springfield, Missouri.
+- [ ] Someone who typed their city by hand before this update still matches a parent who picks the same city from the list.
+- [ ] The picker works offline (the list is on the phone) and opens quickly. The GeoNames credit is shown in the picker and in Settings -> About.

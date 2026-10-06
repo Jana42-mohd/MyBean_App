@@ -14,6 +14,7 @@ export interface Group {
   invited_by_name: string | null;
   last_message_at: string | null;
   muted: boolean;
+  unread: number;
 }
 
 export interface GroupPerson {

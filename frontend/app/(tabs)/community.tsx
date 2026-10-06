@@ -4,8 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { incomingRequestCount } from '@/lib/neighbors';
-import { myGroups } from '@/lib/groups';
+import { useUnreadTotal } from '@/lib/unread';
 import { supabase } from '@/lib/supabase';
 import { LoadError, friendlyError } from '@/components/LoadError';
 import { Image } from 'expo-image';
@@ -50,7 +49,7 @@ export default function CommunityScreen() {
   const [interactionLoading, setInteractionLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
   const router = useRouter();
-  const [requests, setRequests] = useState(0);
+  const requests = useUnreadTotal();
   const [media, setMedia] = useState<LocalMedia[]>([]);          // chosen for the post being written
   const [mediaOf, setMediaOf] = useState<Record<string, PostFile[]>>({});
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -89,7 +88,6 @@ export default function CommunityScreen() {
   // Load (and refresh) whenever the Community tab is opened
   useFocusEffect(
     useCallback(() => {
-      Promise.all([incomingRequestCount(), myGroups()]).then(([n, g]) => setRequests(n + g.filter(x => x.status === 'invited').length)).catch(() => setRequests(0));
       (async () => {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {

@@ -453,6 +453,7 @@ export default function SettingsScreen() {
         <Section title="About and privacy">
           <Row icon="shield-lock-outline" label="Privacy policy" onPress={() => router.push('/legal?doc=privacy')} />
           <Row icon="file-document-outline" label="Terms of service" onPress={() => router.push('/legal?doc=terms')} />
+          <Row icon="map-outline" label="City list" sub="Data from GeoNames (CC BY 4.0)" onPress={() => Linking.openURL('https://www.geonames.org')} />
           <Row icon="lifebuoy" label="Contact support" onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} />
           <Row icon="information-outline" label="Version" value={Constants.expoConfig?.version ?? ''} />
         </Section>

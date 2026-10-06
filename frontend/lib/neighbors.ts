@@ -7,17 +7,23 @@ export type Scope = 'area' | 'city' | 'country';
 export interface Place {
   country: string | null; // 2-letter code
   city: string;
+  region: string;         // state/province of a city picked from the list; empty for a city typed by hand
   area: string;
   discoverable: boolean;
   blocked: boolean; // taken out of the lists after reports, until a moderator reviews
 }
-export const EMPTY_PLACE: Place = { country: null, city: '', area: '', discoverable: false, blocked: false };
+export const EMPTY_PLACE: Place = { country: null, city: '', region: '', area: '', discoverable: false, blocked: false };
+
+// "The Annex, Toronto, Ontario"
+export const placeLabel = (p: { area?: string | null; city?: string | null; region?: string | null }) =>
+  [p.area, [p.city, p.region].filter(Boolean).join(', ')].filter(Boolean).join(', ');
 
 export interface NearbyParent {
   id: string;
   name: string;
   avatar_url: string | null;
   city: string | null;
+  region: string | null;
   area: string | null;
   connection: 'none' | 'sent' | 'received' | 'connected';
   request_id: string | null;
@@ -29,12 +35,14 @@ export interface Connection {
   name: string;
   avatar_url: string | null;
   city: string | null;
+  region: string | null;
   area: string | null;
   status: 'pending' | 'accepted';
   direction: 'incoming' | 'outgoing';
   intro: string | null;
   created_at: string;
   last_message_at: string | null;
+  unread: number;
 }
 
 export interface ChatMessage {
@@ -63,24 +71,25 @@ export async function getMyPlace(): Promise<Place> {
   const uid = await me();
   const { data, error } = await supabase
     .from('neighbor_profiles')
-    .select('country,city,area,discoverable,discovery_blocked')
+    .select('country,city,region,area,discoverable,discovery_blocked')
     .eq('user_id', uid)
     .maybeSingle();
   if (error) throw error;
   if (!data) return EMPTY_PLACE;
-  return { country: data.country, city: data.city ?? '', area: data.area ?? '', discoverable: data.discoverable, blocked: data.discovery_blocked };
+  return { country: data.country, city: data.city ?? '', region: data.region ?? '', area: data.area ?? '', discoverable: data.discoverable, blocked: data.discovery_blocked };
 }
 
 // Throws a plain-language message when something is missing (the database checks the same rules)
-export async function savePlace(p: { country: string | null; city: string; area: string; discoverable: boolean }) {
+export async function savePlace(p: { country: string | null; city: string; region?: string; area: string; discoverable: boolean }) {
   const city = p.city.trim();
+  const region = (p.region ?? '').trim();
   const area = p.area.trim();
   if (p.discoverable && (!p.country || !city)) throw new Error('Choose your country and type your city before turning this on.');
-  if (city.length > 60 || area.length > 60) throw new Error('City and neighbourhood can be at most 60 characters.');
+  if (city.length > 60 || area.length > 60 || region.length > 60) throw new Error('City and neighbourhood can be at most 60 characters.');
   const uid = await me();
   const { error } = await supabase
     .from('neighbor_profiles')
-    .upsert({ user_id: uid, country: p.country, city: city || null, area: area || null, discoverable: p.discoverable }, { onConflict: 'user_id' });
+    .upsert({ user_id: uid, country: p.country, city: city || null, region: city && region ? region : null, area: area || null, discoverable: p.discoverable }, { onConflict: 'user_id' });
   if (error) throw error;
 }
 

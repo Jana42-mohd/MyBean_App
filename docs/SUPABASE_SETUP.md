@@ -20,6 +20,7 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 12. `0012_neighbors.sql`: parents near you (private location table, connection requests, chat, reports, notifications)
 13. `0013_groups.sql`: small group chats (up to 8, only between connected parents)
 14. `0014_post_media.sql`: photos and videos in community posts (private `post-media` bucket)
+15. `0015_unread_and_places.sql`: unread counts for chats and groups, and cities chosen from a list
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
@@ -69,6 +70,17 @@ Supabase's free plan caps uploads at 50 MB per file (Storage -> Settings), which
 and bandwidth costs: videos are the expensive part, so keep an eye on Storage usage after launch.
 Nothing scans uploads automatically: moderation relies on reports (and the 3-report auto-hide). Before launch, decide who
 reviews reports and how fast, since photos and videos make that more important.
+
+### Unread counts and the city list (0015)
+Each person has a "read up to" time per chat and group (`chat_reads`, reachable only through functions). The Community
+tab shows one number: unread messages + connection requests + group invitations. It refreshes every 30 seconds while the
+app is open, when a notification arrives and whenever a chat is read. Existing chats count as read when you run the
+migration. Muted groups still count in the number (the group's own pill is dimmed).
+Cities come from a list built from GeoNames (CC BY 4.0; credited in Settings -> About and in the city picker):
+`frontend/assets/data/cities.json` (about 600 KB, 34,000 towns of 5,000+ people with their state or province). To rebuild
+it, see `tools/generate-cities.py`. A town that is not in the list can be typed. Matching ignores capitals, accents and
+punctuation; a city picked from the list must also be in the same region (Springfield, Illinois is not Springfield,
+Missouri), while a hand-typed city (no region) matches any region.
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

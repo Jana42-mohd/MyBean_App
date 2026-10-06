@@ -34,7 +34,7 @@ test('savePlace: visible needs a country and a city; text is trimmed; empty beco
   await assert.rejects(() => n.savePlace({ country: 'CA', city: 'x'.repeat(61), area: '', discoverable: false }), /60/);
   assert.strictEqual(calls.length, 0, 'nothing is sent when the input is wrong');
   await n.savePlace({ country: 'CA', city: '  Toronto ', area: '  ', discoverable: true });
-  assert.deepStrictEqual(calls[0].slice(0, 3), ['upsert', 'neighbor_profiles', { user_id: 'u1', country: 'CA', city: 'Toronto', area: null, discoverable: true }]);
+  assert.deepStrictEqual(calls[0].slice(0, 3), ['upsert', 'neighbor_profiles', { user_id: 'u1', country: 'CA', city: 'Toronto', region: null, area: null, discoverable: true }]);
   await n.savePlace({ country: null, city: '', area: '', discoverable: false });  // hiding never needs a place
 });
 

@@ -5,9 +5,10 @@ import { ActionSheet } from '@/components/ActionSheet';
 import { ChatView } from '@/components/ChatView';
 import { friendlyError } from '@/components/LoadError';
 import {
-  ChatMessage, Connection, REPORT_REASONS, blockParent, deleteMessage, fetchMessages, myConnections, removeConnection, reportParent, sendMessage,
+  ChatMessage, Connection, REPORT_REASONS, placeLabel, blockParent, deleteMessage, fetchMessages, myConnections, removeConnection, reportParent, sendMessage,
 } from '@/lib/neighbors';
 import { supabase } from '@/lib/supabase';
+import { markChatRead } from '@/lib/unread';
 
 const POLL_MS = 5000;
 
@@ -21,12 +22,20 @@ export default function ChatScreen() {
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState<{ messageId?: string } | null>(null);
   const alive = useRef(true);
+  const marked = useRef('');   // time of the newest message already reported as read
 
   const load = useCallback(async () => {
     if (!id) return;
     try {
-      setMessages(await fetchMessages(id));
+      const list = await fetchMessages(id);
+      setMessages(list);
       setError('');
+      // everything on screen has been seen: tell the server (and the badge) how far we have read
+      const newest = list[0]?.created_at;
+      if (newest && newest > marked.current) {
+        marked.current = newest;
+        markChatRead(id, newest);
+      }
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -54,6 +63,7 @@ export default function ChatScreen() {
     try {
       const m = await sendMessage(id!, body);
       setMessages(prev => [m, ...prev]);
+      marked.current = m.created_at;
     } catch (e) {
       Alert.alert('Could not send', friendlyError(e));
       throw e;
@@ -126,7 +136,7 @@ export default function ChatScreen() {
     <>
       <ChatView
         title={title}
-        subtitle={other ? [other.area, other.city].filter(Boolean).join(', ') : undefined}
+        subtitle={other ? placeLabel(other) : undefined}
         me={me}
         messages={messages}
         error={error}

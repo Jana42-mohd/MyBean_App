@@ -7,7 +7,7 @@ import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { countryName } from '@/lib/countries';
-import { EMPTY_PLACE, NearbyParent, Place, Scope, getMyPlace, nearbyParents, requestConnection } from '@/lib/neighbors';
+import { EMPTY_PLACE, NearbyParent, Place, Scope, getMyPlace, nearbyParents, placeLabel, requestConnection } from '@/lib/neighbors';
 import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 const PAGE = 30;
@@ -133,7 +133,7 @@ export default function NeighborsScreen() {
                 <Avatar name={r.name} url={r.avatar_url} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
-                  <Text style={styles.muted} numberOfLines={1}>{[r.area, r.city].filter(Boolean).join(', ')}</Text>
+                  <Text style={styles.muted} numberOfLines={1}>{placeLabel(r)}</Text>
                 </View>
                 {status(r)}
               </View>

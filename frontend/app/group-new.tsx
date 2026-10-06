@@ -7,7 +7,7 @@ import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MAX_GROUP_SIZE, createGroup } from '@/lib/groups';
-import { Connection, myConnections } from '@/lib/neighbors';
+import { Connection, myConnections, placeLabel } from '@/lib/neighbors';
 import { Palette, useStyles, useTheme } from '@/lib/theme';
 
 export default function NewGroupScreen() {
@@ -68,7 +68,7 @@ export default function NewGroupScreen() {
               <Avatar name={p.name} url={p.avatar_url} size={40} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
-                <Text style={styles.muted} numberOfLines={1}>{[p.area, p.city].filter(Boolean).join(', ')}</Text>
+                <Text style={styles.muted} numberOfLines={1}>{placeLabel(p)}</Text>
               </View>
               <View style={[styles.check, on && styles.checkOn]}>{on ? <Text style={styles.tick}>✓</Text> : null}</View>
             </Pressable>

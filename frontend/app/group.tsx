@@ -12,6 +12,7 @@ import {
 } from '@/lib/groups';
 import { ChatMessage, Connection, REPORT_REASONS, myConnections } from '@/lib/neighbors';
 import { supabase } from '@/lib/supabase';
+import { markChatRead } from '@/lib/unread';
 import { Palette, useStyles } from '@/lib/theme';
 
 const POLL_MS = 5000;
@@ -31,6 +32,7 @@ export default function GroupScreen() {
   const [members, setMembers] = useState(false);
   const [reporting, setReporting] = useState<string | null>(null); // message id
   const alive = useRef(true);
+  const marked = useRef('');   // time of the newest message already reported as read
 
   const loadMeta = useCallback(async () => {
     if (!id) return;
@@ -45,8 +47,14 @@ export default function GroupScreen() {
   const load = useCallback(async () => {
     if (!id) return;
     try {
-      setMessages(await fetchGroupMessages(id));
+      const list = await fetchGroupMessages(id);
+      setMessages(list);
       setError('');
+      const newest = list[0]?.created_at;
+      if (newest && newest > marked.current) {
+        marked.current = newest;
+        markChatRead(id, newest);
+      }
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -76,6 +84,7 @@ export default function GroupScreen() {
     try {
       const m = await sendGroupMessage(id!, body);
       setMessages(prev => [m, ...prev]);
+      marked.current = m.created_at;
     } catch (e) {
       Alert.alert('Could not send', friendlyError(e));
       throw e;

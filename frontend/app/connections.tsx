@@ -7,8 +7,9 @@ import { LoadError, friendlyError } from '@/components/LoadError';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Group, myGroups, respondGroupInvite } from '@/lib/groups';
-import { Connection, myConnections, removeConnection, respondToRequest } from '@/lib/neighbors';
+import { Connection, myConnections, placeLabel, removeConnection, respondToRequest } from '@/lib/neighbors';
 import { timeAgo } from '@/lib/time';
+import { refreshUnread } from '@/lib/unread';
 import { Palette, useStyles } from '@/lib/theme';
 
 export default function ConnectionsScreen() {
@@ -26,6 +27,7 @@ export default function ConnectionsScreen() {
       const [c, g] = await Promise.all([myConnections(), myGroups()]);
       setRows(c);
       setGroups(g);
+      refreshUnread();
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -95,10 +97,10 @@ export default function ConnectionsScreen() {
           <Pressable key={r.id} style={[styles.card, styles.row]} onPress={() => openChat(r)}>
             <Avatar name={r.name} url={r.avatar_url} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
-              <Text style={styles.muted} numberOfLines={1}>{[r.area, r.city].filter(Boolean).join(', ')}{r.last_message_at ? ` · ${timeAgo(r.last_message_at)}` : ''}</Text>
+              <Text style={[styles.name, r.unread > 0 && styles.nameUnread]} numberOfLines={1}>{r.name}</Text>
+              <Text style={styles.muted} numberOfLines={1}>{placeLabel(r)}{r.last_message_at ? ` · ${timeAgo(r.last_message_at)}` : ''}</Text>
             </View>
-            <Text style={styles.chev}>›</Text>
+            {r.unread > 0 ? <View style={styles.pill}><Text style={styles.pillText}>{r.unread > 99 ? '99+' : r.unread}</Text></View> : <Text style={styles.chev}>›</Text>}
           </Pressable>
         ))}
 
@@ -107,10 +109,10 @@ export default function ConnectionsScreen() {
           <Pressable key={g.id} style={[styles.card, styles.row]} onPress={() => router.push({ pathname: '/group', params: { id: g.id, name: g.name } })}>
             <View style={styles.groupIcon}><Text style={styles.groupIconText}>{g.name.trim()[0]?.toUpperCase() ?? 'G'}</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.name} numberOfLines={1}>{g.name}</Text>
+              <Text style={[styles.name, g.unread > 0 && styles.nameUnread]} numberOfLines={1}>{g.name}</Text>
               <Text style={styles.muted} numberOfLines={1}>{g.member_count} {g.member_count === 1 ? 'person' : 'people'}{g.last_message_at ? ` · ${timeAgo(g.last_message_at)}` : ''}{g.muted ? ' · muted' : ''}</Text>
             </View>
-            <Text style={styles.chev}>›</Text>
+            {g.unread > 0 ? <View style={[styles.pill, g.muted && { opacity: 0.6 }]}><Text style={styles.pillText}>{g.unread > 99 ? '99+' : g.unread}</Text></View> : <Text style={styles.chev}>›</Text>}
           </Pressable>
         ))}
         {myGroupList.length === 0 ? <Text style={styles.muted}>Chat with several parents at once, like a playgroup. Everyone in a group is someone you are connected with.</Text> : null}
@@ -153,5 +155,8 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   cancel: { color: colors.danger, fontSize: 13, fontWeight: '600' },
   groupIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   groupIconText: { color: colors.onAccent, fontWeight: '700', fontSize: 18 },
+  nameUnread: { fontWeight: '800' },
+  pill: { backgroundColor: colors.accent, borderRadius: 11, minWidth: 22, height: 22, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
+  pillText: { color: colors.onAccent, fontSize: 12, fontWeight: '700' },
   chev: { color: colors.muted, fontSize: 24 },
 });

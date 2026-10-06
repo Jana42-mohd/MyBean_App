@@ -4,9 +4,11 @@ import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '@/lib/theme';
+import { useUnreadTotal } from '@/lib/unread';
 
 export default function TabLayout() {
   const colors = useTheme();
+  const unread = useUnreadTotal();
 
   return (
     <Tabs
@@ -37,6 +39,8 @@ export default function TabLayout() {
         name="community"
         options={{
           title: 'Community',
+          tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accent, color: colors.onAccent, fontSize: 10 },
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
         }}
       />
