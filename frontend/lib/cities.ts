@@ -32,11 +32,10 @@ export function searchCities(data: CityData | null | undefined, query: string, l
   const starts: CityOption[] = [], words: CityOption[] = [], inside: CityOption[] = [];
   for (const entry of data.c) {
     const f = fold(entry[0]);
-    const at = f.indexOf(q);
-    if (at < 0) continue;
-    if (at === 0) starts.push(to(entry));
-    else if (f[at - 1] === ' ') words.push(to(entry));
-    else inside.push(to(entry));
+    if (f.startsWith(q)) starts.push(to(entry));
+    else if (f.includes(' ' + q)) words.push(to(entry));
+    else if (f.includes(q)) inside.push(to(entry));
+    else continue;
     if (starts.length >= limit) break; // the list is sorted by size: enough good matches found
   }
   const good = [...starts, ...words];
