@@ -77,7 +77,7 @@ export async function exportMyData(): Promise<void> {
   if (!u.user) throw new Error('Not signed in');
   const me = u.user;
 
-  const [profile, survey, wellbeing, posts, likes, saves, household, babies, logs, place, connections, messages, groupMessages] = await Promise.all([
+  const [profile, survey, wellbeing, posts, likes, saves, household, babies, logs, place, connections, messages, groupMessages, comments] = await Promise.all([
     all('profiles', q => q.eq('id', me.id)),
     all('surveys', q => q.eq('user_id', me.id)),
     all('wellbeing_entries', q => q.order('created_at')),
@@ -91,6 +91,7 @@ export async function exportMyData(): Promise<void> {
     all('connections', q => q.order('created_at')),
     all('messages', q => q.order('created_at')),
     all('group_messages', q => q.order('created_at')),
+    all('post_comments', q => q.eq('user_id', me.id).order('created_at')),
   ]);
 
   const payload = {
@@ -100,7 +101,7 @@ export async function exportMyData(): Promise<void> {
     profile: profile[0] ?? null,
     survey: survey[0]?.data ?? null,
     wellbeing_entries: wellbeing,
-    community: { posts, liked_post_ids: likes.map((l: any) => l.post_id), saved_post_ids: saves.map((s: any) => s.post_id) },
+    community: { posts, comments, liked_post_ids: likes.map((l: any) => l.post_id), saved_post_ids: saves.map((s: any) => s.post_id) },
     household: household[0] ? { invite_code: household[0].invite_code, created_at: household[0].created_at } : null,
     babies,
     logs,

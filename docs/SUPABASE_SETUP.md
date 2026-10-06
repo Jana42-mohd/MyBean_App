@@ -21,6 +21,9 @@ Supabase dashboard -> **SQL Editor**, run these files from `supabase/migrations/
 13. `0013_groups.sql`: small group chats (up to 8, only between connected parents)
 14. `0014_post_media.sql`: photos and videos in community posts (private `post-media` bucket)
 15. `0015_unread_and_places.sql`: unread counts for chats and groups, and cities chosen from a list
+16. `0016_save_place.sql`: fixes saving the place in Settings (run it!)
+17. `0017_app_name.sql`: push notification title says "My Bean"
+18. `0018_comments.sql`: comments and replies under posts
 
 Live sync needs Supabase **Realtime** to be enabled for the project (it is by default). After running 0008 you can check
 **Database -> Publications -> supabase_realtime**: `logs`, `babies`, `profiles` and `active_sleeps` should be listed.
@@ -81,6 +84,14 @@ Cities come from a list built from GeoNames (CC BY 4.0; credited at the bottom o
 it, see `tools/generate-cities.py`. A town that is not in the list can be typed. Matching ignores capitals, accents and
 punctuation; a city picked from the list must also be in the same region (Springfield, Illinois is not Springfield,
 Missouri), while a hand-typed city (no region) matches any region.
+
+### Comments (0018)
+Threaded comments under posts (replies up to 6 levels), likes on comments, delete (a comment with replies stays as
+"[deleted]"), report (three different people hide a comment until a moderator reviews it, under Settings -> Moderation ->
+Reported comments). Hidden, suspended and blocked people's comments are not shown. People get a notification when someone
+comments on their post or replies to their comment (it says who, never what; the "Requests, messages and replies" switch
+in Settings controls it). 30 comments per hour per person. Deleting an account erases its comments, except where others
+replied: those stay as "[deleted]" so the thread keeps its shape.
 
 ## 2. Email: do this BEFORE real users sign up
 The built-in Supabase email sender is for testing only (a few emails per hour). It is the cause of

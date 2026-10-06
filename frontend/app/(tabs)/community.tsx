@@ -23,11 +23,13 @@ interface Post {
   tags: string[];
   likes_count: number;
   saves_count: number;
+  comments_count?: number;
   created_at: string;
   local?: boolean;
 }
 
-const topicTags = ['Sleep', 'Feeding', 'Breastfeeding', 'Milestones', 'Health', 'Development', 'Mental Health'];
+// Questions, Advice, Stories and Other are first so a post always has somewhere to go
+const topicTags = ['Questions', 'Advice', 'Stories', 'Sleep', 'Feeding', 'Breastfeeding', 'Milestones', 'Health', 'Development', 'Mental Health', 'Pregnancy', 'Recommendations', 'Other'];
 
 export default function CommunityScreen() {
   const colors = useTheme();
@@ -49,6 +51,7 @@ export default function CommunityScreen() {
   const [interactionLoading, setInteractionLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'liked' | 'saved'>('all');
   const router = useRouter();
+  const [topicFilter, setTopicFilter] = useState<string | null>(null); // tap a topic above the feed to show only those posts
   const requests = useUnreadTotal();
   const [media, setMedia] = useState<LocalMedia[]>([]);          // chosen for the post being written
   const [mediaOf, setMediaOf] = useState<Record<string, PostFile[]>>({});
@@ -307,11 +310,16 @@ export default function CommunityScreen() {
 
         {/* Topic Tags */}
         <View style={styles.tagsContainer}>
-          <Text style={styles.tagsLabel}>Topics</Text>
+          <Text style={styles.tagsLabel}>{topicFilter ? `Showing: ${topicFilter} (tap it again to see everything)` : 'Topics (tap one to filter)'}</Text>
           <View style={styles.tagsGrid}>
             {topicTags.map(tag => (
-              <Pressable key={tag} style={styles.tagButton}>
-                <Text style={styles.tagText}>{tag}</Text>
+              <Pressable
+                key={tag}
+                style={[styles.tagButton, topicFilter === tag && styles.tagButtonActive]}
+                onPress={() => setTopicFilter(topicFilter === tag ? null : tag)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: topicFilter === tag }}>
+                <Text style={[styles.tagText, topicFilter === tag && styles.tagTextActive]}>{tag}</Text>
               </Pressable>
             ))}
           </View>
@@ -325,18 +333,21 @@ export default function CommunityScreen() {
             <Text style={styles.loadingText}>Loading posts...</Text>
           </View>
         ) : (() => {
-          const filteredPosts = viewMode === 'liked' 
+          const byMode = viewMode === 'liked' 
             ? posts.filter(p => userLikes.includes(p.id))
             : viewMode === 'saved'
             ? posts.filter(p => userSaves.includes(p.id))
             : posts;
+          const filteredPosts = topicFilter ? byMode.filter(p => (p.tags ?? []).includes(topicFilter.toLowerCase())) : byMode;
 
           return filteredPosts.length > 0 ? (
             <View style={styles.list}>
               {filteredPosts.map(post => (
                 <View key={post.id} style={styles.postCard}>
                 <View style={styles.postHeader}>
-                  <Text style={styles.postTitle}>{post.title}</Text>
+                  <Pressable onPress={() => router.push({ pathname: '/post', params: { id: post.id } })} accessibilityRole="link" style={{ flex: 1 }}>
+                    <Text style={styles.postTitle}>{post.title}</Text>
+                  </Pressable>
                 </View>
                 <Text style={styles.postMeta}>
                   by {post.author} · {formatDate(post.created_at)}
@@ -353,6 +364,11 @@ export default function CommunityScreen() {
                 </View>
 
                 <View style={styles.postActions}>
+                  <Pressable style={[styles.actionButton, { flex: 0, minWidth: 64, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }]} onPress={() => router.push({ pathname: '/post', params: { id: post.id } })} accessibilityLabel={`Comments, ${post.comments_count ?? 0}`}>
+                    <MaterialCommunityIcons name="comment-outline" size={16} color={colors.text} />
+                    <Text style={styles.actionButtonText}>{post.comments_count ?? 0}</Text>
+                  </Pressable>
+
                   <Pressable
                     style={[
                       styles.actionButton,
@@ -401,7 +417,7 @@ export default function CommunityScreen() {
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {viewMode === 'liked' ? 'No liked posts yet' : viewMode === 'saved' ? 'No saved posts yet' : 'No posts yet. Be the first to share!'}
+                {topicFilter ? `No ${topicFilter} posts yet. Be the first to start one!` : viewMode === 'liked' ? 'No liked posts yet' : viewMode === 'saved' ? 'No saved posts yet' : 'No posts yet. Be the first to share!'}
               </Text>
             </View>
           );
@@ -658,10 +674,16 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
+  tagButtonActive: {
+    backgroundColor: colors.highlight,
+  },
   tagText: {
     fontSize: 12,
     color: colors.link,
     fontWeight: '600',
+  },
+  tagTextActive: {
+    color: colors.onAccent,
   },
   list: {
     gap: 12,

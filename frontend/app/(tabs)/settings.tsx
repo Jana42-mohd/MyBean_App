@@ -410,7 +410,7 @@ export default function SettingsScreen() {
         {/* Notifications */}
         <Section title="Notifications" hint="Sent from our servers, so they reach you even when the app is closed.">
           <ToggleRow icon="bell-outline" label="When my partner logs something" sub='For example "Blake logged a feeding for Mia"' value={notifyPartner} onValueChange={togglePartnerNotifications} />
-          <ToggleRow icon="message-outline" label="Requests and messages from parents" sub="Says who wrote, never what" value={notifyMessages} onValueChange={toggleMessages} />
+          <ToggleRow icon="message-outline" label="Requests, messages and replies" sub="Says who wrote, never what" value={notifyMessages} onValueChange={toggleMessages} />
         </Section>
 
         <Section title="Reminders" hint="Saved on this phone. They arrive even when the app is closed.">

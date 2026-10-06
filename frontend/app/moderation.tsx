@@ -29,6 +29,7 @@ export default function ModerationScreen() {
   const [error, setError] = useState('');
   const [mediaOf, setMediaOf] = useState<Record<string, PostFile[]>>({});
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [commentReports, setCommentReports] = useState<{ id: string; body: string; hidden: boolean; user_id: string | null; author: string; reasons: string[]; count: number }[]>([]);
   const [reports, setReports] = useState<{ id: string; reported: string; reason: string; details: string | null; message_excerpt: string | null; name: string }[]>([]);
   const [suspended, setSuspended] = useState<{ id: string; name: string }[]>([]);
 
@@ -45,6 +46,19 @@ export default function ModerationScreen() {
         .then(async m => { setMediaOf(m); setUrls(await mediaUrls(Object.values(m).flat().map(f => f.path))); })
         .catch(() => {});
     }
+    const { data: cr } = await supabase
+      .from('comment_reports')
+      .select('comment_id,reason,post_comments!inner(id,body,hidden,user_id)');
+    const grouped = new Map<string, any>();
+    for (const r of (cr ?? []) as any[]) {
+      const g = grouped.get(r.comment_id) ?? { id: r.comment_id, body: r.post_comments.body, hidden: r.post_comments.hidden, user_id: r.post_comments.user_id, reasons: [], count: 0 };
+      g.reasons.push(r.reason);
+      g.count++;
+      grouped.set(r.comment_id, g);
+    }
+    const authorIds = [...new Set([...grouped.values()].map(g => g.user_id).filter(Boolean))];
+    const { data: authors } = authorIds.length ? await supabase.from('profiles').select('id,name').in('id', authorIds) : { data: [] as any[] };
+    setCommentReports([...grouped.values()].map(g => ({ ...g, author: (authors ?? []).find((a: any) => a.id === g.user_id)?.name ?? 'Parent' })));
     const { data: ur } = await supabase
       .from('user_reports')
       .select('id,reported,reason,details,message_excerpt,created_at,who:profiles!user_reports_reported_fkey(name)')
@@ -91,6 +105,28 @@ export default function ModerationScreen() {
       },
     ]);
 
+  const keepComment = async (id: string) => {
+    // Clear the reports so the comment is not hidden again by the next single report, then show it
+    const r1 = await supabase.from('comment_reports').delete().eq('comment_id', id);
+    const r2 = await supabase.from('post_comments').update({ hidden: false }).eq('id', id);
+    if (r1.error || r2.error) Alert.alert('Error', friendlyError(r1.error || r2.error));
+    load();
+  };
+
+  const removeComment = (id: string) =>
+    Alert.alert('Delete comment?', 'This removes the comment (replies stay under "[deleted]").', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const { error: err } = await supabase.rpc('delete_comment', { c: id });
+          if (err) Alert.alert('Error', friendlyError(err));
+          load();
+        },
+      },
+    ]);
+
   const remove = (id: string) =>
     Alert.alert('Delete post?', 'This permanently removes the post.', [
       { text: 'Cancel', style: 'cancel' },
@@ -129,6 +165,24 @@ export default function ModerationScreen() {
             </View>
           </View>
         ))}
+        {commentReports.length > 0 ? (
+          <>
+            <ThemedText style={[styles.title, { fontSize: 20, marginTop: 10 }]}>Reported comments</ThemedText>
+            {commentReports.map(c => (
+              <View key={c.id} style={styles.card}>
+                <Text style={styles.status}>{c.hidden ? 'HIDDEN' : 'Visible'} · {c.count} report(s)</Text>
+                <Text style={styles.postTitle}>{c.author}</Text>
+                <Text style={styles.body}>{c.body}</Text>
+                <Text style={styles.muted}>Reasons: {c.reasons.join(', ')}</Text>
+                <View style={styles.row}>
+                  <Pressable onPress={() => keepComment(c.id)}><Text style={styles.action}>Keep (clear reports)</Text></Pressable>
+                  {c.user_id ? <Pressable onPress={() => setSuspension(c.user_id!, true)}><Text style={[styles.action, { color: colors.danger }]}>Suspend author</Text></Pressable> : null}
+                  <Pressable onPress={() => removeComment(c.id)}><Text style={[styles.action, { color: colors.danger }]}>Delete</Text></Pressable>
+                </View>
+              </View>
+            ))}
+          </>
+        ) : null}
         {reports.length > 0 ? (
           <>
             <ThemedText style={[styles.title, { fontSize: 20, marginTop: 10 }]}>Reported parents</ThemedText>
