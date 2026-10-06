@@ -92,11 +92,11 @@ The built-in Supabase email sender is for testing only (a few emails per hour). 
 3. Authentication -> **Rate Limits**: raise "Emails sent per hour" to something sensible.
 4. Authentication -> **Sign In / Providers -> Email**: turn **Confirm email** ON for production
    (OFF is fine while developing).
-5. Edit the templates under **Authentication -> Emails** so they say "My Little Bean".
+5. Edit the templates under **Authentication -> Emails** so they say "My Bean".
 
 ## 3. Redirect URLs (needed for password reset links)
 Authentication -> **URL Configuration -> Redirect URLs**: add
-- `mylittlebean://**` (built apps)
+- `mybean://**` (built apps)
 - `exp://**` (Expo Go while developing)
 - your Expo tunnel/LAN URL if Supabase rejects the `exp://` wildcard
 

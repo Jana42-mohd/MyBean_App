@@ -13,15 +13,15 @@ Do the steps in order. `cd frontend && npm run check:launch` lists what is still
 
 ## 1. Fill in the facts the app and legal text need
 1. Open `frontend/lib/appInfo.ts` and replace every `[[PLACEHOLDER]]` (legal name, support email, data region, email provider, backup days, governing law, policy date).
-2. Pick your **app ID** and put it in `frontend/app.json` (`ios.bundleIdentifier` and `android.package`), for example `com.yourname.mylittlebean`. **It cannot be changed after the first store release.**
+2. Pick your **app ID** and put it in `frontend/app.json` (`ios.bundleIdentifier` and `android.package`), for example `com.yourname.mybean`. **It cannot be changed after the first store release.**
 3. `cd frontend && npm run legal:export` writes `docs/legal/PRIVACY_POLICY.md` and `TERMS_OF_SERVICE.md`. Have a lawyer read them, then publish them on the web. The stores need the Privacy Policy as a public URL.
 4. Also publish a short "Delete your account" page (Google Play requires a web link). Text to use:
-   > To delete your My Little Bean account and its data: open the app, go to Settings, tap "Delete my account" and confirm. If you cannot access the app, email SUPPORT_EMAIL from the address on your account and we will delete it within 30 days. Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts and photo. If a partner remains in your household they keep the shared baby records.
+   > To delete your My Bean account and its data: open the app, go to Settings, tap "Delete my account" and confirm. If you cannot access the app, email SUPPORT_EMAIL from the address on your account and we will delete it within 30 days. Deleting removes your profile, survey answers, wellbeing check-ins, pumping logs, community posts and photo. If a partner remains in your household they keep the shared baby records.
 
 ## 2. Supabase (production readiness)
 - Run migrations `0001` to `0008` in order (see `SUPABASE_SETUP.md`).
 - **Custom email (SMTP)** and **Confirm email ON** (`SUPABASE_SETUP.md` section 2). The built-in sender is rate-limited and not for real users.
-- **Authentication -> URL Configuration -> Redirect URLs**: add `mylittlebean://**` (needed for password-reset links in the real app).
+- **Authentication -> URL Configuration -> Redirect URLs**: add `mybean://**` (needed for password-reset links in the real app).
 - **Rotate the old AWS RDS password** (it is in git history) and shut the instance down if it is no longer used.
 - **Plan:** free Supabase projects are paused after a period of inactivity and have limited backups. Before launch, look at the paid plan so the project does not pause and you get daily backups. Whatever you choose, put the real backup retention in `BACKUP_DAYS`.
 - Make yourself a moderator (`SUPABASE_SETUP.md` section 4) and keep an eye on reports: Apple and Google expect user reports to be acted on promptly.

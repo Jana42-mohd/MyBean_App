@@ -13,8 +13,8 @@ for (const m of read('lib/appInfo.ts').matchAll(/export const (\w+) = '([^']*)'/
 
 // 2. app ids
 const app = JSON.parse(read('app.json')).expo;
-if (app.ios?.bundleIdentifier === 'com.mylittlebean.app') problems.push('app.json: ios.bundleIdentifier is still the default com.mylittlebean.app (cannot change after the first store release)');
-if (app.android?.package === 'com.mylittlebean.app') problems.push('app.json: android.package is still the default com.mylittlebean.app (cannot change after the first store release)');
+if (app.ios?.bundleIdentifier === 'com.mybean.app') problems.push('app.json: ios.bundleIdentifier is still the default com.mybean.app (cannot change after the first store release)');
+if (app.android?.package === 'com.mybean.app') problems.push('app.json: android.package is still the default com.mybean.app (cannot change after the first store release)');
 if (!app.extra?.eas?.projectId) problems.push('app.json: extra.eas.projectId missing. Run `npx eas-cli init` first');
 
 // 3. Expo template images

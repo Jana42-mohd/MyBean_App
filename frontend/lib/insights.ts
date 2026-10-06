@@ -113,7 +113,7 @@ export function computeStats(rows: InsightRow[], buckets: DayBucket[]): Stats {
 // Plain-text summary a parent can send to a doctor
 export function summaryText(babyName: string, days: number, buckets: DayBucket[], s: Stats): string {
   const lines = [
-    `${babyName}: last ${days} days (My Little Bean)`,
+    `${babyName}: last ${days} days (My Bean)`,
     `Sleep: ${formatDuration(s.avgSleepMin)} per day on average, longest stretch ${formatDuration(s.longestSleepMin)}`,
     `Feedings: ${s.avgFeedings.toFixed(1)} per day${s.avgFeedGapHours ? `, about every ${s.avgFeedGapHours.toFixed(1)} hours` : ''}`,
     `Diapers: ${s.avgDiapers.toFixed(1)} per day`,

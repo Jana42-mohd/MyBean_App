@@ -95,7 +95,7 @@ export async function exportMyData(): Promise<void> {
 
   const payload = {
     exported_at: new Date().toISOString(),
-    app: 'My Little Bean',
+    app: 'My Bean',
     account: { id: me.id, email: me.email, created_at: me.created_at },
     profile: profile[0] ?? null,
     survey: survey[0]?.data ?? null,
@@ -109,11 +109,11 @@ export async function exportMyData(): Promise<void> {
   const text = JSON.stringify(payload, null, 2);
 
   try {
-    const file = new File(Paths.cache, `my-little-bean-data-${new Date().toISOString().slice(0, 10)}.json`);
+    const file = new File(Paths.cache, `my-bean-data-${new Date().toISOString().slice(0, 10)}.json`);
     file.create({ overwrite: true });
     file.write(text);
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Save your My Little Bean data' });
+      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Save your My Bean data' });
       return;
     }
   } catch (e) {

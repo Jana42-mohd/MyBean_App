@@ -3,7 +3,7 @@
 Adapt freely. Keep the health disclaimer.
 
 ## Basics
-- **Name:** My Little Bean
+- **Name:** My Bean
 - **Subtitle (iOS, 30 chars):** Baby tracker & parent care
 - **Short description (Google Play, 80 chars):** Track feeds, sleep and diapers with your partner, and look after yourself too.
 - **Category:** Parenting (or Health & Fitness if Parenting is unavailable)
@@ -11,7 +11,7 @@ Adapt freely. Keep the health disclaimer.
 - **Keywords (iOS):** baby tracker, feeding log, sleep tracker, diaper, newborn, twins, postpartum, pumping, parenting
 
 ## Full description
-My Little Bean is a calm, simple way to keep track of your baby's day, and a place to look after yourself too.
+My Bean is a calm, simple way to keep track of your baby's day, and a place to look after yourself too.
 
 **Track in one tap**
 Log feedings and diapers in a tap, start a sleep timer, and undo mistakes right away. Expecting? Add your due date and see how many days to go.
@@ -34,7 +34,7 @@ Private daily check-ins and the Edinburgh Postnatal Depression Scale screening, 
 **Community**
 Ask questions and share stories with other parents. Report or block anyone, with moderators keeping the space kind.
 
-*My Little Bean provides general information and tracking tools. It is not medical advice and the wellbeing screening is not a diagnosis. Always talk to a health professional about medical concerns.*
+*My Bean provides general information and tracking tools. It is not medical advice and the wellbeing screening is not a diagnosis. Always talk to a health professional about medical concerns.*
 
 ## Apple "App Privacy" answers
 Data **collected and linked to the user**, used only for **App Functionality**, **not used for tracking**:

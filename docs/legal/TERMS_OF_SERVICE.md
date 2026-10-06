@@ -2,7 +2,7 @@
 
 ## Agreement
 
-These terms are between you and [[LEGAL_NAME]] ("we", "us") and apply to your use of My Little Bean. By creating an account or using the app you agree to them and to our Privacy Policy. If you do not agree, please do not use the app. Last updated: [[POLICY_DATE]].
+These terms are between you and [[LEGAL_NAME]] ("we", "us") and apply to your use of My Bean. By creating an account or using the app you agree to them and to our Privacy Policy. If you do not agree, please do not use the app. Last updated: [[POLICY_DATE]].
 
 ## Who can use the app
 
@@ -14,7 +14,7 @@ Keep your password secure and tell us if you think your account has been accesse
 
 ## Not medical advice
 
-My Little Bean helps you keep track of your baby's routines and your own wellbeing. It does not provide medical advice, diagnosis or treatment. The postpartum screening is not a diagnosis. Always seek the advice of a qualified health professional about medical questions, and never ignore professional advice or delay seeking it because of something in the app. If you or your baby may be in danger, call your local emergency number.
+My Bean helps you keep track of your baby's routines and your own wellbeing. It does not provide medical advice, diagnosis or treatment. The postpartum screening is not a diagnosis. Always seek the advice of a qualified health professional about medical questions, and never ignore professional advice or delay seeking it because of something in the app. If you or your baby may be in danger, call your local emergency number.
 
 ## Community rules
 

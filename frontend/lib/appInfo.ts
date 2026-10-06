@@ -1,6 +1,6 @@
 // Facts about the app and its owner that appear in the legal text and support links.
 // Fill in every value marked [[LIKE_THIS]] before the first store submission:  npm run check:launch
-export const APP_NAME = 'My Little Bean';
+export const APP_NAME = 'My Bean';
 export const OWNER_NAME = '[[LEGAL_NAME]]'; // person or company that publishes the app
 export const SUPPORT_EMAIL = '[[SUPPORT_EMAIL]]';
 export const DATA_REGION = '[[DATA_REGION]]'; // where the Supabase project is hosted, e.g. "Canada (Central)"

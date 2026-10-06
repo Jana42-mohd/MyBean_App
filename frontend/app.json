@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "My Little Bean",
-    "slug": "my-little-bean",
+    "name": "My Bean",
+    "slug": "my-bean",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mylittlebean",
+    "scheme": "mybean",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.mylittlebean.app",
+      "bundleIdentifier": "com.mybean.app",
       "buildNumber": "1",
       "config": {
         "usesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.mylittlebean.app",
+      "package": "com.mybean.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -48,9 +48,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "My Little Bean uses your photos and videos so you can choose a profile picture, add a photo to a milestone, or share in a community post.",
-          "cameraPermission": "My Little Bean uses the camera so you can take a profile picture or a photo or video for a milestone or community post.",
-          "microphonePermission": "My Little Bean uses the microphone when you record a video for a community post."
+          "photosPermission": "My Bean uses your photos and videos so you can choose a profile picture, add a photo to a milestone, or share in a community post.",
+          "cameraPermission": "My Bean uses the camera so you can take a profile picture or a photo or video for a milestone or community post.",
+          "microphonePermission": "My Bean uses the microphone when you record a video for a community post."
         }
       ],
       "expo-notifications"

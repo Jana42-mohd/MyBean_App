@@ -2,7 +2,7 @@
 
 ## Who we are
 
-My Little Bean is a baby-tracking and parent-support app published by [[LEGAL_NAME]] ("we", "us"). This policy explains what information the app collects, why, who can see it, and the choices you have. Last updated: [[POLICY_DATE]].
+My Bean is a baby-tracking and parent-support app published by [[LEGAL_NAME]] ("we", "us"). This policy explains what information the app collects, why, who can see it, and the choices you have. Last updated: [[POLICY_DATE]].
 
 Questions or requests: [[SUPPORT_EMAIL]].
 
@@ -84,7 +84,7 @@ Depending on where you live (for example under Canada's PIPEDA, the EU/UK GDPR o
 
 ## Children
 
-My Little Bean is for parents and caregivers aged 18 or over. Information about a baby is provided by their parent or caregiver. We do not knowingly collect information directly from children.
+My Bean is for parents and caregivers aged 18 or over. Information about a baby is provided by their parent or caregiver. We do not knowingly collect information directly from children.
 
 ## Health information
 

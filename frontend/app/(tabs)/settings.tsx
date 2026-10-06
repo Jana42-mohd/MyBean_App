@@ -168,7 +168,7 @@ export default function SettingsScreen() {
   const shareInvite = async () => {
     if (!household) return;
     await Share.share({
-      message: `Join me on My Little Bean! After you sign up, go to Settings > Household and enter this code: ${household.invite_code}`,
+      message: `Join me on My Bean! After you sign up, go to Settings > Household and enter this code: ${household.invite_code}`,
     });
   };
 
@@ -249,7 +249,7 @@ export default function SettingsScreen() {
     const next = { ...rem, ...patch };
     const ok = await saveReminderSettings(next, rem);
     if (!ok) {
-      Alert.alert('Notifications are off', 'Turn on notifications for My Little Bean in your phone settings, then try again.');
+      Alert.alert('Notifications are off', 'Turn on notifications for My Bean in your phone settings, then try again.');
       return;
     }
     setRem(next);
@@ -260,7 +260,7 @@ export default function SettingsScreen() {
     try {
       if (!(await setPartnerNotifications(on))) {
         setNotifyPartner(false);
-        Alert.alert('Notifications are off', 'Turn on notifications for My Little Bean in your phone settings, then try again.');
+        Alert.alert('Notifications are off', 'Turn on notifications for My Bean in your phone settings, then try again.');
       }
     } catch (e) {
       setNotifyPartner(!on);
