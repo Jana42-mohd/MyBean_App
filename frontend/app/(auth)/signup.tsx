@@ -247,7 +247,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     marginTop: 6,
   },
   mainButtonText: {
-    color: colors.cardAlt,
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 16,
   },

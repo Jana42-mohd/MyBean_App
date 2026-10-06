@@ -401,7 +401,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontWeight: '500',
   },
   choiceTextActive: {
-    color: colors.cardAlt,
+    color: colors.onAccent,
     fontWeight: '700',
   },
   submit: {
@@ -417,7 +417,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     elevation: 6,
   },
   submitText: {
-    color: colors.cardAlt,
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 17,
   },

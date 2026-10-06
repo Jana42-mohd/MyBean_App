@@ -33,6 +33,6 @@ export function OfflineBanner() {
 
 const makeStyles = (colors: Palette) => StyleSheet.create({
   bar: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.accent, paddingTop: 40, paddingBottom: 8, paddingHorizontal: 16, zIndex: 100 },
-  syncing: { backgroundColor: colors.link },
+  syncing: { backgroundColor: colors.highlight },
   text: { color: colors.onAccent, fontWeight: '700', textAlign: 'center', fontSize: 13 },
 });

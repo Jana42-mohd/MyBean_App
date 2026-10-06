@@ -167,7 +167,7 @@ export default function HistoryScreen() {
     const byType: Record<string, string> =
       colors.scheme === 'dark'
         ? { diaper: '#FFB6C1', feeding: '#E4B1D6', nap: '#87CEEB', milestone: '#E8E2A0', mood: '#C9A3E0', pumping: '#98E8A8', growth: '#9fd0ff' }
-        : { diaper: '#C8527A', feeding: '#B0467F', nap: '#2F7FB0', milestone: '#9A7400', mood: '#8450B0', pumping: '#2F8F68', growth: '#2A78D6' };
+        : { diaper: '#C25E8E', feeding: '#9A57A6', nap: '#2F7FB0', milestone: '#9A7400', mood: '#8450B0', pumping: '#2F8F68', growth: '#2A78D6' };
     return byType[type] || colors.muted;
   };
 

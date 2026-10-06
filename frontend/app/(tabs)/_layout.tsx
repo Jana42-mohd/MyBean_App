@@ -13,7 +13,7 @@ export default function TabLayout() {
       initialRouteName="home"
       screenOptions={{
         tabBarActiveTintColor: colors.link,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarInactiveTintColor: colors.tint,
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.line },
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginHorizontal: -4 },
         tabBarItemStyle: { paddingHorizontal: 0 },

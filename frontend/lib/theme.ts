@@ -10,10 +10,11 @@ import { useColorScheme as useSystemScheme } from 'react-native';
 //   text / heading / muted                body text, titles, secondary text
 //   accent + onAccent                     the brand colour as a FILL (primary buttons, selected pills, badges) and the text on it
 //   accentText                            the brand colour as TEXT or an icon
-//   link + onLink                         teal highlights: links and active chips
+//   link / highlight                      the yellow: text (links, labels, headings) and fill (active chips, with onAccent text on it)
 //   tint + onTint                         the teal used for switches and small fills, and the text on it
 //   danger / errorBg                      destructive actions and error panels
 // The brand pink is used sparingly on purpose: titles are neutral, pink marks the main action and the selected state.
+// Pink and yellow keep the same soft pastel look in both themes; only the text-sized uses get a darker shade in light mode.
 export interface Palette {
   scheme: 'light' | 'dark';
   bg: string;
@@ -27,7 +28,8 @@ export interface Palette {
   accent: string;
   onAccent: string;
   accentText: string;
-  link: string;
+  link: string;       // yellow in dark mode, mustard in light mode: links, labels and headings
+  highlight: string;  // yellow FILL (active chips and tabs); text on it is onAccent
   tint: string;
   onTint: string;     // text on a tint fill
   danger: string;
@@ -56,7 +58,8 @@ export const DARK: Palette = {
   accent: '#E4B1D6',
   onAccent: '#09282e',
   accentText: '#EBBFE0',
-  link: '#9AE1E8',
+  link: '#FDFECC',
+  highlight: '#FDFECC',
   tint: '#2F9BA8',
   onTint: '#F2FDFF',
   danger: '#FF8F8F',
@@ -82,17 +85,18 @@ export const LIGHT: Palette = {
   text: '#0D3A41',
   heading: '#0A2F35',
   muted: '#46737A',
-  accent: '#B0467F',
-  onAccent: '#FFFFFF',
-  accentText: '#9E3A70',
-  link: '#17707C',
+  accent: '#F2BFE6',
+  onAccent: '#0D3A41',
+  accentText: '#7C3F78',
+  link: '#8A6B00',
+  highlight: '#FBEFA0',
   tint: '#1E8794',
   onTint: '#FFFFFF',
   danger: '#C0332F',
   errorBg: '#FDECEC',
   overlay: 'rgba(8,40,46,0.45)',
   wash: 'rgba(30,135,148,0.09)',
-  accentWash: 'rgba(176,70,127,0.09)',
+  accentWash: 'rgba(242,191,230,0.45)',
   success: '#1F8A5A',
   soft: 'rgba(15,58,65,0.05)',
   sleep: '#4a3aa7',

@@ -20,7 +20,7 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 const PAIRS = [
   ['text', 'bg', 4.5], ['text', 'card', 4.5], ['heading', 'bg', 4.5], ['muted', 'bg', 4.5], ['muted', 'card', 4.5], ['muted', 'cardAlt', 4.5],
   ['onAccent', 'accent', 4.5], ['accentText', 'card', 4.5], ['accentText', 'bg', 4.5], ['link', 'card', 4.5], ['link', 'bg', 4.5],
-  ['onAccent', 'link', 4.5], ['onTint', 'tint', 3.0], ['danger', 'card', 4.5], ['danger', 'bg', 4.5], ['text', 'errorBg', 4.5],
+  ['onAccent', 'highlight', 4.5], ['onTint', 'tint', 3.0], ['danger', 'card', 4.5], ['danger', 'bg', 4.5], ['text', 'errorBg', 4.5],
   ['success', 'card', 3.0], ['sleep', 'card', 3.0], ['wet', 'card', 3.0], ['dirty', 'card', 3.0],
 ];
 for (const [name, p] of [['dark', theme.DARK], ['light', theme.LIGHT]]) {

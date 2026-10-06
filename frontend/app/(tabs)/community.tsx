@@ -608,7 +608,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     elevation: 4,
   },
   primaryButtonText: {
-    color: colors.cardAlt,
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 16,
   },
@@ -628,7 +628,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     alignItems: 'center',
   },
   viewModeButtonActive: {
-    backgroundColor: colors.link,
+    backgroundColor: colors.highlight,
     borderColor: colors.link,
   },
   viewModeButtonText: {
@@ -849,7 +849,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: 8,
   },
   tagSelectionButtonActive: {
-    backgroundColor: colors.link,
+    backgroundColor: colors.highlight,
     borderColor: colors.link,
   },
   tagSelectionText: {
@@ -858,7 +858,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontWeight: '600',
   },
   tagSelectionTextActive: {
-    color: colors.cardAlt,
+    color: colors.onAccent,
   },
   selectedTagsInfo: {
     fontSize: 12,

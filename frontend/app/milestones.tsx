@@ -228,7 +228,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   addText: { color: colors.onAccent, fontWeight: '700', textAlign: 'center' },
   empty: { color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 20 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.link },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.highlight },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
   cardMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
   cardNotes: { color: colors.text, fontSize: 13, marginTop: 4, lineHeight: 18 },

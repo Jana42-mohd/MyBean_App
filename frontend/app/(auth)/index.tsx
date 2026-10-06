@@ -119,7 +119,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     elevation: 4,
   },
   signupText: {
-    color: colors.cardAlt, 
+    color: colors.onAccent, 
     fontWeight: '700',
     fontSize: 16,
   },
