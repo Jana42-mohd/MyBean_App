@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds frontend/assets/data/cities.json, the city list behind "Parents near you" > choose your city.
 
-Source data (both are GeoNames extracts, licence CC BY 4.0, attribution is shown in the app under Settings > About):
+Source data (both are GeoNames extracts, licence CC BY 4.0, attribution is shown at the bottom of the city picker):
   * geonamescache  -> cities with 5,000+ people: name, country, population, coordinates
   * reverse_geocoder (rg_cities1000.csv) -> the same places with the NAME of their state/province
 

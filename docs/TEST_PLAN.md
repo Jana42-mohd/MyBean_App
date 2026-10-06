@@ -185,4 +185,4 @@ Use two phones/emulators or a phone + the web build, with two email addresses (A
 - [ ] Picking a city shows "City, Region". Changing the country clears the city. "Use '<what I typed>'" appears for a town that is not listed.
 - [ ] Two parents who both pick Toronto, Ontario see each other under the city tab; a parent who picked Springfield, Illinois does not see one in Springfield, Missouri.
 - [ ] Someone who typed their city by hand before this update still matches a parent who picks the same city from the list.
-- [ ] The picker works offline (the list is on the phone) and opens quickly. The GeoNames credit is shown in the picker and in Settings -> About.
+- [ ] The picker works offline (the list is on the phone) and opens quickly. The GeoNames credit is shown at the bottom of the picker.

@@ -76,7 +76,7 @@ Each person has a "read up to" time per chat and group (`chat_reads`, reachable 
 tab shows one number: unread messages + connection requests + group invitations. It refreshes every 30 seconds while the
 app is open, when a notification arrives and whenever a chat is read. Existing chats count as read when you run the
 migration. Muted groups still count in the number (the group's own pill is dimmed).
-Cities come from a list built from GeoNames (CC BY 4.0; credited in Settings -> About and in the city picker):
+Cities come from a list built from GeoNames (CC BY 4.0; credited at the bottom of the city picker):
 `frontend/assets/data/cities.json` (about 600 KB, 34,000 towns of 5,000+ people with their state or province). To rebuild
 it, see `tools/generate-cities.py`. A town that is not in the list can be typed. Matching ignores capitals, accents and
 punctuation; a city picked from the list must also be in the same region (Springfield, Illinois is not Springfield,
