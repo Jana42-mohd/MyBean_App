@@ -46,6 +46,11 @@ export default function HomeScreen() {
   const [selected, setSelected] = useState(ALL_BABIES);
   const [weekRows, setWeekRows] = useState<LogRow[]>([]);   // the last 7 days: today's totals, "right now" and "same as last time" all come from these
   const [rightNowIds, setRightNowIds] = useState<string[]>([]);
+  // only update when the list really changed, so the card reporting back can never cause an endless re-render
+  const onRightNowShown = useCallback((ids: string[]) => {
+    setRightNowIds(prev => (prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids));
+  }, []);
+  const born = useMemo(() => bornBabies(babies), [babies]);
 
   const [toast, setToast] = useState<{ message: string; undo?: () => Promise<void> } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,9 +163,9 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ThemedText style={styles.greeting}>Hi {data.parentName}!</ThemedText>
-          {bornBabies(babies).length > 0 ? (
+          {born.length > 0 ? (
             <Text style={styles.sectionTitle}>
-              Today with {babyNames(bornBabies(babies))}
+              Today with {babyNames(born)}
               {partners.length > 1 ? ` · with ${partners.filter(n => n !== data.parentName).join(' & ')}` : ''}
             </Text>
           ) : null}
@@ -185,9 +190,9 @@ export default function HomeScreen() {
             </View>
           );
         })}
-        <BabyPicker babies={bornBabies(babies)} value={selected} onChange={setSelected} />
+        <BabyPicker babies={born} value={selected} onChange={setSelected} />
 
-        <RightNow babies={bornBabies(babies)} selected={selected} rows={weekRows} onChanged={loadData} onToast={showToast} onShown={setRightNowIds} />
+        <RightNow babies={born} selected={selected} rows={weekRows} onChanged={loadData} onToast={showToast} onShown={onRightNowShown} />
 
         {/* Core Stats */}
         <View style={styles.section}>
@@ -211,7 +216,7 @@ export default function HomeScreen() {
         {/* Quick Log Section */}
         <View style={[styles.section, styles.quickLogSection]}>
           <Text style={styles.sectionTitle}>Quick Log</Text>
-          <QuickLog babies={bornBabies(babies)} selected={selected} onChanged={loadData} onToast={showToast} rows={weekRows} skipBanners={rightNowIds} />
+          <QuickLog babies={born} selected={selected} onChanged={loadData} onToast={showToast} rows={weekRows} skipBanners={rightNowIds} />
         </View>
 
         {/* Growth & Development */}
