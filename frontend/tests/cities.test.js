@@ -28,7 +28,8 @@ test('search: prefix first, then a word that starts with it; names that only con
 
 test('an empty search lists the biggest cities, the limit is respected, missing data is empty', () => {
   assert.deepStrictEqual(searchCities(data, '', 2).map(c => c.name), ['Toronto', 'Montréal']);
-  assert.strictEqual(searchCities(data, 'o', 3).length, 3);
+  assert.strictEqual(searchCities(data, 't', 3).length, 3);
+  assert.strictEqual(searchCities(data, 't', 2).length, 2);
   assert.deepStrictEqual(searchCities(null, 'x'), []);
 });
 
